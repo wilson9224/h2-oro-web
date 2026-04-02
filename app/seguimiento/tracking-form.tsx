@@ -132,15 +132,18 @@ export default function TrackingForm() {
           estimatedDeliveryDate: order.estimated_delivery_date,
           createdAt: order.created_at,
         },
-        pieces: order.pieces.map((p: any) => ({
-          name: p.name,
-          currentState: p.currentState ? {
-            code: p.currentState.code,
-            name: p.currentState.name,
-            publicLabel: p.currentState.public_label,
-            isFinal: p.currentState.is_final,
-          } : null,
-        })),
+        pieces: order.pieces.map((p: { name: string; currentState: { code: string; name: string; public_label: string | null; is_final: boolean }[] }) => {
+          const cs = Array.isArray(p.currentState) ? p.currentState[0] : p.currentState;
+          return {
+            name: p.name,
+            currentState: cs ? {
+              code: cs.code,
+              name: cs.name,
+              publicLabel: cs.public_label,
+              isFinal: cs.is_final,
+            } : null,
+          };
+        }),
         timeline,
       });
     } catch (err) {
