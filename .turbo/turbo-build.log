@@ -1,0 +1,52 @@
+
+> @h2oro/web@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.35
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/22) ...
+   Generating static pages (5/22) 
+   Generating static pages (10/22) 
+   Generating static pages (16/22) 
+ ✓ Generating static pages (22/22)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    19.4 kB         157 kB
+├ ○ /_not-found                          873 B          88.2 kB
+├ ○ /admin                               4.75 kB         163 kB
+├ ○ /admin/catalogo                      5.13 kB         163 kB
+├ ○ /admin/catalogo/nuevo                4.17 kB         162 kB
+├ ○ /admin/cms                           4.99 kB         163 kB
+├ ○ /admin/cms/nuevo                     3.54 kB         161 kB
+├ ○ /admin/configuracion                 2.01 kB        89.3 kB
+├ ○ /admin/pedidos                       4.34 kB         162 kB
+├ ƒ /admin/pedidos/[id]                  5.15 kB         163 kB
+├ ○ /admin/pedidos/nuevo                 4.07 kB         162 kB
+├ ○ /admin/reportes                      3.67 kB         153 kB
+├ ○ /admin/usuarios                      3.42 kB         153 kB
+├ ○ /auth/login                          2.85 kB         202 kB
+├ ○ /auth/register                       3.24 kB         141 kB
+├ ƒ /catalogo                            177 B          96.2 kB
+├ ƒ /catalogo/[slug]                     177 B          96.2 kB
+├ ○ /mi-cuenta                           3.95 kB         162 kB
+├ ○ /mi-cuenta/pagos                     3.87 kB         153 kB
+├ ƒ /mi-cuenta/pedidos/[id]              4.59 kB         162 kB
+├ ○ /mi-cuenta/perfil                    2.95 kB         152 kB
+└ ○ /seguimiento                         2.71 kB          90 kB
++ First Load JS shared by all            87.3 kB
+  ├ chunks/1dd3208c-6608ab807ec9ef95.js  53.6 kB
+  ├ chunks/528-db4b35ba7d8748a9.js       31.7 kB
+  └ other shared chunks (total)          1.95 kB
+
+
+ƒ Middleware                             79.3 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

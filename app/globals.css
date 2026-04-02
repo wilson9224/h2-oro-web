@@ -3,21 +3,99 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0A0A0A;
+  --foreground: #F2F0ED;
+  --gold: #D4AF37;
+  --gold-light: #F5E6CC;
+  --gold-dark: #B8960F;
+  --cream: #F2F0ED;
+  --charcoal: #161616;
+  --charcoal-light: #222222;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    color: var(--foreground);
+    background: var(--background);
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  ::selection {
+    background: rgba(212, 175, 55, 0.25);
+    color: #F2F0ED;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(212, 175, 55, 0.2);
+    border-radius: 2px;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .gold-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-gold-400 via-gold-300 to-gold-500;
+  }
+
+  .text-outline {
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke: 1.5px rgba(242, 240, 237, 0.25);
+  }
+
+  .text-outline-gold {
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke: 1.5px rgba(212, 175, 55, 0.4);
+  }
+
+  .section-padding {
+    @apply px-5 sm:px-8 md:px-12 lg:px-20;
+  }
+
+  .btn-pill {
+    @apply inline-flex items-center gap-2.5 px-7 py-3
+           rounded-full bg-gold-500 text-charcoal-900
+           text-xs font-medium uppercase tracking-[0.12em]
+           hover:bg-gold-400 hover:scale-[1.03]
+           active:scale-[0.98]
+           transition-all duration-500 ease-out;
+  }
+
+  .btn-pill-outline {
+    @apply inline-flex items-center gap-2.5 px-7 py-3
+           rounded-full border border-cream-200/20 text-cream-200
+           text-xs font-medium uppercase tracking-[0.12em]
+           hover:bg-cream-200/5 hover:border-cream-200/40
+           transition-all duration-500 ease-out;
+  }
+
+  .link-hover {
+    @apply relative text-cream-300/60 hover:text-cream-200
+           transition-colors duration-500;
+  }
+
+  .marquee-track {
+    @apply flex gap-8 whitespace-nowrap;
+    width: max-content;
+  }
+
+  .divider-dot {
+    @apply w-1 h-1 rounded-full bg-gold-500/40;
+  }
 }
 
 @layer utilities {
