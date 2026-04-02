@@ -1,8 +1,10 @@
 'use client';
 
 import { useAuth } from './use-auth';
+import { resolveDemoData } from '@/lib/demo-data';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 export function useApi() {
   const { token } = useAuth();
@@ -13,6 +15,10 @@ export function useApi() {
   });
 
   const get = async <T>(endpoint: string): Promise<T> => {
+    if (DEMO_MODE) {
+      await new Promise((r) => setTimeout(r, 300));
+      return resolveDemoData(endpoint) as T;
+    }
     const res = await fetch(`${API_URL}${endpoint}`, { headers: headers() });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ message: 'Request failed' }));
@@ -22,6 +28,10 @@ export function useApi() {
   };
 
   const post = async <T>(endpoint: string, body?: unknown): Promise<T> => {
+    if (DEMO_MODE) {
+      await new Promise((r) => setTimeout(r, 300));
+      return {} as T;
+    }
     const res = await fetch(`${API_URL}${endpoint}`, {
       method: 'POST',
       headers: headers(),
@@ -35,6 +45,10 @@ export function useApi() {
   };
 
   const patch = async <T>(endpoint: string, body: unknown): Promise<T> => {
+    if (DEMO_MODE) {
+      await new Promise((r) => setTimeout(r, 300));
+      return {} as T;
+    }
     const res = await fetch(`${API_URL}${endpoint}`, {
       method: 'PATCH',
       headers: headers(),
@@ -48,6 +62,10 @@ export function useApi() {
   };
 
   const del = async <T>(endpoint: string): Promise<T> => {
+    if (DEMO_MODE) {
+      await new Promise((r) => setTimeout(r, 300));
+      return {} as T;
+    }
     const res = await fetch(`${API_URL}${endpoint}`, {
       method: 'DELETE',
       headers: headers(),
@@ -60,6 +78,10 @@ export function useApi() {
   };
 
   const getBlob = async (endpoint: string): Promise<Blob> => {
+    if (DEMO_MODE) {
+      await new Promise((r) => setTimeout(r, 300));
+      return new Blob(['Demo report'], { type: 'application/octet-stream' });
+    }
     const res = await fetch(`${API_URL}${endpoint}`, { headers: headers() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.blob();

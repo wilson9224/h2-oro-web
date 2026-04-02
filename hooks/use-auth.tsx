@@ -36,6 +36,19 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+
+const DEMO_USER: UserProfile = {
+  id: 'demo-admin-id',
+  email: 'admin@h2oro.demo',
+  firstName: 'Admin',
+  lastName: 'Demo',
+  phone: null,
+  role: 'admin',
+  permissions: [],
+  preferredLang: 'es',
+  preferredCurr: 'COP',
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -63,6 +76,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (DEMO_MODE) {
+      setUser(DEMO_USER);
+      setToken('demo-token');
+      setLoading(false);
+      return;
+    }
+
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.access_token) {
@@ -88,6 +108,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    if (DEMO_MODE) {
+      setUser(DEMO_USER);
+      setToken('demo-token');
+      return;
+    }
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     if (data.session?.access_token) {
@@ -100,7 +125,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    if (!DEMO_MODE) {
+      await supabase.auth.signOut();
+    }
     setUser(null);
     setToken(null);
     router.push('/');
