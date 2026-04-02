@@ -67,37 +67,37 @@ export default function TrackingForm() {
         .from('orders')
         .select(`
           id,
-          orderNumber,
+          order_number,
           type,
           status,
-          estimatedDeliveryDate,
-          createdAt,
-          clientPhone,
+          estimated_delivery_date,
+          created_at,
+          client_phone,
           pieces (
             id,
             name,
-            sortOrder,
-            currentState:workflow_states (
+            sort_order,
+            currentState:workflow_states!current_state_id (
               code,
               name,
-              publicLabel,
-              isFinal
+              public_label,
+              is_final
             ),
-            stateHistory (
+            state_history (
               id,
               notes,
-              createdAt,
-              state:workflow_states (
+              created_at,
+              state:workflow_states!state_id (
                 code,
                 name,
-                publicLabel
+                public_label
               )
             )
           )
         `)
-        .eq('orderNumber', orderNumber)
-        .ilike('clientPhone', `%${phone}`)
-        .is('deletedAt', null)
+        .eq('order_number', orderNumber)
+        .like('client_phone', `%${phone}`)
+        .is('deleted_at', null)
         .single();
 
       if (orderError || !order) {
@@ -107,16 +107,16 @@ export default function TrackingForm() {
       // Build timeline from pieces' state histories
       const timeline: TimelineEvent[] = [];
       for (const piece of order.pieces) {
-        for (const entry of piece.stateHistory) {
+        for (const entry of piece.state_history) {
           const state = Array.isArray(entry.state) ? entry.state[0] : entry.state;
           timeline.push({
             id: entry.id,
             pieceName: piece.name,
             stateCode: state.code,
             stateName: state.name,
-            publicLabel: state.publicLabel,
+            publicLabel: state.public_label,
             notes: entry.notes,
-            timestamp: entry.createdAt,
+            timestamp: entry.created_at,
           });
         }
       }
@@ -126,15 +126,20 @@ export default function TrackingForm() {
 
       setResult({
         order: {
-          orderNumber: order.orderNumber,
+          orderNumber: order.order_number,
           type: order.type,
           status: order.status,
-          estimatedDeliveryDate: order.estimatedDeliveryDate,
-          createdAt: order.createdAt,
+          estimatedDeliveryDate: order.estimated_delivery_date,
+          createdAt: order.created_at,
         },
         pieces: order.pieces.map((p: any) => ({
           name: p.name,
-          currentState: p.currentState,
+          currentState: p.currentState ? {
+            code: p.currentState.code,
+            name: p.currentState.name,
+            publicLabel: p.currentState.public_label,
+            isFinal: p.currentState.is_final,
+          } : null,
         })),
         timeline,
       });
