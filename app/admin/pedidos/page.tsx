@@ -9,7 +9,9 @@ import {
   ChevronRight,
   Plus,
 } from 'lucide-react';
-import { useApi } from '@/hooks/use-api';
+import { createClient } from '@/lib/supabase/client';
+
+const supabase = createClient();
 
 interface Order {
   id: string;
@@ -23,15 +25,6 @@ interface Order {
   estimatedDeliveryDate: string | null;
   client: { id: string; firstName: string; lastName: string; email: string };
   pieces: { id: string; name: string; currentState: { code: string; name: string } | null }[];
-  _count: { payments: number };
-}
-
-interface OrdersResponse {
-  data: Order[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
 }
 
 const statusLabels: Record<string, { label: string; color: string }> = {
@@ -50,34 +43,92 @@ const typeLabels: Record<string, string> = {
 };
 
 export default function OrdersListPage() {
-  const api = useApi();
-  const [orders, setOrders] = useState<OrdersResponse | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const limit = 15;
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(page), limit: '15' });
-      if (search) params.set('search', search);
-      if (statusFilter) params.set('status', statusFilter);
-      if (typeFilter) params.set('type', typeFilter);
-      const data = await api.get<OrdersResponse>(`/orders?${params}`);
-      setOrders(data);
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
+      let query = supabase
+        .from('orders')
+        .select(`
+          id,
+          order_number,
+          type,
+          status,
+          total_amount_cop,
+          currency,
+          notes,
+          created_at,
+          estimated_delivery_date,
+          client:users!client_id ( id, first_name, last_name, email ),
+          pieces (
+            id,
+            name,
+            currentState:workflow_states!current_state_id ( code, name )
+          )
+        `, { count: 'exact' })
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      if (statusFilter) query = query.eq('status', statusFilter);
+      if (typeFilter) query = query.eq('type', typeFilter);
+      if (search) query = query.or(`order_number.ilike.%${search}%`);
+
+      const { data, error, count } = await query.range(from, to);
+
+      if (!error && data) {
+        setOrders(data.map((o: Record<string, unknown>) => {
+          const cl = Array.isArray(o.client) ? (o.client as Record<string, unknown>[])[0] : o.client as Record<string, unknown>;
+          return {
+            id: o.id as string,
+            orderNumber: o.order_number as string,
+            type: o.type as string,
+            status: o.status as string,
+            totalAmountCop: o.total_amount_cop as number | null,
+            currency: o.currency as string,
+            notes: o.notes as string | null,
+            createdAt: o.created_at as string,
+            estimatedDeliveryDate: o.estimated_delivery_date as string | null,
+            client: cl ? {
+              id: cl.id as string,
+              firstName: cl.first_name as string,
+              lastName: cl.last_name as string,
+              email: cl.email as string,
+            } : { id: '', firstName: '—', lastName: '', email: '' },
+            pieces: ((o.pieces as Record<string, unknown>[]) || []).map((p) => {
+              const cs = Array.isArray(p.currentState) ? (p.currentState as Record<string, unknown>[])[0] : p.currentState as Record<string, unknown> | null;
+              return {
+                id: p.id as string,
+                name: p.name as string,
+                currentState: cs ? { code: cs.code as string, name: cs.name as string } : null,
+              };
+            }),
+          };
+        }));
+        setTotal(count || 0);
+      }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, statusFilter, typeFilter]);
 
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  const totalPages = total > 0 ? Math.ceil(total / limit) : 0;
 
   // Debounced search
   const [searchInput, setSearchInput] = useState('');
@@ -96,7 +147,7 @@ export default function OrdersListPage() {
         <div>
           <h1 className="text-2xl font-serif text-cream-100">Pedidos</h1>
           <p className="text-sm text-charcoal-400 mt-1">
-            {orders ? `${orders.total} pedido${orders.total !== 1 ? 's' : ''} en total` : 'Cargando...'}
+            {loading ? 'Cargando...' : `${total} pedido${total !== 1 ? 's' : ''} en total`}
           </p>
         </div>
         <Link
@@ -175,7 +226,7 @@ export default function OrdersListPage() {
                   ))}
                 </>
               )}
-              {!loading && orders?.data.map((order) => {
+              {!loading && orders.map((order) => {
                 const st = statusLabels[order.status] || { label: order.status, color: 'bg-charcoal-700 text-charcoal-300' };
                 return (
                   <tr key={order.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
@@ -208,7 +259,7 @@ export default function OrdersListPage() {
                   </tr>
                 );
               })}
-              {!loading && orders?.data.length === 0 && (
+              {!loading && orders.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-5 py-12 text-center text-charcoal-500">
                     No se encontraron pedidos
@@ -220,10 +271,10 @@ export default function OrdersListPage() {
         </div>
 
         {/* Pagination */}
-        {orders && orders.totalPages > 1 && (
+        {totalPages > 1 && (
           <div className="px-5 py-3 border-t border-white/5 flex items-center justify-between">
             <p className="text-xs text-charcoal-500">
-              Página {orders.page} de {orders.totalPages}
+              Página {page} de {totalPages}
             </p>
             <div className="flex gap-1">
               <button
@@ -234,8 +285,8 @@ export default function OrdersListPage() {
                 <ChevronLeft size={16} />
               </button>
               <button
-                onClick={() => setPage((p) => Math.min(orders.totalPages, p + 1))}
-                disabled={page === orders.totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
                 className="p-1.5 rounded hover:bg-white/5 text-charcoal-400 disabled:opacity-30"
               >
                 <ChevronRight size={16} />

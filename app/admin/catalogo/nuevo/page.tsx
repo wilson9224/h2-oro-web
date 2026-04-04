@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react';
-import { useApi } from '@/hooks/use-api';
+import { createClient } from '@/lib/supabase/client';
+
+const supabase = createClient();
 
 interface Category {
   id: string;
@@ -19,7 +21,6 @@ interface VariantInput {
 }
 
 export default function NewProductPage() {
-  const api = useApi();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -36,8 +37,15 @@ export default function NewProductPage() {
   const [variants, setVariants] = useState<VariantInput[]>([]);
 
   useEffect(() => {
-    api.get<Category[]>('/catalog/categories').then(setCategories).catch(console.error);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    supabase
+      .from('categories')
+      .select('id, name, slug')
+      .is('deleted_at', null)
+      .eq('is_active', true)
+      .order('name')
+      .then(({ data }) => {
+        if (data) setCategories(data as Category[]);
+      });
   }, []);
 
   const addVariant = () => setVariants([...variants, { name: '', material: '', priceCop: '' }]);
@@ -62,21 +70,39 @@ export default function NewProductPage() {
     setLoading(true);
     setError('');
     try {
-      await api.post<{ id: string }>('/catalog/products', {
-        name,
-        slug: slug || undefined,
-        description: description || undefined,
-        material: material || undefined,
-        basePriceCop: basePriceCop ? Number(basePriceCop) : undefined,
-        categoryId,
-        isActive,
-        isFeatured,
-        variants: variants.filter((v) => v.name).map((v) => ({
-          name: v.name,
-          material: v.material || undefined,
-          priceCop: v.priceCop ? Number(v.priceCop) : undefined,
-        })),
-      });
+      const productSlug = slug || name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+      const { data: product, error: prodErr } = await supabase
+        .from('products')
+        .insert({
+          name,
+          slug: productSlug,
+          description: description || null,
+          material: material || null,
+          base_price_cop: basePriceCop ? Number(basePriceCop) : null,
+          category_id: categoryId,
+          is_active: isActive,
+          is_featured: isFeatured,
+        })
+        .select('id')
+        .single();
+
+      if (prodErr) throw new Error(prodErr.message);
+
+      // Insert variants if any
+      const validVariants = variants.filter((v) => v.name);
+      if (validVariants.length > 0 && product) {
+        const { error: varErr } = await supabase
+          .from('product_variants')
+          .insert(validVariants.map((v) => ({
+            product_id: product.id,
+            name: v.name,
+            material: v.material || null,
+            price_cop: v.priceCop ? Number(v.priceCop) : null,
+          })));
+        if (varErr) console.error('Error creando variantes:', varErr.message);
+      }
+
       router.push('/admin/catalogo');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error creando producto');

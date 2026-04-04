@@ -10,7 +10,9 @@ import {
   ArrowRight,
   ArrowUpRight,
 } from 'lucide-react';
-import { useApi } from '@/hooks/use-api';
+import { createClient } from '@/lib/supabase/client';
+
+const supabase = createClient();
 
 interface AdminDashboard {
   kpis: {
@@ -56,17 +58,100 @@ function formatCOP(amount: number) {
 }
 
 export default function AdminDashboardPage() {
-  const api = useApi();
   const [data, setData] = useState<AdminDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.get<AdminDashboard>('/dashboard/admin')
-      .then(setData)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const fetchDashboard = async () => {
+      try {
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 86_400_000).toISOString();
+
+        // Fetch all orders (non-deleted)
+        const { data: allOrders, error: ordersErr } = await supabase
+          .from('orders')
+          .select(`
+            id,
+            order_number,
+            type,
+            status,
+            total_amount_cop,
+            created_at,
+            estimated_delivery_date,
+            client:users!client_id ( id, first_name, last_name ),
+            pieces ( id )
+          `)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false });
+
+        if (ordersErr) throw new Error(ordersErr.message);
+        const orders = allOrders || [];
+
+        // Fetch completed payments
+        const { data: payments } = await supabase
+          .from('payments')
+          .select('id, amount_cop')
+          .eq('status', 'completed');
+
+        const totalRevenueCop = (payments || []).reduce((sum: number, p: { amount_cop: number }) => sum + Number(p.amount_cop), 0);
+
+        // Compute KPIs
+        const activeStatuses = ['pending', 'in_progress'];
+        const totalOrders = orders.length;
+        const activeOrders = orders.filter((o: { status: string }) => activeStatuses.includes(o.status)).length;
+        const ordersLast30Days = orders.filter((o: { created_at: string }) => o.created_at >= thirtyDaysAgo).length;
+        const delayedOrders = orders.filter((o: { status: string; estimated_delivery_date: string | null }) =>
+          activeStatuses.includes(o.status) && o.estimated_delivery_date && new Date(o.estimated_delivery_date) < now
+        ).length;
+
+        // Orders by status
+        const statusCounts: Record<string, number> = {};
+        orders.forEach((o: { status: string }) => { statusCounts[o.status] = (statusCounts[o.status] || 0) + 1; });
+        const ordersByStatus = Object.entries(statusCounts).map(([status, _count]) => ({ status, _count }));
+
+        // Orders by type
+        const typeCounts: Record<string, number> = {};
+        orders.forEach((o: { type: string }) => { typeCounts[o.type] = (typeCounts[o.type] || 0) + 1; });
+        const ordersByType = Object.entries(typeCounts).map(([type, _count]) => ({ type, _count }));
+
+        // Recent orders
+        const recentOrders = orders.slice(0, 5).map((o: Record<string, unknown>) => {
+          const cl = Array.isArray(o.client) ? (o.client as Record<string, unknown>[])[0] : o.client as Record<string, unknown>;
+          const piecesArr = (o.pieces as unknown[]) || [];
+          return {
+            id: o.id as string,
+            orderNumber: o.order_number as string,
+            type: o.type as string,
+            status: o.status as string,
+            createdAt: o.created_at as string,
+            client: cl ? { firstName: cl.first_name as string, lastName: cl.last_name as string } : { firstName: '—', lastName: '' },
+            _count: { pieces: piecesArr.length },
+          };
+        });
+
+        setData({
+          kpis: {
+            totalOrders,
+            activeOrders,
+            ordersLast30Days,
+            activeAssignments: 0,
+            blockedAssignments: 0,
+            delayedOrders,
+            totalRevenueCop,
+            totalPaymentsCount: (payments || []).length,
+          },
+          ordersByStatus,
+          ordersByType,
+          recentOrders,
+        });
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Error cargando dashboard');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
   }, []);
 
   if (loading) {
