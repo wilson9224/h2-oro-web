@@ -45,7 +45,6 @@ export default function NewOrderPage() {
 
   // Reference data
   const [workflowStates, setWorkflowStates] = useState<WorkflowStateOption[]>([]);
-  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   const [managersAndAdmins, setManagersAndAdmins] = useState<StaffUser[]>([]);
   const [assignableOwners, setAssignableOwners] = useState<StaffUser[]>([]);
 
@@ -100,7 +99,6 @@ export default function NewOrderPage() {
           const staff = mapped.filter((u) =>
             ['admin', 'manager', 'jeweler', 'designer'].includes(u.roleName)
           );
-          setStaffUsers(staff);
 
           const mgrs = staff.filter((u) => ['admin', 'manager'].includes(u.roleName));
           setManagersAndAdmins(mgrs);
