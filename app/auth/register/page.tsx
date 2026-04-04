@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { user, loading: authLoading, signUp } = useAuth();
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -19,6 +21,12 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/mi-cuenta');
+    }
+  }, [user, authLoading, router]);
 
   const update = (field: string, value: string) =>
     setForm((f) => ({ ...f, [field]: value }));
@@ -38,11 +46,17 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      // TODO: Integrate with Supabase auth
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      router.push('/auth/login');
-    } catch {
-      setError('Error al crear la cuenta. Intenta de nuevo.');
+      await signUp({
+        email: form.email,
+        password: form.password,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        phone: form.phone || undefined,
+      });
+      router.push('/mi-cuenta');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al crear la cuenta. Intenta de nuevo.';
+      setError(message);
     } finally {
       setLoading(false);
     }

@@ -23,11 +23,20 @@ interface UserProfile {
   preferredCurr: string;
 }
 
+interface SignUpData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+}
+
 interface AuthContextType {
   user: UserProfile | null;
   token: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (data: SignUpData) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   hasPermission: (module: string, action: string) => boolean;
@@ -35,7 +44,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 const DEMO_USER: UserProfile = {
@@ -60,11 +68,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = useCallback(async (accessToken: string) => {
     try {
-      const res = await fetch(`${API_URL}/auth/profile`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+      // Get the Supabase auth user to obtain supabase_auth_id
+      const { data: { user: authUser } } = await supabase.auth.getUser(accessToken);
+      if (!authUser) throw new Error('No auth user');
+
+      // Query the users table directly via Supabase
+      const { data: dbUser, error: dbError } = await supabase
+        .from('users')
+        .select(`
+          id,
+          email,
+          first_name,
+          last_name,
+          phone,
+          preferred_lang,
+          preferred_curr,
+          roles (
+            name,
+            role_permissions (
+              permissions ( module, action )
+            )
+          )
+        `)
+        .eq('supabase_auth_id', authUser.id)
+        .is('deleted_at', null)
+        .single();
+
+      if (dbError || !dbUser) throw new Error('Profile not found');
+
+      const role = Array.isArray(dbUser.roles) ? dbUser.roles[0] : dbUser.roles;
+      const permissions = (role?.role_permissions || []).map((rp: { permissions: { module: string; action: string }[] }) => {
+        const perm = Array.isArray(rp.permissions) ? rp.permissions[0] : rp.permissions;
+        return { module: perm.module, action: perm.action };
       });
-      if (!res.ok) throw new Error('Profile fetch failed');
-      const profile: UserProfile = await res.json();
+
+      const profile: UserProfile = {
+        id: dbUser.id,
+        email: dbUser.email,
+        firstName: dbUser.first_name,
+        lastName: dbUser.last_name,
+        phone: dbUser.phone,
+        role: role?.name || 'client',
+        permissions,
+        preferredLang: dbUser.preferred_lang,
+        preferredCurr: dbUser.preferred_curr,
+      };
+
       setUser(profile);
       setToken(accessToken);
       return profile;
@@ -73,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(null);
       return null;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -124,6 +174,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signUp = async (data: SignUpData) => {
+    if (DEMO_MODE) {
+      setUser(DEMO_USER);
+      setToken('demo-token');
+      return;
+    }
+
+    // 1. Create Supabase Auth user
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+    });
+    if (authError) throw authError;
+    if (!authData.user) throw new Error('No se pudo crear la cuenta.');
+
+    const supabaseAuthId = authData.user.id;
+
+    // 2. Get the 'client' role ID
+    const { data: role, error: roleError } = await supabase
+      .from('roles')
+      .select('id')
+      .eq('name', 'client')
+      .single();
+    if (roleError || !role) throw new Error('Error de configuración: rol de cliente no encontrado.');
+
+    // 3. Insert user row in our users table
+    const { error: insertError } = await supabase.from('users').insert({
+      supabase_auth_id: supabaseAuthId,
+      email: data.email,
+      first_name: data.firstName,
+      last_name: data.lastName,
+      phone: data.phone || null,
+      role_id: role.id,
+    });
+    if (insertError) throw new Error(insertError.message);
+
+    // 4. Auto sign-in if session is available
+    if (authData.session?.access_token) {
+      await fetchProfile(authData.session.access_token);
+    }
+  };
+
   const signOut = async () => {
     if (!DEMO_MODE) {
       await supabase.auth.signOut();
@@ -148,7 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, signIn, signOut, refreshProfile, hasPermission }}
+      value={{ user, token, loading, signIn, signUp, signOut, refreshProfile, hasPermission }}
     >
       {children}
     </AuthContext.Provider>

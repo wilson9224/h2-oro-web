@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ShoppingBag, ArrowUpRight, Clock, Package } from 'lucide-react';
-import { useApi } from '@/hooks/use-api';
 import { useAuth } from '@/hooks/use-auth';
+import { createClient } from '@/lib/supabase/client';
+
+const supabase = createClient();
 
 interface Order {
   id: string;
@@ -16,14 +18,6 @@ interface Order {
   createdAt: string;
   estimatedDeliveryDate: string | null;
   pieces: { id: string; name: string; currentState: { code: string; name: string } | null }[];
-}
-
-interface OrdersResponse {
-  data: Order[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
 }
 
 const statusLabels: Record<string, { label: string; color: string }> = {
@@ -53,19 +47,63 @@ const typeLabels: Record<string, string> = {
 };
 
 export default function MyOrdersPage() {
-  const api = useApi();
   const { user } = useAuth();
-  const [orders, setOrders] = useState<OrdersResponse | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      api.get<OrdersResponse>(`/orders?clientId=${user.id}&limit=50`)
-        .then(setOrders)
-        .catch(console.error)
-        .finally(() => setLoading(false));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!user) return;
+
+    const fetchOrders = async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          order_number,
+          type,
+          status,
+          total_amount_cop,
+          currency,
+          created_at,
+          estimated_delivery_date,
+          pieces (
+            id,
+            name,
+            currentState:workflow_states!current_state_id (
+              code,
+              name
+            )
+          )
+        `)
+        .eq('client_id', user.id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (!error && data) {
+        setOrders(data.map((o: Record<string, unknown>) => ({
+          id: o.id as string,
+          orderNumber: o.order_number as string,
+          type: o.type as string,
+          status: o.status as string,
+          totalAmountCop: o.total_amount_cop as number | null,
+          currency: o.currency as string,
+          createdAt: o.created_at as string,
+          estimatedDeliveryDate: o.estimated_delivery_date as string | null,
+          pieces: ((o.pieces as Record<string, unknown>[]) || []).map((p) => {
+            const cs = Array.isArray(p.currentState) ? (p.currentState as Record<string, unknown>[])[0] : p.currentState as Record<string, unknown> | null;
+            return {
+              id: p.id as string,
+              name: p.name as string,
+              currentState: cs ? { code: cs.code as string, name: cs.name as string } : null,
+            };
+          }),
+        })));
+      }
+      setLoading(false);
+    };
+
+    fetchOrders();
   }, [user]);
 
   return (
@@ -74,7 +112,7 @@ export default function MyOrdersPage() {
         <h1 className="text-2xl font-serif text-cream-100">Mis Pedidos</h1>
         <p className="text-sm text-charcoal-400 mt-1">
           {user && `Hola, ${user.firstName}. `}
-          {orders ? `Tienes ${orders.total} pedido${orders.total !== 1 ? 's' : ''}` : 'Cargando...'}
+          {loading ? 'Cargando...' : `Tienes ${orders.length} pedido${orders.length !== 1 ? 's' : ''}`}
         </p>
       </div>
 
@@ -86,17 +124,32 @@ export default function MyOrdersPage() {
         </div>
       )}
 
-      {!loading && orders?.data.length === 0 && (
+      {!loading && orders.length === 0 && (
         <div className="bg-charcoal-800 rounded-lg border border-white/5 p-12 text-center">
           <ShoppingBag size={40} className="mx-auto text-charcoal-600 mb-4" />
-          <p className="text-charcoal-400 mb-2">No tienes pedidos aún</p>
-          <Link href="/catalogo" className="text-sm text-gold-500 hover:text-gold-400 transition-colors">
-            Explorar catálogo →
-          </Link>
+          <h2 className="text-lg font-serif text-cream-200 mb-2">Aún no tienes pedidos</h2>
+          <p className="text-sm text-charcoal-400 mb-6 max-w-sm mx-auto">
+            Cuando realices tu primer pedido, podrás ver su estado y seguimiento aquí.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href="/catalogo"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors"
+            >
+              Explorar catálogo
+              <ArrowUpRight size={14} />
+            </Link>
+            <Link
+              href="/seguimiento"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-charcoal-700 text-cream-200 text-sm rounded-md hover:bg-charcoal-600 transition-colors"
+            >
+              Consultar un pedido
+            </Link>
+          </div>
         </div>
       )}
 
-      {!loading && orders?.data.map((order) => {
+      {!loading && orders.map((order) => {
         const st = statusLabels[order.status] || { label: order.status, color: 'bg-charcoal-700 text-charcoal-300' };
         return (
           <Link
