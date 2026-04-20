@@ -74,7 +74,7 @@ interface Piece {
   description: string | null;
   sort_order: number;
   current_state_id: string | null;
-  currentState?: {
+  currentState: {
     id: string;
     code: string;
     name: string;
@@ -82,7 +82,7 @@ interface Piece {
     isInitial: boolean;
     isFinal: boolean;
   } | null;
-  stateHistory?: Array<{
+  stateHistory: Array<{
     id: string;
     stateId: string;
     notes: string | null;
@@ -95,13 +95,13 @@ interface Piece {
       isInitial: boolean;
       isFinal: boolean;
     };
-    changedBy?: {
+    changedBy: {
       id: string;
       firstName: string;
       lastName: string;
     };
   }>;
-  attachments?: Array<{
+  attachments: Array<{
     id: string;
     fileName: string;
     fileUrl: string;
@@ -117,17 +117,19 @@ interface Piece {
     createdAt: string;
     description?: string;
   }>;
-  assignments?: Array<{
+  assignments: Array<{
     id: string;
     workerId: string;
     stageCode: string;
     status: string;
     progressPct: number;
-    worker?: {
+    worker: {
       id: string;
       firstName: string;
       lastName: string;
     };
+    createdAt: string;
+    updatedAt: string;
   }>;
 }
 
