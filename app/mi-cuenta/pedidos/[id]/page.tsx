@@ -228,9 +228,9 @@ export default function ClientOrderDetailPage() {
           </div>
         )}
 
-        {order.payments.length > 0 ? (
+        {(order.payments || []).length > 0 ? (
           <div className="space-y-2">
-            {order.payments.map((p) => (
+            {(order.payments || []).map((p) => (
               <div key={p.id} className="flex items-center justify-between text-xs py-2 border-t border-white/5 first:border-0">
                 <div className="flex items-center gap-3">
                   <span className="text-charcoal-300 capitalize">{p.method}</span>

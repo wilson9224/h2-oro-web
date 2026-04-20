@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Trash2, Loader2, GripVertical, UserCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import JewelryCreationForm from '@/components/jewelry/jewelry-creation-form';
 
 const supabase = createClient();
 
@@ -54,9 +55,31 @@ export default function NewOrderPage() {
   const [clientPhone, setClientPhone] = useState('');
   const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState('');
   const [currency, setCurrency] = useState('COP');
+  const [totalAmountCop, setTotalAmountCop] = useState('');
+
+  // Client search states
+  const [searchedClient, setSearchedClient] = useState<any>(null);
+  const [isSearchingClient, setIsSearchingClient] = useState(false);
+  const [showNewClientForm, setShowNewClientForm] = useState(false);
+  const [newClientData, setNewClientData] = useState({
+    firstName: '',
+    lastName: '',
+    email: ''
+  });
+  const [totalAmountUsd, setTotalAmountUsd] = useState('');
   const [assignedToId, setAssignedToId] = useState('');
   const [pieces, setPieces] = useState<PieceInput[]>([{ name: '', description: '' }]);
   const [orderStates, setOrderStates] = useState<WorkflowStateInput[]>([]);
+
+  // Jewelry data (solo para tipo jewelry)
+  const [jewelryData, setJewelryData] = useState({
+    metalType: 'gold' as 'gold' | 'silver',
+    estimatedWeightGr: '',
+    clientProvidesMetal: false,
+    clientMetalPurity: '',
+    clientMetalWeightGr: '',
+    clientGoldColor: '' as 'yellow' | 'rose' | 'white' | '',
+  });
 
   // Fetch workflow states and staff users on mount
   useEffect(() => {
@@ -146,6 +169,90 @@ export default function NewOrderPage() {
     setOrderStates(orderStates.filter((_, i) => i !== index));
   };
 
+  // Client search function
+  const searchClientByPhone = async (phone: string) => {
+    if (!phone || phone.length < 10) {
+      setSearchedClient(null);
+      setShowNewClientForm(false);
+      return;
+    }
+
+    setIsSearchingClient(true);
+    try {
+      console.log('Buscando cliente con teléfono:', phone);
+      
+      const { data: clientData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('phone', phone)
+        .single();
+
+      console.log('Resultado búsqueda cliente:', clientData, error);
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error buscando cliente:', error);
+        throw error;
+      }
+
+      if (clientData) {
+        // Cliente encontrado
+        setSearchedClient(clientData);
+        setShowNewClientForm(false);
+        console.log('Cliente encontrado:', clientData);
+      } else {
+        // Cliente no encontrado, mostrar formulario para nuevo cliente
+        setSearchedClient(null);
+        setShowNewClientForm(true);
+        console.log('Cliente no encontrado, mostrar formulario nuevo');
+      }
+    } catch (err) {
+      console.error('Error en búsqueda de cliente:', err);
+      setSearchedClient(null);
+      setShowNewClientForm(true);
+    } finally {
+      setIsSearchingClient(false);
+    }
+  };
+
+  // Create new client function
+  const createNewClient = async () => {
+    if (!newClientData.firstName || !newClientData.lastName || !clientPhone) {
+      alert('Por favor completa todos los campos del cliente');
+      return;
+    }
+
+    try {
+      console.log('Creando nuevo cliente:', { ...newClientData, phone: clientPhone });
+
+      const { data: newClient, error } = await supabase
+        .from('users')
+        .insert({
+          first_name: newClientData.firstName,
+          last_name: newClientData.lastName,
+          email: newClientData.email || null,
+          phone: clientPhone,
+          role: 'client',
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('Nuevo cliente creado:', newClient);
+      
+      // Actualizar estado con el nuevo cliente
+      setSearchedClient(newClient);
+      setShowNewClientForm(false);
+      setNewClientData({ firstName: '', lastName: '', email: '' });
+      
+      alert('Cliente registrado exitosamente');
+    } catch (err) {
+      console.error('Error creando cliente:', err);
+      alert('Error al registrar cliente');
+    }
+  };
+
   const updateStateOwner = (index: number, ownerId: string) => {
     const updated = [...orderStates];
     updated[index] = { ...updated[index], ownerId };
@@ -172,14 +279,76 @@ export default function NewOrderPage() {
       return;
     }
 
+    // Validación de cliente
+    if (!clientPhone || clientPhone.length < 10) {
+      setError('Debe ingresar un teléfono de cliente válido');
+      return;
+    }
+
+    if (!searchedClient && !showNewClientForm) {
+      setError('Debe buscar el cliente por teléfono primero');
+      return;
+    }
+
+    if (showNewClientForm && (!newClientData.firstName || !newClientData.lastName)) {
+      setError('Debe registrar el nombre del cliente');
+      return;
+    }
+
+    // Validaciones específicas para joyería
+    if (type === 'jewelry') {
+      if (!jewelryData.metalType) {
+        setError('Debe seleccionar el tipo de metal');
+        return;
+      }
+      if (!jewelryData.estimatedWeightGr || parseFloat(jewelryData.estimatedWeightGr) <= 0) {
+        setError('Debe ingresar un peso estimado válido');
+        return;
+      }
+      if (jewelryData.clientProvidesMetal) {
+        if (!jewelryData.clientMetalPurity || parseFloat(jewelryData.clientMetalPurity) <= 0) {
+          setError('Debe ingresar la pureza del metal del cliente');
+          return;
+        }
+        if (!jewelryData.clientMetalWeightGr || parseFloat(jewelryData.clientMetalWeightGr) <= 0) {
+          setError('Debe ingresar el peso del metal del cliente');
+          return;
+        }
+        if (jewelryData.metalType === 'gold' && !jewelryData.clientGoldColor) {
+          setError('Debe seleccionar el color del oro');
+          return;
+        }
+      }
+    }
+
     setLoading(true);
     try {
       // Generate order number
       const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
 
-      // Get current user as client (admin creates on behalf)
-      const clientId = user?.id;
-      if (!clientId) throw new Error('No se pudo identificar el usuario');
+      // Use the searched client or create new client first
+      let clientId = searchedClient?.id;
+      
+      if (!clientId && showNewClientForm) {
+        // Create new client first
+        const { data: newClient, error: clientError } = await supabase
+          .from('users')
+          .insert({
+            first_name: newClientData.firstName,
+            last_name: newClientData.lastName,
+            email: newClientData.email || null,
+            phone: clientPhone,
+            role: 'client',
+            created_at: new Date().toISOString()
+          })
+          .select('id')
+          .single();
+
+        if (clientError) throw new Error(clientError.message);
+        clientId = newClient.id;
+      }
+
+      if (!clientId) throw new Error('No se pudo identificar el cliente');
 
       // 1. Create order
       const { data: order, error: orderErr } = await supabase
@@ -191,6 +360,8 @@ export default function NewOrderPage() {
           type,
           status: 'pending',
           currency,
+          total_amount_cop: currency === 'COP' && totalAmountCop ? parseFloat(totalAmountCop) : null,
+          total_amount_usd: currency === 'USD' && totalAmountUsd ? parseFloat(totalAmountUsd) : null,
           notes: notes || null,
           client_phone: clientPhone || null,
           estimated_delivery_date: estimatedDeliveryDate || null,
@@ -260,10 +431,56 @@ export default function NewOrderPage() {
           }
         }
 
+        // 5. Create jewelry data if type is jewelry
+        if (type === 'jewelry') {
+          // Insertar datos técnicos de joyería
+          const { error: jewelryErr } = await supabase
+            .from('order_jewelry_data')
+            .insert({
+              order_id: order.id,
+              metal_type: jewelryData.metalType,
+              estimated_weight_gr: parseFloat(jewelryData.estimatedWeightGr),
+              client_provides_metal: jewelryData.clientProvidesMetal,
+              client_metal_purity: jewelryData.clientProvidesMetal ? parseFloat(jewelryData.clientMetalPurity) : null,
+              client_metal_weight_gr: jewelryData.clientProvidesMetal ? parseFloat(jewelryData.clientMetalWeightGr) : null,
+              client_gold_color: jewelryData.clientProvidesMetal && jewelryData.metalType === 'gold' ? jewelryData.clientGoldColor : null,
+            });
+
+          if (jewelryErr) {
+            console.error('Error creando datos de joyería:', jewelryErr.message);
+          }
+
+          // Crear primer ciclo de trabajo
+          const { error: cycleErr } = await supabase
+            .from('order_work_cycles')
+            .insert({
+              order_id: order.id,
+              cycle_number: 1,
+              is_rework: false,
+            });
+
+          if (cycleErr) {
+            console.error('Error creando ciclo de trabajo:', cycleErr.message);
+          }
+
+          // Registrar en log de fases (creación)
+          await supabase
+            .from('order_phase_log')
+            .insert({
+              order_id: order.id,
+              new_phase: 'creation',
+              user_id: clientId,
+              observation: 'Pedido de joyería creado',
+            });
+        }
+
         router.push(`/admin/pedidos/${order.id}`);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error creando pedido');
+      console.error('Error completo al crear pedido:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Error creando pedido';
+      console.error('Mensaje de error:', errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -298,12 +515,12 @@ export default function NewOrderPage() {
         {/* Type */}
         <div>
           <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">Tipo de pedido</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {[
               { value: 'custom', label: 'Personalizado' },
               { value: 'catalog', label: 'Catálogo' },
               { value: 'repair', label: 'Reparación' },
-              { value: 'resize', label: 'Redimensionar' },
+              { value: 'jewelry', label: 'Joyería' },
             ].map((opt) => (
               <button
                 key={opt.value}
@@ -345,15 +562,85 @@ export default function NewOrderPage() {
 
         {/* Phone + Date + Currency */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
+          <div className="col-span-full sm:col-span-1">
             <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">Teléfono cliente</label>
-            <input
-              type="tel"
-              value={clientPhone}
-              onChange={(e) => setClientPhone(e.target.value)}
-              placeholder="+57 300 000 0000"
-              className="w-full px-3 py-2.5 bg-charcoal-800 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-500 focus:outline-none focus:border-gold-500/30"
-            />
+            <div className="space-y-2">
+              <input
+                type="tel"
+                value={clientPhone}
+                onChange={(e) => {
+                  setClientPhone(e.target.value);
+                  searchClientByPhone(e.target.value);
+                }}
+                placeholder="+57 300 000 0000"
+                className="w-full px-3 py-2.5 bg-charcoal-800 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-500 focus:outline-none focus:border-gold-500/30"
+              />
+              
+              {/* Cliente encontrado */}
+              {searchedClient && (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-md p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs text-emerald-400 font-medium">Cliente encontrado</span>
+                  </div>
+                  <div className="text-sm text-cream-200">
+                    {searchedClient.first_name} {searchedClient.last_name}
+                  </div>
+                  {searchedClient.email && (
+                    <div className="text-xs text-charcoal-400">
+                      {searchedClient.email}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Formulario para nuevo cliente */}
+              {showNewClientForm && (
+                <div className="bg-gold-500/10 border border-gold-500/30 rounded-md p-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs text-gold-400 font-medium">Nuevo cliente - Regístrelo</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Nombre"
+                        value={newClientData.firstName}
+                        onChange={(e) => setNewClientData({...newClientData, firstName: e.target.value})}
+                        className="px-2 py-1.5 bg-charcoal-800 border border-white/5 rounded text-xs text-cream-200 placeholder:text-charcoal-500"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Apellido"
+                        value={newClientData.lastName}
+                        onChange={(e) => setNewClientData({...newClientData, lastName: e.target.value})}
+                        className="px-2 py-1.5 bg-charcoal-800 border border-white/5 rounded text-xs text-cream-200 placeholder:text-charcoal-500"
+                      />
+                    </div>
+                    <input
+                      type="email"
+                      placeholder="Email (opcional)"
+                      value={newClientData.email}
+                      onChange={(e) => setNewClientData({...newClientData, email: e.target.value})}
+                      className="w-full px-2 py-1.5 bg-charcoal-800 border border-white/5 rounded text-xs text-cream-200 placeholder:text-charcoal-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={createNewClient}
+                      className="w-full px-2 py-1.5 bg-gold-500 text-charcoal-900 rounded text-xs font-medium hover:bg-gold-400 transition-colors"
+                    >
+                      Registrar cliente
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Estado de búsqueda */}
+              {isSearchingClient && (
+                <div className="text-xs text-charcoal-400">
+                  Buscando cliente...
+                </div>
+              )}
+            </div>
           </div>
           <div>
             <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">Fecha entrega est.</label>
@@ -377,6 +664,36 @@ export default function NewOrderPage() {
           </div>
         </div>
 
+        {/* Amount */}
+        <div>
+          <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
+            Valor total ({currency === 'COP' ? 'COP' : 'USD'})
+          </label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-500 text-sm">
+              {currency === 'COP' ? '$' : 'USD'}
+            </span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={currency === 'COP' ? totalAmountCop : totalAmountUsd}
+              onChange={(e) => {
+                if (currency === 'COP') {
+                  setTotalAmountCop(e.target.value);
+                } else {
+                  setTotalAmountUsd(e.target.value);
+                }
+              }}
+              placeholder="0.00"
+              className="w-full pl-8 pr-3 py-2.5 bg-charcoal-800 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-500 focus:outline-none focus:border-gold-500/30"
+            />
+          </div>
+          <p className="text-[11px] text-charcoal-500 mt-1">
+            Valor que le cobrará al cliente por el trabajo
+          </p>
+        </div>
+
         {/* Notes */}
         <div>
           <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">Notas</label>
@@ -388,6 +705,14 @@ export default function NewOrderPage() {
             className="w-full px-3 py-2.5 bg-charcoal-800 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-500 focus:outline-none focus:border-gold-500/30 resize-none"
           />
         </div>
+
+        {/* Jewelry Form (solo para tipo jewelry) */}
+        {type === 'jewelry' && (
+          <JewelryCreationForm
+            data={jewelryData}
+            onChange={setJewelryData}
+          />
+        )}
 
         {/* Pieces */}
         <div>

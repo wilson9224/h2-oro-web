@@ -3,28 +3,20 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import {
-  ArrowLeft,
-  Clock,
-  User,
-  Phone,
-  Mail,
-  Package,
-  ChevronRight,
-  AlertTriangle,
-  Loader2,
-} from 'lucide-react';
-import { useApi } from '@/hooks/use-api';
+import { ArrowLeft, ArrowUpRight, ChevronLeft, ChevronRight, Plus, Trash2, User, Calendar, Phone, Mail, Clock, Package, Loader2, AlertTriangle } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import dynamic from 'next/dynamic';
 
 interface Piece {
   id: string;
   name: string;
   description: string | null;
-  sortOrder: number;
-  currentState: { id: string; code: string; name: string } | null;
-  workflowTemplate: { id: string; name: string } | null;
-  stateHistory: { id: string; stateId: string; notes: string | null; createdAt: string; state: { code: string; name: string } }[];
-  assignments: { id: string; workerId: string; stageCode: string; status: string; progressPct: number; worker: { firstName: string; lastName: string } }[];
+  sort_order: number;
+  current_state_id: string | null;
+  currentState?: { id: string; code: string; name: string } | null;
+  workflowTemplate?: { id: string; name: string } | null;
+  stateHistory?: { id: string; stateId: string; notes: string | null; createdAt: string; state: { code: string; name: string } }[];
+  assignments?: { id: string; workerId: string; stageCode: string; status: string; progressPct: number; worker: { firstName: string; lastName: string } }[];
 }
 
 interface OrderDetail {
@@ -85,7 +77,7 @@ function formatCOP(amount: number) {
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const api = useApi();
+  const supabase = createClient();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -94,21 +86,121 @@ export default function OrderDetailPage() {
 
   const fetchOrder = async () => {
     try {
-      const data = await api.get<OrderDetail>(`/orders/${id}`);
-      setOrder(data);
-      // Fetch transitions for each piece
-      const transMap: Record<string, Transition[]> = {};
-      for (const piece of data.pieces) {
-        try {
-          const t = await api.get<Transition[]>(`/workflow/pieces/${piece.id}/transitions`);
-          transMap[piece.id] = t;
-        } catch {
-          transMap[piece.id] = [];
+      console.log('Intentando obtener pedido:', id);
+      
+      // Fetch order con relaciones
+      let orderData, orderErr;
+      
+      try {
+        // Primero intentar sin pagos para ver si el problema está ahí
+        console.log('Intentando consulta básica (sin pagos)...');
+        const basicResult = await supabase
+          .from('orders')
+          .select(`
+            *,
+            client:users!orders_client_id_fkey (
+              id, first_name, last_name, email, phone
+            ),
+            assigned_to:users!orders_assigned_to_id_fkey (
+              id, first_name, last_name
+            )
+          `)
+          .eq('id', id)
+          .single();
+        
+        if (basicResult.error) {
+          console.error('Error en consulta básica:', basicResult.error);
+          throw basicResult.error;
         }
+        
+        console.log('Consulta básica exitosa, ahora intentando con pagos...');
+        
+        // Si la básica funciona, intentar con pagos
+        const result = await supabase
+          .from('orders')
+          .select(`
+            *,
+            client:users!orders_client_id_fkey (
+              id, first_name, last_name, email, phone
+            ),
+            assigned_to:users!orders_assigned_to_id_fkey (
+              id, first_name, last_name
+            ),
+            payments (
+              id, method, amount_cop, status, paid_at, created_at
+            )
+          `)
+          .eq('id', id)
+          .single();
+        
+        orderData = result.data;
+        orderErr = result.error;
+        
+        console.log('Consulta completa exitosa');
+      } catch (queryError) {
+        console.error('Error en consulta de orden:', queryError);
+        if (queryError instanceof Error) {
+          console.error('Detalles del error:', queryError.message);
+          console.error('Stack:', queryError.stack);
+        }
+        throw queryError;
       }
-      setTransitions(transMap);
+
+      console.log('Order data:', orderData);
+      console.log('Order error:', orderErr);
+      console.log('Client data:', orderData?.client);
+      console.log('Assigned to data:', orderData?.assigned_to);
+      console.log('Payments data:', orderData?.payments);
+      console.log('Payments length:', orderData?.payments?.length || 0);
+      if (orderData?.payments && orderData.payments.length > 0) {
+        console.log('Columnas de primer payment:', Object.keys(orderData.payments[0] || {}));
+      }
+
+      if (orderErr) throw new Error(orderErr.message);
+      if (!orderData) throw new Error('Pedido no encontrado');
+
+      // Fetch pieces sin relaciones complejas
+      const { data: piecesData, error: piecesErr } = await supabase
+        .from('pieces')
+        .select('*')
+        .eq('order_id', id)
+        .order('sort_order', { ascending: true });
+
+      console.log('Pieces data:', piecesData);
+      console.log('Pieces error:', piecesErr);
+
+      if (piecesErr) throw new Error(piecesErr.message);
+
+      const orderDetail: OrderDetail = {
+        ...orderData,
+        pieces: piecesData || [],
+        payments: (orderData.payments || []).map((payment: any) => {
+          console.log('Payment de BD:', payment);
+          console.log('paid_at value:', payment.paid_at);
+          console.log('paid_at type:', typeof payment.paid_at);
+          console.log('paid_at === "null":', payment.paid_at === 'null');
+          
+          return {
+            id: payment.id,
+            method: payment.method,
+            amountCop: payment.amount_cop,
+            status: payment.status,
+            paidAt: payment.paid_at === 'null' ? null : payment.paid_at,
+            createdAt: payment.created_at,
+          };
+        }),
+      };
+
+      console.log('Pedido obtenido:', orderDetail);
+      setOrder(orderDetail);
+      
+      // Transitions vacías (no hay workflow transitions en este modelo)
+      setTransitions({});
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Error loading order');
+      console.error('Error completo al cargar pedido:', e);
+      const errorMessage = e instanceof Error ? e.message : 'Error loading order';
+      console.error('Mensaje de error:', errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -119,16 +211,10 @@ export default function OrderDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Las transiciones de workflow se manejan en la vista de joyería
+  // Esta función se mantiene para compatibilidad pero no se usa
   const handleTransition = async (pieceId: string, toStateId: string) => {
-    setTransitionLoading(pieceId);
-    try {
-      await api.post(`/workflow/pieces/${pieceId}/transition`, { toStateId });
-      await fetchOrder();
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Error en transición');
-    } finally {
-      setTransitionLoading(null);
-    }
+    console.log('Transición no implementada en vista normal');
   };
 
   if (loading) {
@@ -149,6 +235,20 @@ export default function OrderDetailPage() {
         <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6 text-red-400 text-sm">{error || 'Pedido no encontrado'}</div>
       </div>
     );
+  }
+
+  // Si es un pedido de joyería, renderizar la vista especializada
+  if (order.type === 'jewelry') {
+    const JewelryDetailPage = dynamic(() => import('./jewelry-detail'), {
+      loading: () => (
+        <div className="space-y-6">
+          <div className="h-8 bg-charcoal-800 rounded w-48 animate-pulse" />
+          <div className="h-64 bg-charcoal-800 rounded-lg animate-pulse" />
+        </div>
+      ),
+      ssr: false,
+    });
+    return <JewelryDetailPage />;
   }
 
   const st = statusLabels[order.status] || { label: order.status, color: 'bg-charcoal-700 text-charcoal-300' };
@@ -180,11 +280,11 @@ export default function OrderDetailPage() {
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm text-cream-200">
               <User size={14} className="text-charcoal-500" />
-              {order.client.firstName} {order.client.lastName}
+              {order.client ? `${order.client.firstName} ${order.client.lastName}` : 'Cliente no especificado'}
             </div>
             <div className="flex items-center gap-2 text-xs text-charcoal-400">
               <Mail size={13} className="text-charcoal-500" />
-              {order.client.email}
+              {order.client?.email || 'Email no disponible'}
             </div>
             {order.clientPhone && (
               <div className="flex items-center gap-2 text-xs text-charcoal-400">
@@ -218,10 +318,10 @@ export default function OrderDetailPage() {
           {order.totalAmountCop && (
             <p className="text-lg font-semibold text-gold-400 mb-1">{formatCOP(Number(order.totalAmountCop))}</p>
           )}
-          <p className="text-xs text-charcoal-400">{order.payments.length} pago(s) registrados</p>
-          {order.payments.length > 0 && (
+          <p className="text-xs text-charcoal-400">{(order.payments || []).length} pago(s) registrados</p>
+          {(order.payments || []).length > 0 && (
             <div className="mt-2 space-y-1">
-              {order.payments.slice(0, 3).map((p) => (
+              {(order.payments || []).slice(0, 3).map((p) => (
                 <div key={p.id} className="flex justify-between text-xs">
                   <span className="text-charcoal-300">{p.method}</span>
                   <span className={p.status === 'completed' ? 'text-emerald-400' : 'text-charcoal-500'}>
@@ -314,7 +414,7 @@ export default function OrderDetailPage() {
                 )}
 
                 {/* State History */}
-                {piece.stateHistory && piece.stateHistory.length > 0 && (
+                {piece.stateHistory && piece.stateHistory.length > 0 ? (
                   <details className="ml-7">
                     <summary className="text-[11px] text-charcoal-500 cursor-pointer hover:text-charcoal-300 transition-colors">
                       Historial ({piece.stateHistory.length} cambios)
@@ -331,6 +431,10 @@ export default function OrderDetailPage() {
                       ))}
                     </div>
                   </details>
+                ) : (
+                  <div className="ml-7 text-[11px] text-charcoal-600">
+                    No hay historial de estados disponible
+                  </div>
                 )}
               </div>
             );

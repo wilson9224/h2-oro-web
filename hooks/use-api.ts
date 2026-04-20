@@ -19,12 +19,20 @@ export function useApi() {
       await new Promise((r) => setTimeout(r, 300));
       return resolveDemoData(endpoint) as T;
     }
+    console.log('API GET:', `${API_URL}${endpoint}`);
+    console.log('Headers:', headers());
     const res = await fetch(`${API_URL}${endpoint}`, { headers: headers() });
+    console.log('Response status:', res.status);
+    console.log('Response ok:', res.ok);
+    
     if (!res.ok) {
       const err = await res.json().catch(() => ({ message: 'Request failed' }));
+      console.error('API Error:', err);
       throw new Error(err.message || `HTTP ${res.status}`);
     }
-    return res.json();
+    const data = await res.json();
+    console.log('API Response:', data);
+    return data;
   };
 
   const post = async <T>(endpoint: string, body?: unknown): Promise<T> => {

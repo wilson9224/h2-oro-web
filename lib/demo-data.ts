@@ -132,6 +132,26 @@ const DEMO_ORDERS = [
       { id: 'pay-6', orderId: 'demo-order-6', method: 'transferencia', amountCop: 1_400_000, amountUsd: null, status: 'completed', wompiReference: null, paidAt: d(10), createdAt: d(10) },
     ],
   },
+  {
+    id: 'demo-order-jewelry-1',
+    orderNumber: 'ORD-20260402-J001',
+    type: 'jewelry',
+    status: 'in_progress',
+    totalAmountCop: 5_500_000,
+    currency: 'COP',
+    notes: 'Anillo de compromiso personalizado en oro blanco con diamante',
+    createdAt: d(1),
+    estimatedDeliveryDate: d(-3),
+    clientPhone: '+573001112233',
+    client: { id: 'demo-client-1', firstName: 'María', lastName: 'Restrepo', email: 'maria@email.com' },
+    pieces: [
+      { id: 'p-jewelry-1', name: 'Anillo compromiso personalizado', sortOrder: 1, currentState: { code: 'production', name: 'Producción', isFinal: false } },
+    ],
+    _count: { pieces: 1, payments: 1 },
+    payments: [
+      { id: 'pay-jewelry-1', orderId: 'demo-order-jewelry-1', method: 'transferencia', amountCop: 2_750_000, amountUsd: null, status: 'completed', wompiReference: null, paidAt: d(1), createdAt: d(1) },
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -258,6 +278,11 @@ export function resolveDemoData(endpoint: string): unknown {
   // Reports — return empty blob-like response (won't break UI)
   if (path.startsWith('/reports/')) {
     return null;
+  }
+
+  // Workflow transitions — return empty array (won't break UI)
+  if (path.startsWith('/workflow/')) {
+    return [];
   }
 
   return null;

@@ -11,6 +11,8 @@ import {
   FileText,
   BarChart3,
   Settings,
+  DollarSign,
+  Calculator,
   LogOut,
   Menu,
   X,
@@ -25,10 +27,12 @@ const navItems = [
   { label: 'Catálogo', href: '/admin/catalogo', icon: Package },
   { label: 'CMS', href: '/admin/cms', icon: FileText },
   { label: 'Reportes', href: '/admin/reportes', icon: BarChart3 },
+  { label: 'Cotización', href: '/admin/cotizacion', icon: Calculator, roles: ['admin', 'manager'] },
+  { label: 'Precios', href: '/admin/precios', icon: DollarSign, adminOnly: true },
   { label: 'Configuración', href: '/admin/configuracion', icon: Settings },
 ];
 
-const ALLOWED_ROLES = ['admin', 'manager', 'jeweler', 'designer'];
+const ALLOWED_ROLES = ['admin', 'manager', 'designer'];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, signOut } = useAuth();
@@ -81,7 +85,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
+          {navItems
+            .filter((item) => {
+              if ('adminOnly' in item && item.adminOnly && user.role !== 'admin') return false;
+              if ('roles' in item && item.roles && !item.roles.includes(user.role)) return false;
+              return true;
+            })
+            .map((item) => {
             const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
             return (
               <Link
@@ -139,7 +149,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </button>
             </div>
             <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-              {navItems.map((item) => {
+              {navItems
+                .filter((item) => {
+                  if ('adminOnly' in item && item.adminOnly && user.role !== 'admin') return false;
+                  if ('roles' in item && item.roles && !item.roles.includes(user.role)) return false;
+                  return true;
+                })
+                .map((item) => {
                 const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
                 return (
                   <Link
