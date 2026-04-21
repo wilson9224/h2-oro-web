@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient, createServiceClient } from '@/lib/supabase/client';
 
 interface UserProfile {
   id: string;
@@ -67,11 +67,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
 
   const fetchProfile = useCallback(async (accessToken: string) => {
+    console.log('=== FETCH PROFILE ===');
+    console.log('Token length:', accessToken.length);
+    
     try {
       // Get the Supabase auth user to obtain supabase_auth_id
-      const { data: { user: authUser } } = await supabase.auth.getUser(accessToken);
+      console.log('Obteniendo auth user...');
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(accessToken);
+      
+      console.log('Auth user:', authUser);
+      console.log('Auth error:', authError);
+      
       if (!authUser) throw new Error('No auth user');
 
+      console.log('Buscando usuario en BD con supabase_auth_id:', authUser.id);
+      
       // Query the users table directly via Supabase
       const { data: dbUser, error: dbError } = await supabase
         .from('users')
@@ -94,7 +104,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .is('deleted_at', null)
         .single();
 
-      if (dbError || !dbUser) throw new Error('Profile not found');
+      console.log('DB User:', dbUser);
+      console.log('DB Error:', dbError);
+
+      if (dbError || !dbUser) {
+        console.error('Profile not found:', dbError);
+        throw new Error('Profile not found');
+      }
 
       const role = Array.isArray(dbUser.roles) ? dbUser.roles[0] : dbUser.roles;
       const permissions = (role?.role_permissions || []).map((rp: { permissions: { module: string; action: string }[] }) => {
@@ -158,20 +174,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    console.log('=== USE-AUTH SIGNIN ===');
+    console.log('DEMO_MODE:', DEMO_MODE);
+    console.log('Email:', email);
+    
     if (DEMO_MODE) {
+      console.log('Modo demo activado');
       setUser(DEMO_USER);
       setToken('demo-token');
       return;
     }
+
+    console.log('Intentando signIn con Supabase...');
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    
+    console.log('Supabase signIn data:', data);
+    console.log('Supabase signIn error:', error);
+    
+    if (error) {
+      console.error('Error de Supabase:', error);
+      throw error;
+    }
+    
     if (data.session?.access_token) {
+      console.log('Session encontrada, token length:', data.session.access_token.length);
+      console.log('Buscando perfil...');
       const profile = await fetchProfile(data.session.access_token);
+      console.log('Profile encontrado:', profile);
+      
       if (!profile) {
+        console.log('Profile no encontrado, haciendo signOut');
         await supabase.auth.signOut();
         throw new Error('Usuario no registrado en el sistema. Contacte al administrador.');
       }
+    } else {
+      console.log('No session found');
     }
+    
+    console.log('=== FIN USE-AUTH SIGNIN ===');
   };
 
   const signUp = async (data: SignUpData) => {
@@ -192,12 +232,99 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabaseAuthId = authData.user.id;
 
     // 2. Get the 'client' role ID
-    const { data: role, error: roleError } = await supabase
+    console.log('Buscando rol "client"...');
+    const { data: clientRole, error: roleError } = await supabase
       .from('roles')
-      .select('id')
+      .select('id, name')
       .eq('name', 'client')
       .single();
-    if (roleError || !role) throw new Error('Error de configuración: rol de cliente no encontrado.');
+    
+    console.log('Role encontrado:', clientRole);
+    console.log('Role error:', roleError);
+
+    let role = clientRole;
+
+    if (roleError || !clientRole) {
+      // Si no encuentra 'client', ver qué roles existen
+      console.log('Rol "client" no encontrado, buscando todos los roles...');
+      const { data: allRoles, error: allRolesError } = await supabase
+        .from('roles')
+        .select('id, name');
+      
+      console.log('Todos los roles:', allRoles);
+      console.log('Error buscando roles:', allRolesError);
+      
+      // Intentar con nombres alternativos
+      const alternativeNames = ['cliente', 'customer', 'user', 'clientes'];
+      let foundRole = null;
+      
+      for (const altName of alternativeNames) {
+        const { data: altRole, error: altError } = await supabase
+          .from('roles')
+          .select('id, name')
+          .eq('name', altName)
+          .single();
+        
+        if (!altError && altRole) {
+          console.log(`Rol alternativo encontrado: ${altName}`, altRole);
+          foundRole = altRole;
+          break;
+        }
+      }
+      
+      if (!foundRole) {
+        // Si no hay ningún rol, crear todos los roles básicos automáticamente
+        if (!allRoles || allRoles.length === 0) {
+          console.log('No hay roles en la BD, creando roles básicos automáticamente...');
+          
+          const basicRoles = [
+            { name: 'admin', description: 'Administrador del sistema' },
+            { name: 'manager', description: 'Gerente' },
+            { name: 'jeweler', description: 'Joyería' },
+            { name: 'designer', description: 'Diseñador' },
+            { name: 'client', description: 'Cliente del sistema' }
+          ];
+          
+          // Usar cliente de servicio para evitar restricciones RLS
+          console.log('Creando cliente de servicio...');
+          const serviceSupabase = createServiceClient();
+          console.log('Service role key configurado:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+          
+          const { data: createdRoles, error: createError } = await serviceSupabase
+            .from('roles')
+            .insert(basicRoles.map(role => ({
+              ...role,
+              created_at: new Date().toISOString()
+            })))
+            .select('id, name');
+          
+          if (createError) {
+            console.error('Error creando roles básicos:', createError);
+            throw new Error(`Error de configuración: no hay roles y no se pudieron crear. Error: ${createError.message}`);
+          }
+          
+          console.log('Roles básicos creados exitosamente:', createdRoles);
+          
+          // Buscar el rol client recién creado
+          const clientRole = createdRoles?.find(r => r.name === 'client');
+          if (!clientRole) {
+            throw new Error('Error: no se encontró el rol client después de crearlo');
+          }
+          
+          role = clientRole;
+        } else {
+          throw new Error(`Error de configuración: rol de cliente no encontrado. Roles disponibles: ${allRoles?.map(r => r.name).join(', ') || 'Ninguno'}`);
+        }
+      } else {
+        // Usar el rol alternativo encontrado
+        role = foundRole;
+      }
+    }
+
+    // Validación final
+    if (!role) {
+      throw new Error('No se pudo determinar el rol para el nuevo usuario');
+    }
 
     // 3. Insert user row in our users table
     const { error: insertError } = await supabase.from('users').insert({

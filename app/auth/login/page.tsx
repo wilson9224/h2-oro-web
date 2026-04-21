@@ -13,6 +13,7 @@ function redirectByRole(role: string): string {
     case 'manager':
       return '/admin';
     case 'jeweler':
+      return '/joyero';
     case 'designer':
       return '/admin';
     case 'client':
@@ -42,13 +43,22 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
+    console.log('=== INICIO LOGIN ===');
+    console.log('Email:', email);
+    console.log('Password length:', password.length);
+
     try {
+      console.log('Intentando signIn...');
       await signIn(email, password);
+      console.log('SignIn exitoso');
     } catch (err: unknown) {
+      console.error('Error en login:', err);
       const message = err instanceof Error ? err.message : 'Credenciales inválidas';
+      console.error('Mensaje de error:', message);
       setError(message);
     } finally {
       setLoading(false);
+      console.log('=== FIN LOGIN ===');
     }
   };
 

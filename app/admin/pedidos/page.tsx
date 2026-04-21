@@ -40,6 +40,7 @@ const typeLabels: Record<string, string> = {
   catalog: 'Catálogo',
   repair: 'Reparación',
   resize: 'Redimensionar',
+  jewelry: 'Joyería',
 };
 
 export default function OrdersListPage() {
@@ -54,6 +55,7 @@ export default function OrdersListPage() {
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
+    console.log('Fetching orders with filters:', { search, statusFilter, typeFilter, page });
     try {
       const from = (page - 1) * limit;
       const to = from + limit - 1;
@@ -70,25 +72,50 @@ export default function OrdersListPage() {
           notes,
           created_at,
           estimated_delivery_date,
-          client:users!client_id ( id, first_name, last_name, email ),
-          pieces (
-            id,
-            name,
-            currentState:workflow_states!current_state_id ( code, name )
-          )
+          client_id
         `, { count: 'exact' })
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (statusFilter) query = query.eq('status', statusFilter);
       if (typeFilter) query = query.eq('type', typeFilter);
-      if (search) query = query.or(`order_number.ilike.%${search}%`);
+      // La búsqueda por cliente se hará después de cargar los datos
+
+      console.log('Query constructed with filters:', { statusFilter, typeFilter, search });
 
       const { data, error, count } = await query.range(from, to);
 
+      console.log('Orders query result:', { data, error, count });
+      console.log('Data length:', data?.length);
+      console.log('Sample order:', data?.[0]);
+
       if (!error && data) {
-        setOrders(data.map((o: Record<string, unknown>) => {
-          const cl = Array.isArray(o.client) ? (o.client as Record<string, unknown>[])[0] : o.client as Record<string, unknown>;
+        // Obtener datos de clientes por separado
+        const clientIds = Array.from(new Set(data.map((o: any) => o.client_id).filter(Boolean)));
+        let clientsData: Record<string, any> = {};
+        
+        console.log('Client IDs to fetch:', clientIds);
+        
+        if (clientIds.length > 0) {
+          const { data: clients } = await supabase
+            .from('users')
+            .select('id, first_name, last_name, email')
+            .in('id', clientIds);
+          
+          console.log('Clients data:', clients);
+          
+          if (clients) {
+            clientsData = clients.reduce((acc: Record<string, any>, client: any) => {
+              acc[client.id] = client;
+              return acc;
+            }, {});
+          }
+        }
+        
+        let transformedOrders = data.map((o: Record<string, unknown>) => {
+          const clientId = o.client_id as string;
+          const client = clientsData[clientId];
+          
           return {
             id: o.id as string,
             orderNumber: o.order_number as string,
@@ -99,26 +126,43 @@ export default function OrdersListPage() {
             notes: o.notes as string | null,
             createdAt: o.created_at as string,
             estimatedDeliveryDate: o.estimated_delivery_date as string | null,
-            client: cl ? {
-              id: cl.id as string,
-              firstName: cl.first_name as string,
-              lastName: cl.last_name as string,
-              email: cl.email as string,
-            } : { id: '', firstName: '—', lastName: '', email: '' },
-            pieces: ((o.pieces as Record<string, unknown>[]) || []).map((p) => {
-              const cs = Array.isArray(p.currentState) ? (p.currentState as Record<string, unknown>[])[0] : p.currentState as Record<string, unknown> | null;
-              return {
-                id: p.id as string,
-                name: p.name as string,
-                currentState: cs ? { code: cs.code as string, name: cs.name as string } : null,
-              };
-            }),
+            client: client ? {
+              id: client.id,
+              firstName: client.first_name,
+              lastName: client.last_name,
+              email: client.email,
+            } : {
+              id: clientId || '',
+              firstName: '---',
+              lastName: '',
+              email: '',
+            },
+            pieces: [], // Sin pieces por ahora
           };
-        }));
+        });
+        
+        // Filtrar por búsqueda (número de pedido o nombre de cliente)
+        if (search) {
+          const searchLower = search.toLowerCase();
+          transformedOrders = transformedOrders.filter(order => 
+            order.orderNumber.toLowerCase().includes(searchLower) ||
+            order.client.firstName.toLowerCase().includes(searchLower) ||
+            order.client.lastName.toLowerCase().includes(searchLower) ||
+            `${order.client.firstName} ${order.client.lastName}`.toLowerCase().includes(searchLower)
+          );
+        }
+        
+        console.log('Filtered orders:', transformedOrders);
+        setOrders(transformedOrders);
         setTotal(count || 0);
+      } else if (error) {
+        console.error('Query error:', error);
+        console.error('Error details:', error.message, error.details, error.hint);
+      } else {
+        console.log('No data returned but no error');
       }
     } catch (e) {
-      console.error(e);
+      console.error('Fetch error:', e);
     } finally {
       setLoading(false);
     }
@@ -193,6 +237,7 @@ export default function OrdersListPage() {
           <option value="catalog">Catálogo</option>
           <option value="repair">Reparación</option>
           <option value="resize">Redimensionar</option>
+          <option value="jewelry">Joyería</option>
         </select>
       </div>
 
@@ -238,7 +283,16 @@ export default function OrdersListPage() {
                     <td className="px-5 py-3 text-charcoal-300">
                       {order.client.firstName} {order.client.lastName}
                     </td>
-                    <td className="px-5 py-3 text-charcoal-400 text-xs">{typeLabels[order.type] || order.type}</td>
+                    <td className="px-5 py-3">
+                      {order.type === 'jewelry' ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded bg-gold-500/20 text-gold-400 border border-gold-500/30">
+                          <span className="w-1.5 h-1.5 bg-gold-400 rounded-full"></span>
+                          {typeLabels[order.type]}
+                        </span>
+                      ) : (
+                        <span className="text-charcoal-400 text-xs">{typeLabels[order.type] || order.type}</span>
+                      )}
+                    </td>
                     <td className="px-5 py-3">
                       <span className={`text-[11px] px-2 py-0.5 rounded ${st.color}`}>{st.label}</span>
                     </td>
