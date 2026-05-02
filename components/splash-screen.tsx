@@ -14,8 +14,10 @@ const BUBBLES = Array.from({ length: 18 }, (_, i) => ({
 
 export function SplashScreen() {
   const [visible, setVisible] = useState(true);
+  const [windowHeight, setWindowHeight] = useState(900);
 
   useEffect(() => {
+    setWindowHeight(window.innerHeight);
     const timer = setTimeout(() => setVisible(false), 2200);
     return () => clearTimeout(timer);
   }, []);
@@ -61,7 +63,7 @@ export function SplashScreen() {
                   border: `1px solid rgba(212,175,55,${b.opacity})`,
                 }}
                 animate={{
-                  y: [0, -(window?.innerHeight ?? 900) * 1.2],
+                  y: [0, -(windowHeight) * 1.2],
                   opacity: [0, b.opacity * 4, 0],
                   scale: [0.6, 1, 0.8],
                 }}
