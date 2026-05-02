@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight, TrendingUp } from 'lucide-react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+import { ArrowRight } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 function formatCOP(value: number) {
   return new Intl.NumberFormat('es-CO', {
@@ -18,21 +17,59 @@ function formatCOP(value: number) {
 
 function useGoldPrice() {
   const [priceCop, setPriceCop] = useState<string | null>(null);
-  const fetchPrice = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_URL}/gold-price/current`);
-      if (!res.ok) throw new Error('API error');
-      const data = await res.json();
-      setPriceCop(formatCOP(data.priceGram24k));
-    } catch {
-      setPriceCop(formatCOP(317235));
-    }
-  }, []);
+
   useEffect(() => {
+    const supabase = createClient();
+
+    const resolvePrice = (row: {
+      purchase_base_price: number | null;
+      international_price_per_gram: number | null;
+      purchase_percentage: number | null;
+    }): number | null => {
+      if (row.purchase_base_price) return row.purchase_base_price;
+      if (row.international_price_per_gram && row.purchase_percentage) {
+        return row.international_price_per_gram * row.purchase_percentage / 100;
+      }
+      return null;
+    };
+
+    const fetchPrice = async () => {
+      const { data, error } = await supabase
+        .from('pricing_metals')
+        .select('purchase_base_price, international_price_per_gram, purchase_percentage')
+        .eq('metal_code', 'gold')
+        .single();
+
+      if (!error && data) {
+        const price = resolvePrice(data);
+        if (price) setPriceCop(formatCOP(price));
+      }
+    };
+
     fetchPrice();
-    const iv = setInterval(fetchPrice, 15 * 60 * 1000);
-    return () => clearInterval(iv);
-  }, [fetchPrice]);
+
+    const channel = supabase
+      .channel('hero-gold-price')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'pricing_metals', filter: 'metal_code=eq.gold' },
+        (payload) => {
+          const row = payload.new as {
+            purchase_base_price: number | null;
+            international_price_per_gram: number | null;
+            purchase_percentage: number | null;
+          };
+          const price = resolvePrice(row);
+          if (price) setPriceCop(formatCOP(price));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   return priceCop;
 }
 
@@ -53,11 +90,263 @@ function RevealLine({ children, delay = 0 }: { children: React.ReactNode; delay?
   );
 }
 
+function FloatingBubble({
+  className,
+  style,
+  children,
+  floatY,
+  floatDuration,
+  entryDelay,
+  entryDuration = 0.65,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+  children?: React.ReactNode;
+  floatY: [number, number];
+  floatDuration: number;
+  entryDelay: number;
+  entryDuration?: number;
+}) {
+  return (
+    <motion.div
+      className={className}
+      style={style}
+      initial={{ opacity: 0, scale: 0.4, y: floatY[0] }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+        y: floatY,
+      }}
+      transition={{
+        opacity: { duration: entryDuration, delay: entryDelay },
+        scale: { duration: entryDuration, delay: entryDelay, ease: [0.34, 1.56, 0.64, 1] },
+        y: {
+          duration: floatDuration,
+          repeat: Infinity,
+          repeatType: 'mirror',
+          ease: [0.45, 0, 0.55, 1],
+          delay: entryDelay + entryDuration * 0.5,
+        },
+      }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function GoldBubblesMobile({ price }: { price: string | null }) {
+  return (
+    <div className="flex md:hidden justify-center items-center gap-3 mt-8 w-full">
+      {/* Satellite bubbles stacked — left */}
+      <div className="flex flex-col gap-2">
+        <FloatingBubble
+          floatY={[4, -4]}
+          floatDuration={3.6}
+          entryDelay={1.1}
+          className="w-[72px] h-[72px] rounded-full flex items-center justify-center"
+          style={{
+            background: 'radial-gradient(circle at 35% 35%, rgba(38,33,20,0.95), rgba(22,19,10,0.95))',
+            border: '1px solid rgba(212,175,55,0.3)',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(12px)',
+          }}
+        >
+          <span className="text-[8px] font-sans text-cream-200/50 uppercase tracking-[0.1em] leading-tight text-center px-2">
+            Precio de compra
+          </span>
+        </FloatingBubble>
+        <FloatingBubble
+          floatY={[-4, 4]}
+          floatDuration={5.0}
+          entryDelay={1.3}
+          className="w-[72px] h-[72px] rounded-full flex items-center justify-center"
+          style={{
+            background: 'radial-gradient(circle at 35% 35%, rgba(38,33,20,0.95), rgba(22,19,10,0.95))',
+            border: '1px solid rgba(212,175,55,0.3)',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(12px)',
+          }}
+        >
+          <span className="text-[8px] font-sans text-gold-400/70 font-semibold uppercase tracking-[0.1em] leading-tight text-center px-2">
+            Oro puro 24K
+          </span>
+        </FloatingBubble>
+      </div>
+
+      {/* Dot */}
+      <FloatingBubble
+        floatY={[-3, 3]}
+        floatDuration={2.4}
+        entryDelay={1.4}
+        entryDuration={0.4}
+        className="w-2 h-2 rounded-full flex-shrink-0"
+        style={{ background: 'rgba(212,175,55,0.8)', boxShadow: '0 0 6px rgba(212,175,55,0.5)' }}
+      />
+
+      {/* Main bubble — center */}
+      <FloatingBubble
+        floatY={[-5, 5]}
+        floatDuration={4.2}
+        entryDelay={0.8}
+        entryDuration={0.6}
+        className="w-[96px] h-[96px] rounded-full flex items-center justify-center flex-shrink-0"
+        style={{
+          background: 'radial-gradient(circle at 35% 35%, rgba(45,40,28,0.98), rgba(28,24,14,0.98))',
+          border: '1.5px solid rgba(212,175,55,0.55)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(212,175,55,0.15)',
+          backdropFilter: 'blur(16px)',
+        }}
+      >
+        <span className="font-mono text-gold-400 font-bold text-sm leading-tight tracking-tight text-center px-2">
+          {price ?? '—'}
+        </span>
+      </FloatingBubble>
+
+      {/* Dot */}
+      <FloatingBubble
+        floatY={[3, -3]}
+        floatDuration={2.8}
+        entryDelay={1.5}
+        entryDuration={0.4}
+        className="w-2 h-2 rounded-full flex-shrink-0"
+        style={{ background: 'rgba(212,175,55,0.7)', boxShadow: '0 0 5px rgba(212,175,55,0.4)' }}
+      />
+
+      {/* Por gramo — right */}
+      <FloatingBubble
+        floatY={[4, -5]}
+        floatDuration={3.9}
+        entryDelay={1.6}
+        entryDuration={0.6}
+        className="w-[60px] h-[60px] rounded-full flex items-center justify-center flex-shrink-0"
+        style={{
+          background: 'radial-gradient(circle at 35% 35%, rgba(32,28,16,0.92), rgba(18,15,8,0.92))',
+          border: '1px solid rgba(212,175,55,0.2)',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+          backdropFilter: 'blur(10px)',
+        }}
+      >
+        <span className="text-[8px] font-sans text-cream-200/40 uppercase tracking-[0.1em] leading-tight text-center px-1">
+          Por gramo
+        </span>
+      </FloatingBubble>
+    </div>
+  );
+}
+
+function GoldBubbles({ price }: { price: string | null }) {
+  return (
+    <div className="relative w-[260px] h-[260px] hidden md:block">
+      {/* Dot accent — top right */}
+      <FloatingBubble
+        floatY={[-4, 4]}
+        floatDuration={2.1}
+        entryDelay={1.8}
+        entryDuration={0.5}
+        className="absolute top-[18px] right-[48px] w-3 h-3 rounded-full"
+        style={{ background: 'rgba(212,175,55,0.9)', boxShadow: '0 0 8px rgba(212,175,55,0.6)' }}
+      />
+      {/* Dot accent — between bubbles */}
+      <FloatingBubble
+        floatY={[3, -5]}
+        floatDuration={2.7}
+        entryDelay={2.0}
+        entryDuration={0.5}
+        className="absolute bottom-[68px] left-[84px] w-2 h-2 rounded-full"
+        style={{ background: 'rgba(212,175,55,0.7)', boxShadow: '0 0 6px rgba(212,175,55,0.4)' }}
+      />
+      {/* Dot accent — lower right */}
+      <FloatingBubble
+        floatY={[-3, 5]}
+        floatDuration={3.2}
+        entryDelay={2.2}
+        entryDuration={0.5}
+        className="absolute bottom-[32px] right-[36px] w-2.5 h-2.5 rounded-full"
+        style={{ background: 'rgba(212,175,55,0.55)' }}
+      />
+
+      {/* Main bubble — price */}
+      <FloatingBubble
+        floatY={[-8, 8]}
+        floatDuration={4.2}
+        entryDelay={0.8}
+        entryDuration={0.7}
+        className="absolute top-[20px] left-[40px] w-[130px] h-[130px] rounded-full flex flex-col items-center justify-center"
+        style={{
+          background: 'radial-gradient(circle at 35% 35%, rgba(45,40,28,0.98), rgba(28,24,14,0.98))',
+          border: '1.5px solid rgba(212,175,55,0.55)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(212,175,55,0.15)',
+          backdropFilter: 'blur(16px)',
+        }}
+      >
+        <span className="font-mono text-gold-400 font-bold text-lg leading-tight tracking-tight text-center px-2">
+          {price ?? '—'}
+        </span>
+      </FloatingBubble>
+
+      {/* Satellite bubble 1 — "Precio de compra" */}
+      <FloatingBubble
+        floatY={[6, -6]}
+        floatDuration={3.6}
+        entryDelay={1.1}
+        className="absolute bottom-[50px] right-[10px] w-[100px] h-[100px] rounded-full flex flex-col items-center justify-center"
+        style={{
+          background: 'radial-gradient(circle at 35% 35%, rgba(38,33,20,0.95), rgba(22,19,10,0.95))',
+          border: '1px solid rgba(212,175,55,0.3)',
+          boxShadow: '0 6px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(212,175,55,0.08)',
+          backdropFilter: 'blur(12px)',
+        }}
+      >
+        <span className="text-[10px] font-sans text-cream-200/50 uppercase tracking-[0.12em] leading-tight text-center px-3">
+          Precio de compra
+        </span>
+      </FloatingBubble>
+
+      {/* Satellite bubble 2 — "Oro puro 24K" */}
+      <FloatingBubble
+        floatY={[-5, 7]}
+        floatDuration={5.0}
+        entryDelay={1.35}
+        className="absolute bottom-[10px] left-[20px] w-[100px] h-[100px] rounded-full flex flex-col items-center justify-center"
+        style={{
+          background: 'radial-gradient(circle at 35% 35%, rgba(38,33,20,0.95), rgba(22,19,10,0.95))',
+          border: '1px solid rgba(212,175,55,0.3)',
+          boxShadow: '0 6px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(212,175,55,0.08)',
+          backdropFilter: 'blur(12px)',
+        }}
+      >
+        <span className="text-[10px] font-sans text-gold-400/70 font-semibold uppercase tracking-[0.12em] leading-tight text-center px-3">
+          Oro puro 24K
+        </span>
+      </FloatingBubble>
+
+      {/* Satellite bubble 3 — "Por gramo" */}
+      <FloatingBubble
+        floatY={[4, -7]}
+        floatDuration={3.9}
+        entryDelay={1.6}
+        entryDuration={0.6}
+        className="absolute top-[10px] right-[8px] w-[72px] h-[72px] rounded-full flex items-center justify-center"
+        style={{
+          background: 'radial-gradient(circle at 35% 35%, rgba(32,28,16,0.92), rgba(18,15,8,0.92))',
+          border: '1px solid rgba(212,175,55,0.2)',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+          backdropFilter: 'blur(10px)',
+        }}
+      >
+        <span className="text-[9px] font-sans text-cream-200/40 uppercase tracking-[0.1em] leading-tight text-center px-2">
+          Por gramo
+        </span>
+      </FloatingBubble>
+    </div>
+  );
+}
+
 export function Hero() {
   const goldPrice = useGoldPrice();
 
   return (
-    <section className="relative min-h-[100svh] flex items-end pb-16 md:pb-24 overflow-hidden">
+    <section className="relative min-h-[100svh] flex items-center md:items-end pt-24 pb-12 md:pt-0 md:pb-24 overflow-hidden">
       {/* Deep atmospheric layers */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -88,32 +377,10 @@ export function Hero() {
       {/* Content */}
       <div className="relative z-10 section-padding w-full max-w-[90rem] mx-auto">
 
-        {/* Gold price ticker — top right floating */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.3 }}
-          className="absolute top-[8vh] right-5 sm:right-8 md:right-12 lg:right-20"
-        >
-          <div
-            className="flex items-center gap-2.5 px-4 py-2.5 rounded-full"
-            style={{
-              background: 'rgba(212,175,55,0.06)',
-              border: '1px solid rgba(212,175,55,0.2)',
-              backdropFilter: 'blur(12px)',
-            }}
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold-400 opacity-70" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gold-400" />
-            </span>
-            <TrendingUp size={11} className="text-gold-400/70" />
-            <span className="font-mono text-gold-400 font-semibold tracking-tight text-sm md:text-base">
-              {goldPrice ?? '—'}
-            </span>
-            <span className="text-cream-200/30 text-[10px] font-sans hidden sm:inline">/g · Oro 24K</span>
-          </div>
-        </motion.div>
+        {/* Gold price bubbles — desktop: absolute center-right; mobile: inline after heading */}
+        <div className="hidden md:block absolute top-1/2 -translate-y-1/2 right-[8%] lg:right-[15%] pointer-events-none">
+          <GoldBubbles price={goldPrice} />
+        </div>
 
         {/* Label */}
         <motion.div
@@ -163,11 +430,14 @@ export function Hero() {
           transition={{ duration: 0.9, delay: 0.85, ease }}
           className="flex flex-col md:flex-row md:items-end md:justify-between gap-8"
         >
-          <p className="max-w-[26rem] text-sm md:text-base leading-[1.8] text-cream-200/45 font-sans">
-            Cada pieza nace de la tradición orfebre colombiana
-            y la visión contemporánea. Oro de alta pureza,
-            diseño personalizado, artesanía excepcional.
-          </p>
+          <div>
+            <p className="max-w-[26rem] text-sm md:text-base leading-[1.8] text-cream-200/45 font-sans">
+              Cada pieza nace de la tradición orfebre colombiana
+              y la visión contemporánea. Oro de alta pureza,
+              diseño personalizado, artesanía excepcional.
+            </p>
+            <GoldBubblesMobile price={goldPrice} />
+          </div>
 
           <div className="flex items-center gap-4">
             <Link href="/catalogo" className="btn-pill group">
