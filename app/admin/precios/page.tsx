@@ -42,7 +42,7 @@ export default function PreciosPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin h-8 w-8 border-2 border-gold-500 border-t-transparent rounded-full" />
+        <div className="animate-spin h-8 w-8 border-2 rounded-full" style={{ borderColor: 'rgba(212,175,55,0.3)', borderTopColor: 'rgba(212,175,55,0.9)' }} />
       </div>
     );
   }
@@ -61,19 +61,19 @@ export default function PreciosPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gold-500/10 flex items-center justify-center">
-            <DollarSign size={20} className="text-gold-400" />
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.1)' }}>
+            <DollarSign size={20} style={{ color: 'rgba(212,175,55,0.9)' }} />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-cream-200">Precios y Tarifas</h1>
-            <p className="text-sm text-charcoal-400">
+            <h1 className="text-xl font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.95)' }}>Precios y Tarifas</h1>
+            <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
               Configuración de precios de metales, servicios y pagos
             </p>
           </div>
         </div>
         <button
           onClick={() => setShowChangeLog(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-charcoal-300 hover:bg-white/5 border border-white/10 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors font-sans-custom" style={{ borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(242,240,237,0.5)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
         >
           <History size={16} />
           Ver historial
@@ -81,7 +81,7 @@ export default function PreciosPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-white/5">
+      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <nav className="flex gap-1 overflow-x-auto -mb-px">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key;
@@ -89,11 +89,13 @@ export default function PreciosPage() {
               <button
                 key={tab.key}
                 onClick={() => handleTabChange(tab.key)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                  isActive
-                    ? 'border-gold-500 text-gold-400'
-                    : 'border-transparent text-charcoal-400 hover:text-charcoal-200 hover:border-charcoal-600'
-                }`}
+                className="flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors font-sans-custom"
+                style={{
+                  borderColor: isActive ? 'rgba(212,175,55,0.9)' : 'transparent',
+                  color: isActive ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.4)'
+                }}
+                onMouseEnter={e => !isActive && ((e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.6)')}
+                onMouseLeave={e => !isActive && ((e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.4)')}
               >
                 <tab.icon size={16} />
                 {tab.label}

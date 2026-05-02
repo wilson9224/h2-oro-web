@@ -45,19 +45,22 @@ export default function MetalsTab({ userId }: MetalsTabProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <RefreshCw size={24} className="animate-spin text-gold-500" />
+        <RefreshCw size={24} className="animate-spin" style={{ color: 'rgba(212,175,55,0.9)' }} />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-        <AlertCircle size={20} className="text-red-400" />
-        <span className="text-red-300 text-sm">{error}</span>
+      <div className="flex items-center gap-3 p-4 rounded-lg font-sans-custom" style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)' }}>
+        <AlertCircle size={20} style={{ color: 'rgba(248,113,113,0.9)' }} />
+        <span className="text-sm" style={{ color: 'rgba(248,113,113,0.8)' }}>{error}</span>
         <button
           onClick={loadMetals}
-          className="ml-auto text-xs text-red-400 hover:text-red-300 underline"
+          className="ml-auto text-xs underline font-sans-custom"
+          style={{ color: 'rgba(248,113,113,0.9)' }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(248,113,113,0.7)'}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(248,113,113,0.9)'}
         >
           Reintentar
         </button>
@@ -74,7 +77,7 @@ export default function MetalsTab({ userId }: MetalsTabProps) {
       {/* Metals with percentages (Gold, Silver) */}
       {metalsWithPercentages.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-sm font-medium text-charcoal-300 uppercase tracking-wider">
+          <h3 className="text-sm font-medium font-sans-custom uppercase tracking-wider" style={{ color: 'rgba(242,240,237,0.6)' }}>
             Metales con porcentajes de compra/venta
           </h3>
           {metalsWithPercentages.map((metal) => (
@@ -86,7 +89,7 @@ export default function MetalsTab({ userId }: MetalsTabProps) {
       {/* Simple metals (Palladium, Copper) */}
       {simpleMetals.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-sm font-medium text-charcoal-300 uppercase tracking-wider">
+          <h3 className="text-sm font-medium font-sans-custom uppercase tracking-wider" style={{ color: 'rgba(242,240,237,0.6)' }}>
             Otros metales
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

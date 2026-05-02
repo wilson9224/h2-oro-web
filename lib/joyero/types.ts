@@ -1,12 +1,15 @@
 // Types for Joyero interface
 
+export type AssignmentStatus = 'pending' | 'assigned' | 'in_progress' | 'paused' | 'completed' | 'blocked';
+
 export interface WorkerAssignment {
   assignmentId: string;
   stageCode: string;
   stageName: string;
-  status: 'assigned' | 'in_progress' | 'completed' | 'blocked';
+  status: AssignmentStatus;
   startedAt: string | null;
   completedAt: string | null;
+  pausedAt: string | null;
   priority: number;
   progressPct: number;
   pieceName: string;
@@ -14,6 +17,31 @@ export interface WorkerAssignment {
   orderNumber: string;
   orderId: string;
   orderType: string;
+}
+
+export interface PauseLog {
+  id: string;
+  assignmentId: string;
+  pausedAt: string;
+  resumedAt: string | null;
+  reason: string;
+  durationMinutes: number | null;
+}
+
+export interface WorkerPayment {
+  id: string;
+  workerId: string;
+  assignmentId: string | null;
+  concept: string;
+  serviceCode: string | null;
+  pieceName: string | null;
+  amountCop: number;
+  status: 'pending' | 'paid';
+  paidAt: string | null;
+  confirmedAt: string | null;
+  notes: string | null;
+  createdAt: string;
+  orderNumber?: string;
 }
 
 export interface WorkerStats {
@@ -52,7 +80,7 @@ export interface OrderDetail {
     id: string;
     stageCode: string;
     stageName: string;
-    status: 'assigned' | 'in_progress' | 'completed';
+    status: AssignmentStatus;
     startedAt: string | null;
     completedAt: string | null;
     progressPct: number;
@@ -73,10 +101,15 @@ export interface Assignment {
   id: string;
   stageCode: string;
   stageName: string;
-  status: 'assigned' | 'in_progress' | 'completed';
+  status: AssignmentStatus;
   startedAt: string | null;
   completedAt: string | null;
+  pausedAt: string | null;
+  pauseReason: string | null;
+  effectiveMinutes: number | null;
   progressPct: number;
+  priority: number | null;
+  pieceId: string;
   pieceName: string;
   pieceDescription: string | null;
   orderNumber: string;

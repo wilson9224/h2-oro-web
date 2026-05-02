@@ -65,14 +65,17 @@ export interface AlloyBreakdown {
 }
 
 export interface LaborItem {
-  service_category: string;
+  category: string;
+  subcategory: string | null;
   service_name: string;
-  service_code: string;
+  service_code: string; // generado dinámicamente: category + subcategory + difficulty_level
   has_difficulty: boolean;
   difficulty_level: 'easy' | 'medium' | 'hard' | null;
   price_cop: number;
   other_value: number | null;
   effective_price: number;
+  quantity?: number;           // para servicios per_stone (ej: engaste)
+  price_unit?: 'per_stone' | 'per_service';
 }
 
 export interface QuotationRecord {

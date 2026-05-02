@@ -6,10 +6,13 @@ import { FeaturedCollection } from '@/components/landing/featured-collection';
 import { ProcessSection } from '@/components/landing/process-section';
 import { Testimonials } from '@/components/landing/testimonials';
 import { CtaSection } from '@/components/landing/cta-section';
+import { SplashScreen } from '@/components/splash-screen';
+import { WhatsAppButton } from '@/components/whatsapp-button';
 
 export default function Home() {
   return (
     <>
+      <SplashScreen />
       <Header />
       <main>
         <Hero />
@@ -21,6 +24,7 @@ export default function Home() {
         <CtaSection />
       </main>
       <Footer />
+      <WhatsAppButton />
     </>
   );
 }

@@ -296,20 +296,22 @@ export default function CatalogPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-serif text-cream-100">Catálogo</h1>
-          <p className="text-sm text-charcoal-400 mt-1">Gestión de productos y categorías</p>
+          <h1 className="text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>Catálogo</h1>
+          <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Gestión de productos y categorías</p>
         </div>
         {tab === 'products' ? (
           <Link
             href="/admin/catalogo/nuevo"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-all duration-200 font-sans-custom"
+            style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400', borderRadius: '0.75rem' }}
           >
             <Plus size={16} /> Nuevo Producto
           </Link>
         ) : (
           <button
             onClick={openNewCategory}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-all duration-200 font-sans-custom"
+            style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400', borderRadius: '0.75rem' }}
           >
             <Plus size={16} /> Nueva Categoría
           </button>
@@ -317,16 +319,18 @@ export default function CatalogPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-charcoal-800 rounded-md p-1 w-fit">
+      <div className="flex gap-1 rounded-xl p-1 w-fit" style={{ background: 'rgba(255,255,255,0.04)' }}>
         <button
           onClick={() => setTab('products')}
-          className={`px-4 py-2 text-sm rounded ${tab === 'products' ? 'bg-charcoal-700 text-cream-200' : 'text-charcoal-400 hover:text-charcoal-300'}`}
+          className={`px-4 py-2 text-sm rounded-xl font-sans-custom transition-all duration-200 ${tab === 'products' ? 'bg-white/10' : 'hover:bg-white/5'}`}
+          style={{ color: tab === 'products' ? 'rgba(242,240,237,0.9)' : 'rgba(242,240,237,0.5)' }}
         >
           Productos ({productsTotal})
         </button>
         <button
           onClick={() => setTab('categories')}
-          className={`px-4 py-2 text-sm rounded ${tab === 'categories' ? 'bg-charcoal-700 text-cream-200' : 'text-charcoal-400 hover:text-charcoal-300'}`}
+          className={`px-4 py-2 text-sm rounded-xl font-sans-custom transition-all duration-200 ${tab === 'categories' ? 'bg-white/10' : 'hover:bg-white/5'}`}
+          style={{ color: tab === 'categories' ? 'rgba(242,240,237,0.9)' : 'rgba(242,240,237,0.5)' }}
         >
           Categorías ({categories.length})
         </button>
@@ -335,15 +339,16 @@ export default function CatalogPage() {
       {tab === 'products' && (
         <>
           {!loading && productsTotal === 0 && !search && !categoryFilter ? (
-            <div className="bg-charcoal-800 rounded-lg border border-white/5 p-12 text-center">
-              <Package size={40} className="mx-auto text-charcoal-600 mb-4" />
-              <h2 className="text-lg font-serif text-cream-200 mb-2">Aún no hay productos</h2>
-              <p className="text-sm text-charcoal-400 mb-6 max-w-sm mx-auto">
+            <div className="rounded-2xl p-12 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <Package size={40} className="mx-auto mb-4" style={{ color: 'rgba(242,240,237,0.15)' }} />
+              <h2 className="text-lg font-display font-semibold mb-2" style={{ color: 'rgba(242,240,237,0.8)' }}>Aún no hay productos</h2>
+              <p className="text-sm mb-6 max-w-sm mx-auto font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
                 Agrega tu primer producto al catálogo para que tus clientes puedan verlo.
               </p>
               <Link
                 href="/admin/catalogo/nuevo"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition-all duration-200 font-sans-custom"
+                style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400', borderRadius: '0.75rem' }}
               >
                 <Plus size={16} /> Crear primer producto
               </Link>
@@ -353,19 +358,29 @@ export default function CatalogPage() {
               {/* Filters */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-500" />
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(242,240,237,0.25)' }} />
                   <input
                     type="text"
                     placeholder="Buscar productos..."
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 bg-charcoal-800 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-500 focus:outline-none focus:border-gold-500/30"
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom"
+                    style={{
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.07)',
+                      color: 'rgba(242,240,237,0.85)',
+                    }}
                   />
                 </div>
                 <select
                   value={categoryFilter}
                   onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-                  className="px-3 py-2.5 bg-charcoal-800 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+                  className="px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom"
+                  style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    color: categoryFilter ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.45)',
+                  }}
                 >
                   <option value="">Todas las categorías</option>
                   {categories.map((c) => (
@@ -375,66 +390,66 @@ export default function CatalogPage() {
               </div>
 
               {/* Products Table */}
-              <div className="bg-charcoal-800 rounded-lg border border-white/5 overflow-hidden">
+              <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-white/5">
-                        <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Producto</th>
-                        <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Categoría</th>
-                        <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Material</th>
-                        <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Precio</th>
-                        <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Variantes</th>
-                        <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Estado</th>
-                        <th className="px-5 py-3 text-xs text-charcoal-400 font-medium text-right">Acciones</th>
+                        <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Producto</th>
+                        <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Categoría</th>
+                        <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Material</th>
+                        <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Precio</th>
+                        <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Variantes</th>
+                        <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Estado</th>
+                        <th className="px-5 py-3 text-xs font-semibold font-sans-custom text-right" style={{ color: 'rgba(242,240,237,0.3)' }}>Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
                       {loading && [...Array(5)].map((_, i) => (
-                        <tr key={i} className="border-b border-white/5">
+                        <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                           {[...Array(7)].map((_, j) => (
-                            <td key={j} className="px-5 py-4"><div className="h-4 bg-charcoal-700 rounded animate-pulse w-20" /></td>
+                            <td key={j} className="px-5 py-4"><div className="h-4 rounded animate-pulse w-20" style={{ background: 'rgba(255,255,255,0.08)' }} /></td>
                           ))}
                         </tr>
                       ))}
                       {!loading && products.map((p) => (
-                        <tr key={p.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
+                        <tr key={p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }} className="hover:bg-white/[0.02] transition-colors">
                           <td className="px-5 py-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-charcoal-700 rounded flex items-center justify-center">
-                                <Package size={16} className="text-charcoal-500" />
+                              <div className="w-10 h-10 rounded flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                                <Package size={16} style={{ color: 'rgba(242,240,237,0.3)' }} />
                               </div>
                               <div>
-                                <p className="text-cream-200 text-sm">{p.name}</p>
-                                <p className="text-charcoal-500 text-[11px]">/{p.slug}</p>
+                                <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{p.name}</p>
+                                <p className="text-[11px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>/{p.slug}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-5 py-3 text-charcoal-400 text-xs">{p.category.name}</td>
-                          <td className="px-5 py-3 text-charcoal-400 text-xs">{p.material || '—'}</td>
-                          <td className="px-5 py-3 text-charcoal-300 text-xs font-mono">
+                          <td className="px-5 py-3 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{p.category.name}</td>
+                          <td className="px-5 py-3 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{p.material || '—'}</td>
+                          <td className="px-5 py-3 text-xs font-mono" style={{ color: 'rgba(242,240,237,0.6)' }}>
                             {p.basePriceCop
                               ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(Number(p.basePriceCop))
                               : '—'}
                           </td>
-                          <td className="px-5 py-3 text-charcoal-400 text-xs">{p.variants.length}</td>
+                          <td className="px-5 py-3 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{p.variants.length}</td>
                           <td className="px-5 py-3">
                             <div className="flex items-center gap-2">
-                              <span className={`text-[11px] px-2 py-0.5 rounded ${p.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-charcoal-600/40 text-charcoal-400'}`}>
+                              <span className={`text-[11px] px-2 py-0.5 rounded font-sans-custom ${p.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-cream-200/40'}`}>
                                 {p.isActive ? 'Activo' : 'Inactivo'}
                               </span>
-                              {p.isFeatured && <Star size={12} className="text-gold-400 fill-gold-400" />}
+                              {p.isFeatured && <Star size={12} style={{ color: 'rgba(212,175,55,0.9)', fill: 'rgba(212,175,55,0.9)' }} />}
                             </div>
                           </td>
                           <td className="px-5 py-3 text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <button onClick={() => toggleFeatured(p.id, p.isFeatured)} className="p-1.5 rounded hover:bg-white/5 text-charcoal-500 hover:text-gold-400 transition-colors" title="Destacar">
+                              <button onClick={() => toggleFeatured(p.id, p.isFeatured)} className="p-1.5 rounded transition-colors" style={{ color: 'rgba(242,240,237,0.3)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(212,175,55,0.9)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'} title="Destacar">
                                 <Star size={14} className={p.isFeatured ? 'fill-gold-400 text-gold-400' : ''} />
                               </button>
-                              <button onClick={() => toggleActive(p.id, p.isActive)} className="p-1.5 rounded hover:bg-white/5 text-charcoal-500 hover:text-cream-200 transition-colors" title={p.isActive ? 'Desactivar' : 'Activar'}>
+                              <button onClick={() => toggleActive(p.id, p.isActive)} className="p-1.5 rounded transition-colors" style={{ color: 'rgba(242,240,237,0.3)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.8)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'} title={p.isActive ? 'Desactivar' : 'Activar'}>
                                 {p.isActive ? <EyeOff size={14} /> : <Eye size={14} />}
                               </button>
-                              <Link href={`/admin/catalogo/${p.id}`} className="p-1.5 rounded hover:bg-white/5 text-charcoal-500 hover:text-cream-200 transition-colors">
+                              <Link href={`/admin/catalogo/${p.id}`} className="p-1.5 rounded transition-colors" style={{ color: 'rgba(242,240,237,0.3)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.8)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'}>
                                 <Edit3 size={14} />
                               </Link>
                             </div>
@@ -442,17 +457,17 @@ export default function CatalogPage() {
                         </tr>
                       ))}
                       {!loading && products.length === 0 && (
-                        <tr><td colSpan={7} className="px-5 py-12 text-center text-charcoal-500">No se encontraron productos con esos filtros</td></tr>
+                        <tr><td colSpan={7} className="px-5 py-12 text-center text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>No se encontraron productos con esos filtros</td></tr>
                       )}
                     </tbody>
                   </table>
                 </div>
                 {totalPages > 1 && (
-                  <div className="px-5 py-3 border-t border-white/5 flex items-center justify-between">
-                    <p className="text-xs text-charcoal-500">Página {page} de {totalPages}</p>
+                  <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <p className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Página {page} de {totalPages}</p>
                     <div className="flex gap-1">
-                      <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded hover:bg-white/5 text-charcoal-400 disabled:opacity-30"><ChevronLeft size={16} /></button>
-                      <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded hover:bg-white/5 text-charcoal-400 disabled:opacity-30"><ChevronRight size={16} /></button>
+                      <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded transition-all disabled:opacity-30" style={{ color: 'rgba(242,240,237,0.5)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}><ChevronLeft size={16} /></button>
+                      <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded transition-all disabled:opacity-30" style={{ color: 'rgba(242,240,237,0.5)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}><ChevronRight size={16} /></button>
                     </div>
                   </div>
                 )}
@@ -463,37 +478,40 @@ export default function CatalogPage() {
       )}
 
       {tab === 'categories' && (
-        <div className="bg-charcoal-800 rounded-lg border border-white/5 overflow-hidden">
+        <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/5">
-                <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Nombre</th>
-                <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Slug</th>
-                <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Descripción</th>
-                <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Productos</th>
-                <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Estado</th>
-                <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Orden</th>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Nombre</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Slug</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Descripción</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Productos</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Estado</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Orden</th>
                 <th className="px-5 py-3"></th>
               </tr>
             </thead>
             <tbody>
               {categories.map((c) => (
-                <tr key={c.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
-                  <td className="px-5 py-3 text-cream-200">{c.name}</td>
-                  <td className="px-5 py-3 text-charcoal-400 text-xs font-mono">/{c.slug}</td>
-                  <td className="px-5 py-3 text-charcoal-400 text-xs max-w-[200px] truncate">{c.description || '—'}</td>
-                  <td className="px-5 py-3 text-charcoal-400">{c.productCount}</td>
+                <tr key={c.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }} className="hover:bg-white/[0.02] transition-colors">
+                  <td className="px-5 py-3 font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{c.name}</td>
+                  <td className="px-5 py-3 text-xs font-mono font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>/{c.slug}</td>
+                  <td className="px-5 py-3 text-xs font-sans-custom max-w-[200px] truncate" style={{ color: 'rgba(242,240,237,0.5)' }}>{c.description || '—'}</td>
+                  <td className="px-5 py-3 font-sans-custom" style={{ color: 'rgba(242,240,237,0.6)' }}>{c.productCount}</td>
                   <td className="px-5 py-3">
-                    <span className={`text-[11px] px-2 py-0.5 rounded ${c.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-charcoal-600/40 text-charcoal-400'}`}>
+                    <span className={`text-[11px] px-2 py-0.5 rounded font-sans-custom ${c.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-cream-200/40'}`}>
                       {c.isActive ? 'Activa' : 'Inactiva'}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-charcoal-500 text-xs">{c.sortOrder}</td>
+                  <td className="px-5 py-3 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>{c.sortOrder}</td>
                   <td className="px-5 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => openEditCategory(c)}
-                        className="p-1.5 rounded hover:bg-white/5 text-charcoal-400 hover:text-gold-400 transition-colors"
+                        className="p-1.5 rounded transition-colors"
+                        style={{ color: 'rgba(242,240,237,0.3)' }}
+                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(212,175,55,0.9)'}
+                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'}
                         title="Editar"
                       >
                         <Pencil size={14} />
@@ -501,7 +519,10 @@ export default function CatalogPage() {
                       {c.productCount === 0 && (
                         <button
                           onClick={() => handleDeleteCategory(c.id, c.name)}
-                          className="p-1.5 rounded hover:bg-white/5 text-charcoal-400 hover:text-red-400 transition-colors"
+                          className="p-1.5 rounded transition-colors"
+                          style={{ color: 'rgba(242,240,237,0.3)' }}
+                          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(248,113,113,0.9)'}
+                          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'}
                           title="Eliminar"
                         >
                           <Trash2 size={14} />
@@ -512,7 +533,7 @@ export default function CatalogPage() {
                 </tr>
               ))}
               {categories.length === 0 && (
-                <tr><td colSpan={7} className="px-5 py-8 text-center text-charcoal-500">No hay categorías. Crea la primera.</td></tr>
+                <tr><td colSpan={7} className="px-5 py-8 text-center text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>No hay categorías. Crea la primera.</td></tr>
               )}
             </tbody>
           </table>
@@ -523,13 +544,13 @@ export default function CatalogPage() {
       {catModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeCatModal} />
-          <div className="relative bg-charcoal-800 border border-white/10 rounded-lg shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="relative rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" style={{ background: 'rgba(20,18,14,0.98)', border: '1px solid rgba(255,255,255,0.1)' }}>
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-              <h2 className="text-lg font-serif text-cream-100">
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <h2 className="text-lg font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>
                 {catEditing ? 'Editar Categoría' : 'Nueva Categoría'}
               </h2>
-              <button onClick={closeCatModal} className="p-1.5 rounded hover:bg-white/5 text-charcoal-400 hover:text-cream-200 transition-colors">
+              <button onClick={closeCatModal} className="p-1.5 rounded transition-colors" style={{ color: 'rgba(242,240,237,0.4)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.8)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.4)'}>
                 <X size={18} />
               </button>
             </div>
@@ -537,58 +558,62 @@ export default function CatalogPage() {
             {/* Body */}
             <div className="px-6 py-5 space-y-4">
               {catError && (
-                <div className="p-3 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{catError}</div>
+                <div className="p-3 rounded-2xl text-sm text-center font-sans-custom" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', color: 'rgba(248,113,113,0.9)' }}>{catError}</div>
               )}
               {catSuccess && (
-                <div className="p-3 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center gap-2">
+                <div className="p-3 rounded-2xl text-sm flex items-center justify-center gap-2 font-sans-custom" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', color: 'rgba(16,185,129,0.9)' }}>
                   <Check size={14} /> {catEditing ? 'Categoría actualizada' : 'Categoría creada correctamente'}
                 </div>
               )}
 
               {/* Name */}
               <div>
-                <label className="block text-xs text-charcoal-400 mb-1.5">Nombre *</label>
+                <label className="block text-xs mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Nombre *</label>
                 <input
                   type="text"
                   value={catForm.name}
                   onChange={(e) => handleCatNameChange(e.target.value)}
                   placeholder="Ej: Anillos de compromiso"
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-600 focus:outline-none focus:border-gold-500/30"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.85)' }}
                 />
               </div>
 
               {/* Slug */}
               <div>
-                <label className="block text-xs text-charcoal-400 mb-1.5">Slug *</label>
+                <label className="block text-xs mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Slug *</label>
                 <input
                   type="text"
                   value={catForm.slug}
                   onChange={(e) => { setAutoSlug(false); setCatForm((f) => ({ ...f, slug: e.target.value })); }}
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 font-mono focus:outline-none focus:border-gold-500/30"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm font-mono focus:outline-none transition-all duration-200 font-sans-custom"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.85)' }}
                 />
-                <p className="text-[11px] text-charcoal-500 mt-1">Se genera automáticamente desde el nombre</p>
+                <p className="text-[11px] mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>Se genera automáticamente desde el nombre</p>
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-xs text-charcoal-400 mb-1.5">Descripción</label>
+                <label className="block text-xs mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Descripción</label>
                 <textarea
                   value={catForm.description}
                   onChange={(e) => setCatForm((f) => ({ ...f, description: e.target.value }))}
                   rows={3}
                   placeholder="Descripción breve de la categoría..."
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-600 focus:outline-none focus:border-gold-500/30 resize-none"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom resize-none"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.85)' }}
                 />
               </div>
 
               {/* Parent + Sort Order */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-charcoal-400 mb-1.5">Categoría padre</label>
+                  <label className="block text-xs mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Categoría padre</label>
                   <select
                     value={catForm.parentId}
                     onChange={(e) => setCatForm((f) => ({ ...f, parentId: e.target.value }))}
-                    className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+                    className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.85)' }}
                   >
                     <option value="">Ninguna (raíz)</option>
                     {categories.filter((c) => c.id !== catEditing).map((c) => (
@@ -597,39 +622,42 @@ export default function CatalogPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-charcoal-400 mb-1.5">Orden</label>
+                  <label className="block text-xs mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Orden</label>
                   <input
                     type="number"
                     value={catForm.sortOrder}
                     onChange={(e) => setCatForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))}
                     min={0}
-                    className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+                    className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.85)' }}
                   />
                 </div>
               </div>
 
               {/* SEO */}
               <details className="group">
-                <summary className="text-xs text-charcoal-400 cursor-pointer hover:text-charcoal-300 transition-colors">
+                <summary className="text-xs cursor-pointer transition-colors font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.6)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.4)'}>
                   SEO (opcional)
                 </summary>
                 <div className="mt-3 space-y-3">
                   <div>
-                    <label className="block text-xs text-charcoal-400 mb-1.5">Título SEO</label>
+                    <label className="block text-xs mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Título SEO</label>
                     <input
                       type="text"
                       value={catForm.seoTitle}
                       onChange={(e) => setCatForm((f) => ({ ...f, seoTitle: e.target.value }))}
-                      className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+                      className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.85)' }}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-charcoal-400 mb-1.5">Meta descripción</label>
+                    <label className="block text-xs mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Meta descripción</label>
                     <textarea
                       value={catForm.seoDesc}
                       onChange={(e) => setCatForm((f) => ({ ...f, seoDesc: e.target.value }))}
                       rows={2}
-                      className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30 resize-none"
+                      className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom resize-none"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.85)' }}
                     />
                   </div>
                 </div>
@@ -638,8 +666,8 @@ export default function CatalogPage() {
               {/* Active toggle */}
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <p className="text-sm text-cream-200">Categoría activa</p>
-                  <p className="text-xs text-charcoal-500 mt-0.5">
+                  <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>Categoría activa</p>
+                  <p className="text-xs mt-0.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
                     {catForm.isActive ? 'Visible en el catálogo' : 'Oculta del catálogo'}
                   </p>
                 </div>
@@ -654,14 +682,15 @@ export default function CatalogPage() {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-white/5 flex items-center justify-end gap-3">
-              <button onClick={closeCatModal} className="px-4 py-2 text-sm text-charcoal-300 hover:text-cream-200 transition-colors">
+            <div className="px-6 py-4 flex items-center justify-end gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <button onClick={closeCatModal} className="px-4 py-2 text-sm transition-colors font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.8)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.5)'}>
                 Cancelar
               </button>
               <button
                 onClick={handleSaveCategory}
                 disabled={catSaving || !catForm.name.trim() || !catForm.slug.trim()}
-                className="inline-flex items-center gap-2 px-5 py-2 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-sans-custom"
+                style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400', borderRadius: '0.75rem' }}
               >
                 {catSaving ? <Loader2 size={14} className="animate-spin" /> : null}
                 {catSaving ? 'Guardando...' : catEditing ? 'Guardar cambios' : 'Crear categoría'}

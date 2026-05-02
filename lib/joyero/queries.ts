@@ -7,7 +7,9 @@ import type {
   WorkerAssignment, 
   OrderDetail, 
   Assignment, 
-  Evidence 
+  Evidence,
+  PauseLog,
+  WorkerPayment,
 } from './types';
 
 const supabase = createClient();
@@ -128,6 +130,7 @@ export async function fetchWorkerAssignments(
       status,
       started_at,
       completed_at,
+      paused_at,
       priority,
       progress_pct,
       workflow_states!inner(name),
@@ -160,6 +163,7 @@ export async function fetchWorkerAssignments(
     status: item.status,
     startedAt: item.started_at,
     completedAt: item.completed_at,
+    pausedAt: item.paused_at,
     priority: item.priority,
     progressPct: item.progress_pct,
     pieceName: item.pieces.name,
@@ -277,17 +281,22 @@ export async function fetchAssignment(assignmentId: string): Promise<Assignment 
     .from('work_assignments')
     .select(`
       id,
+      piece_id,
       stage_code,
       status,
       started_at,
       completed_at,
+      paused_at,
+      pause_reason,
+      effective_minutes,
       progress_pct,
+      priority,
       notes,
       workflow_states!inner(name),
       pieces!inner(
         name,
         description,
-        orders!inner(order_number)
+        orders!inner(order_number, id)
       )
     `)
     .eq('id', assignmentId)
@@ -302,7 +311,12 @@ export async function fetchAssignment(assignmentId: string): Promise<Assignment 
     status: data.status,
     startedAt: data.started_at,
     completedAt: data.completed_at,
+    pausedAt: (data as any).paused_at ?? null,
+    pauseReason: (data as any).pause_reason ?? null,
+    effectiveMinutes: (data as any).effective_minutes ?? null,
     progressPct: data.progress_pct,
+    priority: (data as any).priority ?? null,
+    pieceId: data.piece_id,
     pieceName: (data.pieces as any).name,
     pieceDescription: (data.pieces as any).description,
     orderNumber: (data.pieces as any).orders.order_number,
@@ -377,54 +391,329 @@ export async function completeWork(
 export async function fetchAssignmentEvidence(assignmentId: string): Promise<Evidence[]> {
   const { data } = await supabase
     .from('file_attachments')
-    .select('id, file_name, file_url')
+    .select('id, file_name, bucket, storage_path')
     .eq('entity_type', 'work_assignment')
-    .eq('entity_id', assignmentId)
-    .eq('file_type', 'image');
+    .eq('entity_id', assignmentId);
+
+  if (!data) return [];
+
+  return data.map((item: any) => {
+    const { data: urlData } = supabase.storage
+      .from(item.bucket)
+      .getPublicUrl(item.storage_path);
+    return {
+      id: item.id,
+      url: urlData.publicUrl,
+      fileName: item.file_name,
+    };
+  });
+}
+
+export async function uploadEvidence(
+  assignmentId: string,
+  file: File,
+  uploadedById?: string
+): Promise<string | null> {
+  const storagePath = `${assignmentId}/${Date.now()}-${file.name}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('evidences')
+    .upload(storagePath, file);
+
+  if (uploadError) {
+    console.error('Storage upload error:', uploadError);
+    throw uploadError;
+  }
+
+  const { error: insertError } = await supabase
+    .from('file_attachments')
+    .insert({
+      bucket: 'evidences',
+      storage_path: storagePath,
+      file_name: file.name,
+      mime_type: file.type,
+      size_bytes: file.size,
+      entity_type: 'work_assignment',
+      entity_id: assignmentId,
+      uploaded_by_id: uploadedById ?? null,
+    });
+
+  if (insertError) {
+    console.error('DB insert error:', insertError);
+    throw insertError;
+  }
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('evidences')
+    .getPublicUrl(storagePath);
+
+  return publicUrl;
+}
+
+// Pause / Resume work
+export async function pauseWork(
+  assignmentId: string,
+  reason: string,
+  userId: string
+): Promise<boolean> {
+  try {
+    const now = new Date().toISOString();
+
+    const { error } = await supabase
+      .from('work_assignments')
+      .update({ status: 'paused', paused_at: now, pause_reason: reason })
+      .eq('id', assignmentId);
+
+    if (error) throw error;
+
+    await supabase.from('work_pause_logs').insert({
+      assignment_id: assignmentId,
+      paused_at: now,
+      reason,
+    });
+
+    await supabase.from('audit_logs').insert({
+      user_id: userId,
+      action: 'WORK_PAUSED',
+      entity_type: 'work_assignment',
+      entity_id: assignmentId,
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Error pausing work:', error);
+    return false;
+  }
+}
+
+export async function resumeWork(
+  assignmentId: string,
+  userId: string
+): Promise<boolean> {
+  try {
+    const now = new Date().toISOString();
+
+    // Find the open pause log (resumed_at IS NULL)
+    const { data: openLog } = await supabase
+      .from('work_pause_logs')
+      .select('id, paused_at')
+      .eq('assignment_id', assignmentId)
+      .is('resumed_at', null)
+      .order('paused_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (openLog) {
+      const durationMinutes = Math.round(
+        (new Date(now).getTime() - new Date(openLog.paused_at).getTime()) / 60000
+      );
+      await supabase
+        .from('work_pause_logs')
+        .update({ resumed_at: now, duration_minutes: durationMinutes })
+        .eq('id', openLog.id);
+    }
+
+    const { error } = await supabase
+      .from('work_assignments')
+      .update({ status: 'in_progress', paused_at: null, pause_reason: null })
+      .eq('id', assignmentId);
+
+    if (error) throw error;
+
+    await supabase.from('audit_logs').insert({
+      user_id: userId,
+      action: 'WORK_RESUMED',
+      entity_type: 'work_assignment',
+      entity_id: assignmentId,
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Error resuming work:', error);
+    return false;
+  }
+}
+
+export async function fetchAssignmentPauseLogs(assignmentId: string): Promise<PauseLog[]> {
+  const { data } = await supabase
+    .from('work_pause_logs')
+    .select('id, assignment_id, paused_at, resumed_at, reason, duration_minutes')
+    .eq('assignment_id', assignmentId)
+    .order('paused_at', { ascending: true });
 
   if (!data) return [];
 
   return data.map((item: any) => ({
     id: item.id,
-    url: item.file_url,
-    fileName: item.file_name,
+    assignmentId: item.assignment_id,
+    pausedAt: item.paused_at,
+    resumedAt: item.resumed_at,
+    reason: item.reason,
+    durationMinutes: item.duration_minutes,
   }));
 }
 
-export async function uploadEvidence(
-  assignmentId: string, 
-  file: File
-): Promise<string | null> {
+// Fetch the worker rate for a given service_code
+export async function fetchWorkerRateForService(serviceCode: string): Promise<number> {
+  const { data } = await supabase
+    .from('pricing_worker_rates')
+    .select('rate_cop')
+    .eq('service_code', serviceCode)
+    .single();
+
+  return data ? Number(data.rate_cop) : 0;
+}
+
+// Complete work: update assignment + auto-create worker_payment
+export async function completeWorkWithPayment(
+  assignmentId: string,
+  userId: string,
+  startedAt: string,
+  pauseLogs: PauseLog[],
+  stageCode: string,
+  stageName: string,
+  pieceName: string,
+  notes?: string
+): Promise<boolean> {
   try {
-    // Upload to Supabase Storage
-    const fileName = `${assignmentId}/${Date.now()}-${file.name}`;
-    const { error: uploadError } = await supabase.storage
-      .from('evidences')
-      .upload(fileName, file);
+    const now = new Date().toISOString();
 
-    if (uploadError) throw uploadError;
+    // Calculate total paused minutes
+    const totalPausedMinutes = pauseLogs.reduce(
+      (sum, log) => sum + (log.durationMinutes ?? 0),
+      0
+    );
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('evidences')
-      .getPublicUrl(fileName);
+    // Calculate effective minutes
+    const totalMinutes = Math.round(
+      (new Date(now).getTime() - new Date(startedAt).getTime()) / 60000
+    );
+    const effectiveMinutes = Math.max(0, totalMinutes - totalPausedMinutes);
 
-    // Insert into file_attachments
-    const { error: insertError } = await supabase
-      .from('file_attachments')
-      .insert({
-        entity_type: 'work_assignment',
-        entity_id: assignmentId,
-        file_name: file.name,
-        file_url: publicUrl,
-        file_type: 'image',
+    const { error } = await supabase
+      .from('work_assignments')
+      .update({
+        status: 'completed',
+        completed_at: now,
+        effective_minutes: effectiveMinutes,
+        notes: notes || null,
+        paused_at: null,
+        pause_reason: null,
+      })
+      .eq('id', assignmentId);
+
+    if (error) throw error;
+
+    // Fetch the worker rate for this service
+    const rateCop = await fetchWorkerRateForService(stageCode);
+
+    // Auto-create worker payment if rate > 0
+    if (rateCop > 0) {
+      await supabase.from('worker_payments').insert({
+        worker_id: userId,
+        assignment_id: assignmentId,
+        concept: stageName,
+        service_code: stageCode,
+        piece_name: pieceName,
+        amount_cop: rateCop,
+        status: 'pending',
       });
+    }
 
-    if (insertError) throw insertError;
+    await supabase.from('audit_logs').insert({
+      user_id: userId,
+      action: 'WORK_COMPLETED',
+      entity_type: 'work_assignment',
+      entity_id: assignmentId,
+    });
 
-    return publicUrl;
+    return true;
   } catch (error) {
-    console.error('Error uploading evidence:', error);
-    return null;
+    console.error('Error completing work:', error);
+    return false;
+  }
+}
+
+// Worker payments
+export async function fetchWorkerPayments(
+  workerId: string,
+  filters?: {
+    startDate?: string;
+    endDate?: string;
+    status?: 'all' | 'pending' | 'paid_unconfirmed' | 'confirmed';
+  }
+): Promise<WorkerPayment[]> {
+  let query = supabase
+    .from('worker_payments')
+    .select(`
+      id,
+      worker_id,
+      assignment_id,
+      concept,
+      service_code,
+      piece_name,
+      amount_cop,
+      status,
+      paid_at,
+      confirmed_at,
+      notes,
+      created_at,
+      orders!worker_payments_order_id_fkey(order_number)
+    `)
+    .eq('worker_id', workerId)
+    .order('created_at', { ascending: false });
+
+  if (filters?.startDate) {
+    query = query.gte('created_at', filters.startDate);
+  }
+  if (filters?.endDate) {
+    query = query.lte('created_at', filters.endDate);
+  }
+  if (filters?.status === 'pending') {
+    query = query.eq('status', 'pending');
+  } else if (filters?.status === 'paid_unconfirmed') {
+    query = query.eq('status', 'paid').is('confirmed_at', null);
+  } else if (filters?.status === 'confirmed') {
+    query = query.eq('status', 'paid').not('confirmed_at', 'is', null);
+  }
+
+  const { data } = await query;
+
+  if (!data) return [];
+
+  return data.map((item: any) => ({
+    id: item.id,
+    workerId: item.worker_id,
+    assignmentId: item.assignment_id,
+    concept: item.concept,
+    serviceCode: item.service_code,
+    pieceName: item.piece_name,
+    amountCop: Number(item.amount_cop),
+    status: item.status,
+    paidAt: item.paid_at,
+    confirmedAt: item.confirmed_at,
+    notes: item.notes,
+    createdAt: item.created_at,
+    orderNumber: (item['orders!worker_payments_order_id_fkey'] ?? item.orders)?.order_number,
+  }));
+}
+
+export async function confirmPaymentReceipt(
+  paymentId: string,
+  workerId: string
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('worker_payments')
+      .update({ confirmed_at: new Date().toISOString() })
+      .eq('id', paymentId)
+      .eq('worker_id', workerId)
+      .eq('status', 'paid');
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error confirming payment:', error);
+    return false;
   }
 }

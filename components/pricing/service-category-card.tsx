@@ -74,9 +74,10 @@ export default function ServiceCategoryCard({
 
   const unitBadge = (unit: string) => {
     const label = unit === 'per_stone' ? 'por piedra' : 'por servicio';
-    const color = unit === 'per_stone' ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400';
+    const color = unit === 'per_stone' ? 'rgba(168,85,247,0.1)' : 'rgba(59,130,246,0.1)';
+    const textColor = unit === 'per_stone' ? 'rgba(168,85,247,0.9)' : 'rgba(59,130,246,0.9)';
     return (
-      <span className={`text-[10px] px-1.5 py-0.5 rounded ${color}`}>
+      <span className="text-[10px] px-1.5 py-0.5 rounded font-sans-custom" style={{ background: color, color: textColor }}>
         {label}
       </span>
     );
@@ -93,34 +94,39 @@ export default function ServiceCategoryCard({
     : null;
 
   return (
-    <div className="bg-charcoal-800 border border-white/5 rounded-lg overflow-hidden">
+    <div className="rounded-lg overflow-hidden font-sans-custom" style={{ background: 'rgba(8,8,8,1)', border: '1px solid rgba(255,255,255,0.05)' }}>
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 transition-colors font-sans-custom"
+        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'}
+        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
       >
         <div className="flex items-center gap-3">
-          <h3 className="text-cream-200 font-semibold text-sm">{categoryName}</h3>
-          <span className="text-charcoal-500 text-xs">
+          <h3 className="font-semibold text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{categoryName}</h3>
+          <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
             {services.length} {services.length === 1 ? 'servicio' : 'servicios'}
           </span>
         </div>
         {expanded ? (
-          <ChevronUp size={16} className="text-charcoal-400" />
+          <ChevronUp size={16} style={{ color: 'rgba(242,240,237,0.4)' }} />
         ) : (
-          <ChevronDown size={16} className="text-charcoal-400" />
+          <ChevronDown size={16} style={{ color: 'rgba(242,240,237,0.4)' }} />
         )}
       </button>
 
       {/* Body */}
       {expanded && (
-        <div className="border-t border-white/5">
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
           {/* Edit controls */}
-          <div className="flex items-center justify-end px-5 py-2 border-b border-white/5">
+          <div className="flex items-center justify-end px-5 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
             {!editing ? (
               <button
                 onClick={startEditing}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-gold-400 hover:bg-gold-500/10 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors font-sans-custom"
+                style={{ color: 'rgba(212,175,55,0.9)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(212,175,55,0.1)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
               >
                 <Pencil size={13} />
                 Editar
@@ -130,7 +136,10 @@ export default function ServiceCategoryCard({
                 <button
                   onClick={handleCancel}
                   disabled={saving}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-charcoal-400 hover:bg-white/5 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors font-sans-custom"
+                  style={{ color: 'rgba(242,240,237,0.4)' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                 >
                   <X size={13} />
                   Cancelar
@@ -138,7 +147,10 @@ export default function ServiceCategoryCard({
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-gold-500 text-charcoal-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 font-sans-custom"
+                  style={{ background: 'rgba(212,175,55,0.9)', color: 'rgba(8,8,8,0.9)' }}
+                  onMouseEnter={e => !(e.currentTarget as HTMLButtonElement).disabled && ((e.currentTarget as HTMLElement).style.background = 'rgba(212,175,55,1)')}
+                  onMouseLeave={e => !(e.currentTarget as HTMLButtonElement).disabled && ((e.currentTarget as HTMLElement).style.background = 'rgba(212,175,55,0.9)')}
                 >
                   <Save size={13} />
                   {saving ? 'Guardando...' : 'Guardar'}
@@ -148,14 +160,15 @@ export default function ServiceCategoryCard({
           </div>
 
           {/* Services list */}
-          <div className="divide-y divide-white/5">
-            {services.map((service) => (
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            {services.map((service, index) => (
               <div
                 key={service.id}
                 className="flex items-center justify-between px-5 py-3 gap-4"
+                style={{ borderBottom: index < services.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-cream-300 text-sm truncate">
+                  <span className="text-sm truncate font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>
                     {service.difficulty_level
                       ? DIFFICULTY_LABELS[service.difficulty_level] || service.difficulty_level
                       : service.service_name}
@@ -165,7 +178,7 @@ export default function ServiceCategoryCard({
                 <div className="flex-shrink-0">
                   {editing ? (
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-400 text-xs">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>$</span>
                       <input
                         type="number"
                         value={editValues[service.id] ?? service.value}
@@ -175,13 +188,16 @@ export default function ServiceCategoryCard({
                             [service.id]: Number(e.target.value),
                           }))
                         }
-                        className="w-36 pl-7 pr-3 py-1.5 bg-charcoal-900 border border-gold-500/30 rounded-md text-cream-200 text-sm text-right focus:outline-none focus:border-gold-500 transition-colors"
+                        className="w-36 pl-7 pr-3 py-1.5 rounded-md text-sm text-right focus:outline-none transition-colors font-sans-custom"
+                        style={{ background: 'rgba(8,8,8,1)', border: '1px solid rgba(212,175,55,0.3)', color: 'rgba(242,240,237,0.8)' }}
+                        onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(212,175,55,0.9)'}
+                        onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(212,175,55,0.3)'}
                         min={0}
                         step={100}
                       />
                     </div>
                   ) : (
-                    <span className={`text-sm font-medium ${service.value === 0 ? 'text-charcoal-500 italic' : 'text-cream-200'}`}>
+                    <span className="text-sm font-medium font-sans-custom" style={{ color: service.value === 0 ? 'rgba(242,240,237,0.3)' : 'rgba(242,240,237,0.8)' }}>
                       {service.value === 0 ? 'Sin asignar' : formatPriceCOP(service.value)}
                     </span>
                   )}
@@ -192,7 +208,7 @@ export default function ServiceCategoryCard({
 
           {/* Footer */}
           {updatedByName && (
-            <div className="px-5 py-2.5 border-t border-white/5 flex items-center gap-2 text-xs text-charcoal-400">
+            <div className="px-5 py-2.5 flex items-center gap-2 text-xs font-sans-custom" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.4)' }}>
               <Clock size={11} />
               <span>
                 Última actualización por {updatedByName}

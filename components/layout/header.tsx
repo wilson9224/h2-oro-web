@@ -40,7 +40,7 @@ export function Header() {
           <nav className="flex items-center justify-between h-14 md:h-18">
             {/* Logo */}
             <Link href="/" className="relative z-50">
-              <span className="font-serif text-xl tracking-tight">
+              <span className="font-display text-xl tracking-tight">
                 <span className="text-gold-400 font-semibold">H2</span>
                 <span className="text-cream-200 font-light"> Oro</span>
               </span>
@@ -114,7 +114,7 @@ export function Header() {
                       onClick={() => setIsOpen(false)}
                       className="group flex items-baseline justify-between py-6 border-b border-cream-200/[0.06]"
                     >
-                      <span className="font-serif text-display-md text-cream-100 group-hover:text-gold-400 transition-colors duration-500">
+                      <span className="font-display text-display-md text-cream-100 group-hover:text-gold-400 transition-colors duration-500">
                         {link.label}
                       </span>
                       <span className="text-label text-cream-200/20 font-mono">

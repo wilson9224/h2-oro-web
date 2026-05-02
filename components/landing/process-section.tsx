@@ -50,7 +50,7 @@ function StepRow({ step }: { step: (typeof steps)[number] }) {
 
       {/* Title — large serif */}
       <div className="col-span-10 md:col-span-4">
-        <h3 className="font-serif text-display-md text-cream-100 group-hover:text-gold-400 transition-colors duration-700">
+        <h3 className="font-display text-display-md text-cream-100 group-hover:text-gold-400 transition-colors duration-700">
           {step.title}
         </h3>
       </div>
@@ -64,7 +64,7 @@ function StepRow({ step }: { step: (typeof steps)[number] }) {
 
       {/* Oversized decorative number behind */}
       <span
-        className="absolute -top-6 right-0 font-serif text-[8rem] md:text-[12rem] leading-none text-cream-200/[0.02] select-none pointer-events-none hidden md:block"
+        className="absolute -top-6 right-0 font-display text-[8rem] md:text-[12rem] leading-none text-cream-200/[0.02] select-none pointer-events-none hidden md:block"
         aria-hidden
       >
         {step.num}
@@ -82,7 +82,7 @@ export function ProcessSection() {
           <span className="text-label uppercase text-cream-200/25 font-sans block mb-4">
             Proceso
           </span>
-          <h2 className="font-serif text-display-xl text-cream-100">
+          <h2 className="font-display text-display-xl text-cream-100">
             Del sueño <br />
             <span className="italic text-outline">a la realidad</span>
           </h2>

@@ -30,7 +30,7 @@ export function CtaSection() {
           Comienza tu historia
         </span>
 
-        <h2 className="font-serif text-display-xl md:text-hero-sub lg:text-hero text-cream-100 mx-auto">
+        <h2 className="font-display text-display-xl md:text-hero-sub lg:text-hero text-cream-100 mx-auto">
           Tu pieza
           <br />
           <span className="italic text-outline-gold">perfecta</span>{' '}

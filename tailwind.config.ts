@@ -45,8 +45,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        serif: ["var(--font-playfair)", "Playfair Display", "Georgia", "serif"],
-        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-space-grotesk)", "Space Grotesk", "sans-serif"],
+        sans: ["var(--font-plus-jakarta)", "Plus Jakarta Sans", "system-ui", "sans-serif"],
         mono: ["var(--font-geist-mono)", "monospace"],
       },
       fontSize: {
@@ -70,6 +70,9 @@ const config: Config = {
         "reveal": "reveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         "float": "float 6s ease-in-out infinite",
         "pulse-slow": "pulse 4s ease-in-out infinite",
+        "fade-in": "fadeIn 0.5s ease-out forwards",
+        "slide-up": "slideUp 0.4s ease-out forwards",
+        "scale-in": "scaleIn 0.3s ease-out forwards",
       },
       keyframes: {
         marquee: {
@@ -87,6 +90,18 @@ const config: Config = {
         float: {
           "0%, 100%": { transform: "translateY(0px)" },
           "50%": { transform: "translateY(-20px)" },
+        },
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        slideUp: {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        scaleIn: {
+          "0%": { opacity: "0", transform: "scale(0.95)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
         },
       },
       backgroundImage: {
