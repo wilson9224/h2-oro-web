@@ -95,7 +95,7 @@ export default function ModalStartWork({
     laborItems.map((item, idx) => ({
       service_code: item.service_code,
       service_name: item.service_name,
-      service_category: item.service_category,
+      service_category: item.category,
       worker_id: '',
       sort_order: idx + 1,
     }))
