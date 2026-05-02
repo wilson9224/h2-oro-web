@@ -12,8 +12,8 @@ interface UsePricingReturn {
   error: string | null;
   getMetalPrice: (metalCode: string) => number;
   getMetalMerma: (metalCode: string) => number;
-  getServicePrice: (serviceCode: string) => number;
-  getWorkerRate: (serviceCode: string) => number;
+  getServicePrice: (category: string, subcategory?: string | null, difficultyLevel?: string | null) => number;
+  getWorkerRate: (category: string, subcategory?: string | null, difficultyLevel?: string | null) => number;
   refresh: () => Promise<void>;
 }
 
@@ -65,16 +65,24 @@ export function usePricing(): UsePricingReturn {
   );
 
   const getServicePrice = useCallback(
-    (serviceCode: string): number => {
-      const service = services.find((s) => s.service_code === serviceCode);
+    (category: string, subcategory?: string | null, difficultyLevel?: string | null): number => {
+      const service = services.find((s) =>
+        s.category === category &&
+        s.subcategory === subcategory &&
+        s.difficulty_level === difficultyLevel
+      );
       return service?.price_cop ?? 0;
     },
     [services]
   );
 
   const getWorkerRateValue = useCallback(
-    (serviceCode: string): number => {
-      const rate = workerRates.find((r) => r.service_code === serviceCode);
+    (category: string, subcategory?: string | null, difficultyLevel?: string | null): number => {
+      const rate = workerRates.find((r) =>
+        r.category === category &&
+        r.subcategory === subcategory &&
+        r.difficulty_level === difficultyLevel
+      );
       return rate?.rate_cop ?? 0;
     },
     [workerRates]

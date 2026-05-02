@@ -56,7 +56,7 @@ export default function NuevaCotizacionPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin h-8 w-8 border-2 border-gold-500 border-t-transparent rounded-full" />
+        <div className="animate-spin h-8 w-8 border-2 rounded-full" style={{ borderColor: 'rgba(212,175,55,0.9)', borderTopColor: 'transparent' }} />
       </div>
     );
   }
@@ -97,7 +97,7 @@ export default function NuevaCotizacionPage() {
       <div className="space-y-4">
         <Link
           href="/admin/cotizacion"
-          className="inline-flex items-center gap-2 text-sm text-charcoal-400 hover:text-cream-200 transition-colors"
+          className="inline-flex items-center gap-2 text-sm transition-colors font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.8)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.4)'}
         >
           <ArrowLeft size={16} /> Cotizaciones
         </Link>
@@ -114,33 +114,33 @@ export default function NuevaCotizacionPage() {
       <div className="space-y-4 mb-6">
         <Link
           href="/admin/cotizacion"
-          className="inline-flex items-center gap-2 text-sm text-charcoal-400 hover:text-cream-200 transition-colors"
+          className="inline-flex items-center gap-2 text-sm transition-colors font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.8)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.4)'}
         >
           <ArrowLeft size={16} /> Cotizaciones
         </Link>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-serif text-cream-100">Nueva Cotización</h1>
-            <p className="text-sm text-charcoal-400 mt-1">
+            <h1 className="text-2xl font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.95)' }}>Nueva Cotización</h1>
+            <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
               Tipo:{' '}
-              <span className="text-gold-400 font-medium">{quoteTypeLabel}</span>
+              <span className="font-medium" style={{ color: 'rgba(212,175,55,0.9)' }}>{quoteTypeLabel}</span>
               <button
                 onClick={() => setQuoteType(null as unknown as QuoteType)}
-                className="ml-2 text-xs text-charcoal-500 hover:text-charcoal-300 underline transition-colors"
+                className="ml-2 text-xs underline transition-colors font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.6)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'}
               >
                 cambiar
               </button>
             </p>
           </div>
           {savedId && (
-            <span className="text-xs text-emerald-400 mt-1">Borrador guardado</span>
+            <span className="text-xs mt-1 font-sans-custom" style={{ color: 'rgba(16,185,129,0.7)' }}>Borrador guardado</span>
           )}
         </div>
       </div>
 
       {/* Error */}
       {saveError && (
-        <div className="mb-4 p-3 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+        <div className="mb-4 p-3 rounded-2xl text-sm text-center font-sans-custom" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', color: 'rgba(248,113,113,0.9)' }}>
           {saveError}
         </div>
       )}
@@ -222,7 +222,7 @@ export default function NuevaCotizacionPage() {
 
 function SectionCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-charcoal-800 border border-white/5 rounded-lg p-5">
+    <div className="rounded-lg p-5 font-sans-custom" style={{ background: 'rgba(8,8,8,1)', border: '1px solid rgba(255,255,255,0.05)' }}>
       {children}
     </div>
   );

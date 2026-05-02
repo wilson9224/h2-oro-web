@@ -12,6 +12,20 @@ const collections = [
   { title: 'Aretes', tagline: 'Brillo que cautiva', num: '04' },
 ];
 
+const GRADIENTS = [
+  'from-charcoal-800 to-charcoal-900',
+  'from-charcoal-700 to-charcoal-800',
+  'from-charcoal-800 to-charcoal-900',
+  'from-charcoal-700 to-charcoal-800',
+];
+
+const ACCENT_COLORS = [
+  'rgba(212,175,55,0.08)',
+  'rgba(212,175,55,0.05)',
+  'rgba(212,175,55,0.10)',
+  'rgba(212,175,55,0.06)',
+];
+
 function CollectionItem({
   item,
   index,
@@ -24,41 +38,73 @@ function CollectionItem({
     target: ref,
     offset: ['start end', 'end start'],
   });
-  const y = useTransform(scrollYProgress, [0, 1], [60, -60]);
+  const y = useTransform(scrollYProgress, [0, 1], [50, -50]);
 
   return (
     <motion.div
       ref={ref}
       style={{ y }}
-      className={`${index % 2 === 1 ? 'md:mt-32' : ''}`}
+      className={`${index % 2 === 1 ? 'md:mt-28' : ''}`}
     >
       <Link href="/catalogo" className="group block">
-        {/* Image placeholder — aspect ratio container */}
-        <div className="relative aspect-[3/4] overflow-hidden bg-charcoal-800 mb-5">
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-charcoal-900/40" />
+        {/* Image card */}
+        <div
+          className="relative aspect-[3/4] overflow-hidden mb-5"
+          style={{
+            background: `linear-gradient(145deg, #1A1A1A, #0D0D0D)`,
+            boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.4) inset',
+          }}
+        >
+          {/* Inner gradient accent */}
+          <div
+            className="absolute inset-0 transition-opacity duration-700 group-hover:opacity-150"
+            style={{
+              background: `radial-gradient(ellipse 80% 80% at 50% 100%, ${ACCENT_COLORS[index]}, transparent)`,
+            }}
+          />
+
           {/* Decorative oversized number */}
-          <span className="absolute -bottom-4 -right-2 font-serif text-[12rem] leading-none text-cream-200/[0.03] select-none">
+          <span className="absolute -bottom-6 -right-2 font-display text-[10rem] leading-none select-none pointer-events-none"
+            style={{ color: 'rgba(242,240,237,0.025)' }}>
             {item.num}
           </span>
-          {/* Hover overlay */}
-          <div className="absolute inset-0 bg-gold-500/0 group-hover:bg-gold-500/[0.06] transition-colors duration-700" />
-          <div className="absolute bottom-6 left-6 opacity-0 group-hover:opacity-100 translate-y-3 group-hover:translate-y-0 transition-all duration-500">
-            <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.12em] text-gold-400">
-              Ver colección <ArrowUpRight size={12} />
-            </span>
+
+          {/* Top border accent */}
+          <div className="absolute top-0 left-0 right-0 h-px"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.2), transparent)' }} />
+
+          {/* Hover reveal CTA */}
+          <div className="absolute inset-0 flex items-end p-6">
+            <div className="opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-500">
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-gold-400 px-3 py-1.5 rounded-full font-sans-custom"
+                style={{
+                  background: 'rgba(212,175,55,0.1)',
+                  border: '1px solid rgba(212,175,55,0.25)',
+                }}
+              >
+                Ver colección <ArrowUpRight size={10} />
+              </span>
+            </div>
+          </div>
+
+          {/* Gold corner accent */}
+          <div className="absolute top-4 right-4 w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+            <div className="w-full h-px bg-gold-500/40" />
+            <div className="w-px h-full bg-gold-500/40 ml-auto" />
           </div>
         </div>
 
         {/* Text */}
         <div className="flex items-baseline justify-between">
-          <h3 className="font-serif text-display-sm text-cream-100 group-hover:text-gold-400 transition-colors duration-500">
+          <h3 className="font-display text-display-sm text-cream-100 group-hover:text-gold-400 transition-colors duration-500">
             {item.title}
           </h3>
           <span className="text-label uppercase text-cream-200/20 font-mono">
             {item.num}
           </span>
         </div>
-        <p className="mt-2 text-sm text-cream-200/35 font-sans">
+        <p className="mt-1.5 text-xs text-cream-200/30 font-sans tracking-wide">
           {item.tagline}
         </p>
       </Link>
@@ -76,7 +122,7 @@ export function FeaturedCollection() {
             <span className="text-label uppercase text-cream-200/25 font-sans block mb-4">
               Colección
             </span>
-            <h2 className="font-serif text-display-xl text-cream-100">
+            <h2 className="font-display text-display-xl text-cream-100">
               Piezas que
               <br />
               <span className="italic text-outline-gold">trascienden</span>

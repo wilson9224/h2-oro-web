@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
-import { ArrowLeft, PlayCircle, Package, Image, FileText, Wrench } from 'lucide-react';
+import { ArrowLeft, PlayCircle, Package, ImageIcon, FileText, Wrench, ArrowRight, PauseCircle, CheckCircle2 } from 'lucide-react';
+import type { AssignmentStatus } from '@/lib/joyero/types';
 
 interface OrderDetail {
   orderId: string;
@@ -18,7 +19,7 @@ interface OrderDetail {
     id: string;
     stageCode: string;
     stageName: string;
-    status: 'assigned' | 'in_progress' | 'completed';
+    status: AssignmentStatus;
     startedAt: string | null;
     completedAt: string | null;
     progressPct: number;
@@ -129,8 +130,6 @@ export default function JoyeroOrderDetailPage() {
           }
         }
 
-        console.log('DEBUG: Assignment data:', assignmentData);
-        console.log('DEBUG: Order data pieces:', orderData.pieces);
         
         const formattedOrderDetail: OrderDetail = {
           orderId: orderData.id,
@@ -156,7 +155,6 @@ export default function JoyeroOrderDetailPage() {
           materials: materials,
         };
         
-        console.log('DEBUG: Formatted assignments:', formattedOrderDetail.assignments);
 
         setOrderDetail(formattedOrderDetail);
       } catch (error) {
@@ -170,9 +168,6 @@ export default function JoyeroOrderDetailPage() {
     fetchOrderDetail();
   }, [user, params.id, router, supabase]);
 
-  const handleStartWork = (assignmentId: string) => {
-    router.push(`/joyero/trabajo/${assignmentId}`);
-  };
 
   if (loading) {
     return (
@@ -185,8 +180,8 @@ export default function JoyeroOrderDetailPage() {
   if (!orderDetail) {
     return (
       <div className="p-4 text-center">
-        <p className="text-charcoal-400">Pedido no encontrado</p>
-        <Link href="/joyero/pedidos" className="text-gold-500 hover:text-gold-400">
+        <p className="font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Pedido no encontrado</p>
+        <Link href="/joyero/pedidos" className="font-sans-custom" style={{ color: 'rgba(212,175,55,0.7)' }}>
           Volver a pedidos
         </Link>
       </div>
@@ -197,31 +192,31 @@ export default function JoyeroOrderDetailPage() {
     <div className="p-4 space-y-6">
       {/* Header */}
       <div className="flex items-center space-x-3">
-        <Link href="/joyero/pedidos" className="text-charcoal-400 hover:text-charcoal-300">
+        <Link href="/joyero/pedidos" className="font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.6)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'}>
           <ArrowLeft className="w-6 h-6" />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-gold-500">{orderDetail.orderNumber}</h1>
-          <p className="text-charcoal-400">{orderDetail.pieceName}</p>
+          <h1 className="text-xl font-bold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>{orderDetail.orderNumber}</h1>
+          <p className="font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{orderDetail.pieceName}</p>
         </div>
       </div>
 
       
       {/* Piece Info */}
-      <div className="bg-charcoal-900 rounded-lg p-4 border border-charcoal-800">
+      <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="flex items-center space-x-2 mb-3">
-          <Package className="w-5 h-5 text-gold-500" />
-          <h2 className="text-lg font-semibold text-gold-500">Pieza</h2>
+          <Package className="w-5 h-5" style={{ color: 'rgba(212,175,55,0.9)' }} />
+          <h2 className="text-lg font-semibold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>Pieza</h2>
         </div>
         <div className="space-y-2">
           <div>
-            <span className="text-charcoal-400 text-sm">Nombre:</span>
-            <p className="text-charcoal-300">{orderDetail.pieceName}</p>
+            <span className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Nombre:</span>
+            <p className="font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>{orderDetail.pieceName}</p>
           </div>
           {orderDetail.pieceDescription && (
             <div>
-              <span className="text-charcoal-400 text-sm">Descripción:</span>
-              <p className="text-charcoal-300">{orderDetail.pieceDescription}</p>
+              <span className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Descripción:</span>
+              <p className="font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>{orderDetail.pieceDescription}</p>
             </div>
           )}
         </div>
@@ -231,39 +226,56 @@ export default function JoyeroOrderDetailPage() {
       {orderDetail.assignments.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center space-x-2">
-            <Wrench className="w-5 h-5 text-gold-500" />
-            <h2 className="text-lg font-semibold text-gold-500">Tu trabajo asignado</h2>
+            <Wrench className="w-5 h-5" style={{ color: 'rgba(212,175,55,0.9)' }} />
+            <h2 className="text-lg font-semibold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>Tu trabajo asignado</h2>
           </div>
           {orderDetail.assignments.map((assignment) => (
-            <div key={assignment.id} className="bg-charcoal-900 rounded-lg p-4 border border-charcoal-800">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="text-gold-400">{assignment.stageName}</h3>
-                  <div className="text-sm text-charcoal-400">
-                    {assignment.status === 'assigned' && !assignment.startedAt && 'No iniciado'}
-                    {assignment.status === 'in_progress' && 'En progreso'}
-                    {assignment.status === 'completed' && 'Completado'}
-                  </div>
+            <div key={assignment.id} className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h3 className="font-medium font-sans-custom" style={{ color: 'rgba(212,175,55,0.8)' }}>{assignment.stageName}</h3>
+                  <span className={`inline-flex items-center space-x-1 text-xs mt-1 font-sans-custom ${
+                    assignment.status === 'completed' ? 'text-green-400' :
+                    assignment.status === 'in_progress' ? 'text-blue-400' :
+                    assignment.status === 'paused' ? 'text-yellow-400' :
+                    ''
+                  }`}
+                  style={{
+                    color: assignment.status === 'completed' ? 'rgba(52,211,153,0.9)' :
+                           assignment.status === 'in_progress' ? 'rgba(96,165,250,0.9)' :
+                           assignment.status === 'paused' ? 'rgba(250,204,21,0.9)' :
+                           'rgba(242,240,237,0.3)'
+                  }}>
+                    {assignment.status === 'completed' && <CheckCircle2 className="w-3 h-3" />}
+                    {assignment.status === 'in_progress' && <PlayCircle className="w-3 h-3" />}
+                    {assignment.status === 'paused' && <PauseCircle className="w-3 h-3" />}
+                    <span>
+                      {assignment.status === 'completed' ? 'Finalizado' :
+                       assignment.status === 'in_progress' ? 'En progreso' :
+                       assignment.status === 'paused' ? 'Pausado' : 'No iniciado'}
+                    </span>
+                  </span>
                 </div>
                 {assignment.status === 'completed' ? (
-                  <div className="text-green-500 text-sm">Finalizado</div>
-                ) : assignment.status === 'in_progress' ? (
-                  <div className="text-blue-500 text-sm">Continuar</div>
+                  <span className="font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>
+                    {assignment.completedAt && new Date(assignment.completedAt).toLocaleDateString('es-CO')}
+                  </span>
                 ) : (
-                  <button
-                    onClick={() => handleStartWork(assignment.id)}
-                    className="bg-gold-500 text-charcoal-900 px-4 py-2 rounded-lg font-semibold hover:bg-gold-400 transition-colors flex items-center space-x-2"
+                  <Link
+                    href={`/joyero/trabajo/${assignment.id}`}
+                    className="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200 font-sans-custom"
+                    style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400', borderRadius: '0.75rem' }}
                   >
-                    <PlayCircle className="w-4 h-4" />
-                    <span>Iniciar trabajo</span>
-                  </button>
+                    {assignment.status === 'assigned' && <PlayCircle className="w-4 h-4" />}
+                    {assignment.status === 'in_progress' && <ArrowRight className="w-4 h-4" />}
+                    {assignment.status === 'paused' && <ArrowRight className="w-4 h-4" />}
+                    <span>
+                      {assignment.status === 'assigned' ? 'Ir al trabajo' :
+                       assignment.status === 'paused' ? 'Reanudar' : 'Continuar'}
+                    </span>
+                  </Link>
                 )}
               </div>
-              {assignment.status === 'completed' && assignment.completedAt && (
-                <div className="text-xs text-charcoal-500">
-                  Finalizado: {new Date(assignment.completedAt).toLocaleString('es-CO')}
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -273,7 +285,7 @@ export default function JoyeroOrderDetailPage() {
       {orderDetail.images.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center space-x-2">
-            <Image className="w-5 h-5 text-gold-500" />
+            <ImageIcon className="w-5 h-5 text-gold-500" />
             <h2 className="text-lg font-semibold text-gold-500">Imágenes de referencia</h2>
           </div>
           <div className="grid grid-cols-3 gap-2">
@@ -294,11 +306,11 @@ export default function JoyeroOrderDetailPage() {
       {orderDetail.notes && (
         <div className="space-y-3">
           <div className="flex items-center space-x-2">
-            <FileText className="w-5 h-5 text-gold-500" />
-            <h2 className="text-lg font-semibold text-gold-500">Notas del admin</h2>
+            <FileText className="w-5 h-5" style={{ color: 'rgba(212,175,55,0.9)' }} />
+            <h2 className="text-lg font-semibold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>Notas del admin</h2>
           </div>
-          <div className="bg-charcoal-900 rounded-lg p-4 border border-charcoal-800">
-            <p className="text-charcoal-300">{orderDetail.notes}</p>
+          <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <p className="font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>{orderDetail.notes}</p>
           </div>
         </div>
       )}
@@ -307,15 +319,15 @@ export default function JoyeroOrderDetailPage() {
       {orderDetail.materials.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center space-x-2">
-            <Package className="w-5 h-5 text-gold-500" />
-            <h2 className="text-lg font-semibold text-gold-500">Materiales entregados</h2>
+            <Package className="w-5 h-5" style={{ color: 'rgba(212,175,55,0.9)' }} />
+            <h2 className="text-lg font-semibold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>Materiales</h2>
           </div>
-          <div className="bg-charcoal-900 rounded-lg p-4 border border-charcoal-800">
+          <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <ul className="space-y-2">
               {orderDetail.materials.map((material, index) => (
-                <li key={index} className="flex items-center justify-between text-charcoal-300">
+                <li key={index} className="flex items-center justify-between font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>
                   <span>{material.name}</span>
-                  <span className="text-charcoal-400">{material.quantity}</span>
+                  <span style={{ color: 'rgba(242,240,237,0.4)' }}>{material.quantity}</span>
                 </li>
               ))}
             </ul>
@@ -323,6 +335,6 @@ export default function JoyeroOrderDetailPage() {
         </div>
       )}
 
-          </div>
+    </div>
   );
 }

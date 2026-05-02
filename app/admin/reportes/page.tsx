@@ -61,39 +61,41 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-serif text-cream-100">Reportes</h1>
-        <p className="text-sm text-charcoal-400 mt-1">Exporta reportes en formato Excel</p>
+        <h1 className="text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>Reportes</h1>
+        <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Exporta reportes en formato Excel</p>
       </div>
 
       {/* Date range */}
-      <div className="bg-charcoal-800 rounded-lg border border-white/5 p-5">
-        <h3 className="text-sm font-medium text-cream-200 mb-3 flex items-center gap-2">
-          <Calendar size={16} className="text-charcoal-500" />
+      <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <h3 className="text-sm font-medium mb-3 flex items-center gap-2 font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>
+          <Calendar size={16} style={{ color: 'rgba(242,240,237,0.3)' }} />
           Rango de fechas (opcional)
         </h3>
         <div className="flex flex-col sm:flex-row gap-3">
           <div>
-            <label className="block text-xs text-charcoal-400 mb-1">Desde</label>
+            <label className="block text-xs mb-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Desde</label>
             <input
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="px-3 py-2 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+              className="px-3 py-2 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.85)' }}
             />
           </div>
           <div>
-            <label className="block text-xs text-charcoal-400 mb-1">Hasta</label>
+            <label className="block text-xs mb-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Hasta</label>
             <input
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="px-3 py-2 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+              className="px-3 py-2 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.85)' }}
             />
           </div>
           {(dateFrom || dateTo) && (
             <button
               onClick={() => { setDateFrom(''); setDateTo(''); }}
-              className="self-end px-3 py-2 text-xs text-charcoal-400 hover:text-cream-200 transition-colors"
+              className="self-end px-3 py-2 text-xs transition-colors font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.8)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.4)'}
             >
               Limpiar
             </button>
@@ -106,21 +108,23 @@ export default function ReportsPage() {
         {reports.map((report) => (
           <div
             key={report.id}
-            className="bg-charcoal-800 rounded-lg border border-white/5 p-5 flex flex-col justify-between"
+            className="rounded-2xl p-5 flex flex-col justify-between" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
           >
             <div className="mb-4">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-md bg-gold-500/10">
-                  <report.icon size={18} className="text-gold-400" />
+                <div className="p-2 rounded-xl" style={{ background: 'rgba(212,175,55,0.1)' }}>
+                  <report.icon size={18} style={{ color: 'rgba(212,175,55,0.9)' }} />
                 </div>
-                <h3 className="text-sm font-medium text-cream-200">{report.title}</h3>
+                <h3 className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{report.title}</h3>
               </div>
-              <p className="text-xs text-charcoal-400">{report.description}</p>
+              <p className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>{report.description}</p>
             </div>
             <button
               onClick={() => downloadReport(report.id)}
               disabled={loading === report.id}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-charcoal-700 text-cream-200 text-xs rounded-md hover:bg-charcoal-600 transition-colors disabled:opacity-50 w-full"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs transition-colors disabled:opacity-50 w-full font-sans-custom"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(242,240,237,0.7)' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.12)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'}
             >
               {loading === report.id ? (
                 <Loader2 size={14} className="animate-spin" />

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Loader2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { QuotationRecord } from '@/lib/quotation/types';
 import PhaseBar from '@/components/jewelry/phase-bar';
@@ -17,6 +17,7 @@ import ModalFinishWork from '@/components/jewelry/modal-finish-work';
 import ModalDeliver from '@/components/jewelry/modal-deliver';
 import ModalMaterialPayment from '@/components/jewelry/modal-material-payment';
 import ModalCashPayment from '@/components/jewelry/modal-cash-payment';
+import ModalRequote from '@/components/jewelry/modal-requote';
 
 const supabase = createClient();
 
@@ -166,6 +167,13 @@ interface WorkCycle {
   receivedBy?: { id: string; firstName: string; lastName: string } | null;
   qcBy?: { id: string; firstName: string; lastName: string } | null;
   workReceivedBy?: { id: string; firstName: string; lastName: string } | null;
+  labor_assignments?: Array<{
+    service_code: string;
+    service_name: string;
+    service_category: string;
+    worker_id: string;
+    sort_order: number;
+  }> | null;
 }
 
 interface Payment {
@@ -241,6 +249,7 @@ export default function JewelryDetailPage() {
   const [showDeliverModal, setShowDeliverModal] = useState(false);
   const [showMaterialPaymentModal, setShowMaterialPaymentModal] = useState(false);
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
+  const [showRequoteModal, setShowRequoteModal] = useState(false);
 
   // Lista de usuarios (para selects en modales)
   const [users, setUsers] = useState<Array<{ id: string; firstName: string; lastName: string; role?: string }>>([])
@@ -459,7 +468,6 @@ export default function JewelryDetailPage() {
       })));
 
       // Fetch pieces con work assignments para mostrar los estados del pedido
-      console.log('Fetching pieces con work assignments...');
       const { data: piecesData, error: piecesErr } = await supabase
         .from('pieces')
         .select(`
@@ -484,22 +492,18 @@ export default function JewelryDetailPage() {
 
       if (piecesErr) throw new Error(piecesErr.message);
       
-      console.log('Pieces data:', piecesData);
-      console.log('Pieces error:', piecesErr);
-      
       // Transformar los datos con work assignments
-      const transformedPieces = (piecesData || []).map((piece: any) => {
-        console.log('Transformando piece con assignments:', piece);
-        
-        return {
-          id: piece.id,
-          name: piece.name,
-          description: piece.description,
-          sort_order: piece.sort_order,
-          current_state_id: piece.current_state_id,
-          currentState: null, // Sin relación por ahora
-          stateHistory: [], // Sin relación por ahora
-          assignments: (piece.work_assignments || []).map((assignment: any) => ({
+      const transformedPieces = (piecesData || []).map((piece: any) => ({
+        id: piece.id,
+        name: piece.name,
+        description: piece.description,
+        sort_order: piece.sort_order,
+        current_state_id: piece.current_state_id,
+        currentState: null,
+        stateHistory: [],
+        assignments: (piece.work_assignments || [])
+          .filter((a: any) => a.worker != null)
+          .map((assignment: any) => ({
             id: assignment.id,
             workerId: assignment.worker_id,
             stageCode: assignment.stage_code,
@@ -513,9 +517,8 @@ export default function JewelryDetailPage() {
             createdAt: assignment.created_at,
             updatedAt: assignment.updated_at,
           })),
-          attachments: [],  // Sin relación por ahora
-        };
-      });
+        attachments: [],
+      }));
       
       setPieces(transformedPieces);
 
@@ -634,45 +637,120 @@ export default function JewelryDetailPage() {
     if (!id) return;
     
     try {
-      // Obtener el ciclo actual o crear uno nuevo
+      // Obtener o crear el ciclo actual
       const { data: currentCycle } = await supabase
         .from('order_work_cycles')
         .select('*')
         .eq('order_id', id)
         .eq('cycle_number', 1)
         .is('work_delivery_date', null)
-        .single();
+        .maybeSingle();
+
+      const cyclePayload = {
+        delivered_metal_purity_pct: data.deliveredMetalPurityPct,
+        jewelry_metal_weight_gr: data.deliveredMetalWeightGr,
+        delivered_pure_metal_gr: data.deliveredPureMetalGr,
+        surplus_pure_metal_gr: data.surplusePureMetalGr,
+        delivered_by_user_id: data.deliveredByUserId,
+        received_by_user_id: data.receivedByUserId,
+        material_delivery_date: data.materialDeliveryDate,
+        labor_assignments: data.laborAssignments,
+      };
+
+      let cycleId: string | null = currentCycle?.id ?? null;
 
       if (currentCycle) {
-        // Update ciclo existente
         await supabase
           .from('order_work_cycles')
-          .update({
-            jewelryMetalPurity: data.jewelryMetalPurity,
-            jewelryMetalWeightGr: data.jewelryMetalWeightGr,
-            jewelryGoldColor: data.jewelryGoldColor,
-            approxGoldLaw: data.approxGoldLaw,
-            materialSurplusGr: data.materialSurplusGr,
-            totalMetalWeightGr: data.totalMetalWeightGr,
-            includesStones: data.includesStones,
-            stoneType: data.stoneType,
-            stoneCount: data.stoneCount,
-            stoneWeightGr: data.stoneWeightGr,
-            deliveredByUserId: data.deliveredByUserId,
-            receivedByUserId: data.receivedByUserId,
-            materialDeliveryDate: data.materialDeliveryDate,
-          })
+          .update(cyclePayload)
           .eq('id', currentCycle.id);
+      } else {
+        const { data: newCycle, error: cycleErr } = await supabase
+          .from('order_work_cycles')
+          .insert({ order_id: id, cycle_number: 1, is_rework: false, ...cyclePayload })
+          .select('id')
+          .single();
+        if (cycleErr) throw new Error(cycleErr.message);
+        cycleId = newCycle.id;
       }
 
-      // Update jewelry data
-      console.log('Actualizando currentPhase a start_work...');
-      const { error: updateError } = await supabase
-        .from('order_jewelry_data')
-        .update({ current_phase: 'start_work' }) // Usar snake_case para BD
-        .eq('order_id', id);
+      // Upsert work_assignments para cada ítem de mano de obra con encargado asignado
+      if (data.laborAssignments?.length) {
+        // Fetch piece_id directamente (evitar stale closure del estado pieces)
+        const { data: pieceRow } = await supabase
+          .from('pieces')
+          .select('id')
+          .eq('order_id', id)
+          .order('sort_order', { ascending: true })
+          .limit(1)
+          .maybeSingle();
 
-      console.log('Error actualizando jewelry data:', updateError);
+        let pieceId = pieceRow?.id;
+
+        // Si no existe pieza, crearla automáticamente
+        if (!pieceId) {
+          const { data: newPiece, error: pieceErr } = await supabase
+            .from('pieces')
+            .insert({ order_id: id, name: 'Pieza principal', sort_order: 1 })
+            .select('id')
+            .single();
+          if (!pieceErr && newPiece) pieceId = newPiece.id;
+        }
+
+        if (pieceId) {
+          const assignmentsToUpsert = (data.laborAssignments as any[])
+            .filter((a: any) => a.worker_id)
+            .map((a: any) => ({
+              piece_id: pieceId,
+              worker_id: a.worker_id,
+              stage_code: a.service_code,
+              status: 'pending',
+              priority: a.sort_order,
+              progress_pct: 0,
+            }));
+
+          if (assignmentsToUpsert.length > 0) {
+            await supabase
+              .from('work_assignments')
+              .delete()
+              .eq('piece_id', pieceId);
+
+            await supabase
+              .from('work_assignments')
+              .insert(assignmentsToUpsert);
+          }
+        }
+      }
+
+      // Subir fotos de referencia si las hay
+      if (data.referenceFiles?.length && cycleId) {
+        for (const file of data.referenceFiles as File[]) {
+          const path = `work_cycles/${cycleId}/${Date.now()}-${file.name}`;
+          const { error: uploadErr } = await supabase.storage
+            .from('evidences')
+            .upload(path, file);
+          if (!uploadErr) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('evidences')
+              .getPublicUrl(path);
+            await supabase.from('file_attachments').insert({
+              entity_type: 'work_cycle',
+              entity_id: cycleId,
+              file_name: file.name,
+              file_url: publicUrl,
+              file_type: 'image',
+              file_size: file.size,
+              mime_type: file.type,
+            });
+          }
+        }
+      }
+
+      // Actualizar fase del pedido
+      await supabase
+        .from('order_jewelry_data')
+        .update({ current_phase: 'start_work' })
+        .eq('order_id', id);
 
       // Log de fase
       await supabase
@@ -685,16 +763,7 @@ export default function JewelryDetailPage() {
           observation: 'Material entregado al joyero',
         });
 
-      console.log('Refrescando datos después de iniciar trabajo...');
-      // Refrescar datos
       await fetchData();
-      
-      // Pequeño retraso para asegurar que el estado se actualice
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      console.log('Datos refrescados. currentPhase actual:', jewelryData?.currentPhase);
-      console.log('¿jewelryData existe?:', !!jewelryData);
-      console.log('Valor pasado a PhaseBar:', jewelryData?.currentPhase || 'creation');
     } catch (err: unknown) {
       console.error('Error iniciando trabajo:', err);
       throw err;
@@ -937,7 +1006,7 @@ export default function JewelryDetailPage() {
       case 'datos':
         return <TabDatos jewelryData={jewelryData} order={order} quotation={quotation} payments={payments} materialPayments={materialPayments} />;
       case 'estados':
-        return <TabEstados pieces={pieces} phaseLog={phaseLog} />;
+        return <TabEstados pieces={pieces} phaseLog={phaseLog} activeCycle={workCycles.find(c => !c.workDeliveryDate) ?? workCycles[0] ?? null} />;
       case 'abonos':
         return (
           <TabAbonos
@@ -985,6 +1054,31 @@ export default function JewelryDetailPage() {
     );
   }
 
+  // ── Quotation validity helpers (jeweler orders only) ──
+  const isJewelerQuote = quotation?.quote_type === 'jeweler';
+  const quotationCreatedDate = quotation?.created_at
+    ? new Date(quotation.created_at).toDateString()
+    : null;
+  const todayStr = new Date().toDateString();
+  const isQuotationExpired = isJewelerQuote && !!quotationCreatedDate && quotationCreatedDate !== todayStr;
+
+  // Sum of all completed cash payments + material payments (valued at quotation metal price per gr)
+  const totalCashPaid = payments
+    .filter(p => p.status === 'completed')
+    .reduce((s, p) => s + p.amountCop, 0);
+  const totalMatPaidCop = materialPayments.reduce((s, mp) => {
+    const pure = (mp as any).pureMetal_gr ?? (mp as any).pure_metal_gr ?? 0;
+    // Use quotation metal price / total_weight_gr as price-per-gr of pure metal
+    const pricePerPureGr = quotation && quotation.total_weight_gr > 0
+      ? (quotation.metal_price_cop / (quotation.required_pure_metal_gr ?? quotation.total_weight_gr))
+      : 0;
+    return s + Number(pure) * pricePerPureGr;
+  }, 0);
+  const totalPaidTowardsMetal = totalCashPaid + totalMatPaidCop;
+  const metalMinRequired = quotation?.metal_price_cop ?? 0;
+  const hasMinPayment = isJewelerQuote ? totalPaidTowardsMetal >= metalMinRequired : true;
+  const paymentShortfall = Math.max(0, metalMinRequired - totalPaidTowardsMetal);
+
   return (
     <div className="space-y-6 max-w-6xl">
       {/* Header */}
@@ -1006,25 +1100,44 @@ export default function JewelryDetailPage() {
         ) : (
           <div className="flex items-center gap-2">
             {/* Botón según fase actual */}
-            {(() => {
-              console.log('=== ESTADO DE JEWELRY DATA ===');
-              console.log('jewelryData completo:', jewelryData);
-              console.log('jewelryData.currentPhase:', jewelryData?.currentPhase);
-              console.log('jewelryData.isDelivered:', jewelryData?.isDelivered);
-              console.log('¿jewelryData existe?:', !!jewelryData);
-              console.log('¿currentPhase es creation?:', jewelryData?.currentPhase === 'creation');
-              console.log('¿currentPhase es start_work?:', jewelryData?.currentPhase === 'start_work');
-              console.log('¿currentPhase es end_work?:', jewelryData?.currentPhase === 'end_work');
-              console.log('¿Mostrar Iniciar Trabajo?:', jewelryData?.currentPhase === 'creation' || !jewelryData?.currentPhase);
-              console.log('=============================');
-              return jewelryData?.currentPhase === 'creation' || !jewelryData?.currentPhase;
-            })() && (
-              <button
-                onClick={() => setShowStartWorkModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors"
-              >
-                Iniciar Trabajo
-              </button>
+            {(jewelryData?.currentPhase === 'creation' || !jewelryData?.currentPhase) && (
+              <>
+                {/* Recotizar button when expired */}
+                {isQuotationExpired && (
+                  <button
+                    onClick={() => setShowRequoteModal(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm font-medium rounded-md hover:bg-amber-500/20 transition-colors"
+                  >
+                    <RefreshCw size={14} />
+                    Recotizar
+                  </button>
+                )}
+
+                {isQuotationExpired ? (
+                  <button
+                    disabled
+                    title="La cotización venció. Recotiza con los precios del día para continuar."
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-charcoal-700 text-charcoal-500 text-sm font-medium rounded-md cursor-not-allowed"
+                  >
+                    Iniciar Trabajo
+                  </button>
+                ) : !hasMinPayment ? (
+                  <button
+                    disabled
+                    title={`Falta abonar mínimo el precio del metal. Pendiente: $${new Intl.NumberFormat('es-CO').format(paymentShortfall)}`}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-charcoal-700 text-charcoal-500 text-sm font-medium rounded-md cursor-not-allowed"
+                  >
+                    Iniciar Trabajo
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowStartWorkModal(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors"
+                  >
+                    Iniciar Trabajo
+                  </button>
+                )}
+              </>
             )}
             
             {(jewelryData?.currentPhase === 'start_work' || !jewelryData?.currentPhase) && (
@@ -1070,6 +1183,43 @@ export default function JewelryDetailPage() {
         deliveredDate={jewelryData?.deliveryDate || undefined}
         deliveredBy={jewelryData?.receiverName || undefined}
       />
+
+      {/* Alert banners: expiry + payment shortfall */}
+      {isJewelerQuote && (jewelryData?.currentPhase === 'creation' || !jewelryData?.currentPhase) && (
+        <>
+          {isQuotationExpired && (
+            <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-amber-300">Cotización vencida</p>
+                <p className="text-xs text-amber-400/70 mt-0.5">
+                  Esta cotización fue creada el {new Date(quotation!.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}.
+                  Los precios del oro cambian a diario. Debes recotizar con los precios de hoy antes de iniciar el trabajo.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowRequoteModal(true)}
+                className="shrink-0 px-3 py-1.5 text-xs font-medium bg-amber-500 text-charcoal-900 rounded-md hover:bg-amber-400 transition-colors"
+              >
+                Recotizar ahora
+              </button>
+            </div>
+          )}
+          {!isQuotationExpired && !hasMinPayment && metalMinRequired > 0 && (
+            <div className="flex items-start gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <AlertTriangle size={16} className="text-blue-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-blue-300">Abono mínimo requerido para iniciar</p>
+                <p className="text-xs text-blue-400/70 mt-0.5">
+                  Se debe abonar al menos el precio del metal ({new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(metalMinRequired)}).
+                  Pendiente: <strong className="text-blue-300">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(paymentShortfall)}</strong>.
+                  Usa los botones de Abono para registrar el pago.
+                </p>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Tabs */}
       <div className="bg-charcoal-800/50 border border-white/5 rounded-lg">
@@ -1120,13 +1270,7 @@ export default function JewelryDetailPage() {
         onClose={() => setShowStartWorkModal(false)}
         onSubmit={handleStartWork}
         orderId={order.id}
-        jewelryData={{
-          metalType: jewelryData.metalType,
-          estimatedWeightGr: jewelryData.estimatedWeightGr,
-          clientProvidesMetal: jewelryData.clientProvidesMetal,
-          clientMetalPurity: jewelryData.clientMetalPurity || undefined,
-          clientMetalWeightGr: jewelryData.clientMetalWeightGr || undefined,
-        }}
+        quotation={quotation}
         users={users}
       />
 
@@ -1189,6 +1333,15 @@ export default function JewelryDetailPage() {
         }}
         users={users}
       />
+
+      {quotation && (
+        <ModalRequote
+          isOpen={showRequoteModal}
+          onClose={() => setShowRequoteModal(false)}
+          onSuccess={fetchData}
+          quotation={quotation}
+        />
+      )}
     </div>
   );
 }

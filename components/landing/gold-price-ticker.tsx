@@ -91,40 +91,32 @@ export function GoldPriceTicker() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: 0.9 }}
-      className="inline-flex flex-col sm:flex-row items-center gap-4 sm:gap-6 px-6 py-4 rounded-sm glass gold-border"
+      className="inline-flex items-center gap-4 px-5 py-3 rounded-full bg-gold-500/5 border border-gold-500/20 backdrop-blur-sm"
     >
-      {/* Main price */}
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gold-500/10 border border-gold-500/20">
-          <TrendingUp size={14} className="text-gold-400" />
-        </div>
-        <div>
-          <p className="text-[10px] tracking-[0.15em] uppercase text-charcoal-400">
-            Oro 24K / gramo
-          </p>
-          <p className="text-lg font-serif text-gold-400 leading-tight">
-            {formatCOP(price.priceGram24k)}
-          </p>
-        </div>
+      {/* Live indicator */}
+      <div className="flex items-center gap-2">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold-500/60 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-gold-500" />
+        </span>
+        <span className="text-[10px] uppercase tracking-[0.15em] text-gold-400/80 font-sans">
+          Vivo
+        </span>
       </div>
 
-      {/* Separator */}
-      <div className="hidden sm:block w-px h-8 bg-white/5" />
+      {/* Main price - prominent */}
+      <div className="flex items-baseline gap-2">
+        <span className="text-xs text-cream-200/60 font-sans">Oro 24K</span>
+        <span className="text-xl md:text-2xl font-display font-semibold text-gold-400 tracking-tight">
+          {formatCOP(price.priceGram24k)}
+        </span>
+        <span className="text-xs text-cream-200/40 font-sans">/g</span>
+      </div>
 
-      {/* USD reference + timestamp */}
-      <div className="flex items-center gap-4 text-[11px] text-charcoal-400">
-        <div>
-          <span className="block text-charcoal-500">USD/oz</span>
-          <span className="text-cream-300">{formatUSD(price.priceUsdOz)}</span>
-        </div>
-        <div>
-          <span className="block text-charcoal-500">USD/COP</span>
-          <span className="text-cream-300">{formatCOP(price.rateUsdCop)}</span>
-        </div>
-        <div className="flex items-center gap-1 text-charcoal-500">
-          <RefreshCw size={10} />
-          <span>{isFallback ? 'Ref.' : timeAgo(price.fetchedAt)}</span>
-        </div>
+      {/* Refresh indicator */}
+      <div className="flex items-center gap-1.5 text-[10px] text-cream-200/30 font-sans">
+        <RefreshCw size={10} className={isFallback ? 'text-amber-400' : ''} />
+        <span>{isFallback ? 'Referencia' : timeAgo(price.fetchedAt)}</span>
       </div>
     </motion.div>
   );

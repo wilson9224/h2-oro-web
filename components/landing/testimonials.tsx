@@ -70,7 +70,7 @@ export function Testimonials() {
         <div className="relative min-h-[40vh] flex items-center">
           {/* Decorative oversized quote mark */}
           <span
-            className="absolute -top-10 -left-4 md:-left-8 font-serif text-[15rem] md:text-[22rem] leading-none text-cream-200/[0.03] select-none pointer-events-none"
+            className="absolute -top-10 -left-4 md:-left-8 font-display text-[15rem] md:text-[22rem] leading-none text-gold-500/[0.04] select-none pointer-events-none"
             aria-hidden
           >
             &ldquo;
@@ -85,7 +85,7 @@ export function Testimonials() {
               transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
               className="relative z-10"
             >
-              <blockquote className="font-serif text-display-md md:text-display-xl text-cream-100 max-w-5xl leading-[1.15]">
+              <blockquote className="font-display text-display-md md:text-display-xl text-cream-100 max-w-5xl leading-[1.15] font-light">
                 {testimonials[current].text}
               </blockquote>
 

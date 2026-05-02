@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
-import { Calendar, TrendingUp, Clock, DollarSign, BarChart3, Filter } from 'lucide-react';
+import { Calendar, TrendingUp, Clock, DollarSign, BarChart3, Filter, Wallet, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 
 interface WorkerStats {
   total: number;
@@ -45,6 +46,7 @@ export default function JoyeroDashboard() {
   const [avgTimes, setAvgTimes] = useState<AvgTime[]>([]);
   const [payments, setPayments] = useState<PaymentSummary | null>(null);
   const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([]);
+  const [pendingConfirmCount, setPendingConfirmCount] = useState(0);
   const [loading, setLoading] = useState(true);
   
   // Date range filter
@@ -197,6 +199,16 @@ export default function JoyeroDashboard() {
           setPayments(summary);
         }
 
+        // Fetch count of payments paid but not yet confirmed by worker
+        const { count: confirmCount } = await supabase
+          .from('worker_payments')
+          .select('id', { count: 'exact', head: true })
+          .eq('worker_id', user.id)
+          .eq('status', 'paid')
+          .is('confirmed_at', null);
+
+        setPendingConfirmCount(confirmCount ?? 0);
+
         // Fetch time series data for charts
         const { data: timeSeriesQuery } = await supabase
           .from('work_assignments')
@@ -255,34 +267,56 @@ export default function JoyeroDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin h-8 w-8 border-2 border-gold-500 border-t-transparent rounded-full" />
+        <div className="w-8 h-8 rounded-full border border-t-gold-500/80 border-gold-500/10 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gold-500">Dashboard</h1>
-        <p className="text-charcoal-400">Resumen de tu trabajo</p>
+    <div className="space-y-5">
+      {/* Hero greeting banner */}
+      <div
+        className="relative px-5 pt-6 pb-5 overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, rgba(212,175,55,0.07) 0%, rgba(212,175,55,0.02) 60%, transparent 100%)',
+          borderBottom: '1px solid rgba(212,175,55,0.1)',
+        }}
+      >
+        {/* Ambient glow */}
+        <div
+          className="absolute top-0 right-0 w-32 h-32 pointer-events-none"
+          style={{
+            background: 'radial-gradient(circle, rgba(212,175,55,0.12) 0%, transparent 70%)',
+            filter: 'blur(20px)',
+          }}
+        />
+        <div className="relative z-10">
+          <p className="text-[10px] uppercase tracking-[0.25em] font-sans mb-1" style={{ color: 'rgba(212,175,55,0.6)' }}>
+            Panel de trabajo
+          </p>
+          <h1 className="font-display text-2xl font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>
+            Hola, {user?.firstName}
+          </h1>
+          <p className="text-xs mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
+            Aquí va tu resumen de actividad
+          </p>
+        </div>
       </div>
 
       {/* Date Range Filter */}
-      <div className="bg-charcoal-900 rounded-lg p-4 border border-charcoal-800">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <Filter className="w-4 h-4 text-gold-500" />
-            <span className="text-sm font-medium text-gold-500">Filtro de tiempo</span>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-4 gap-2 mb-4">
+      <div className="px-5">
+        <div
+          className="rounded-2xl p-1 flex gap-1"
+          style={{
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
           {[
             { value: '7d', label: '7 días' },
             { value: '30d', label: '30 días' },
             { value: '90d', label: '90 días' },
-            { value: 'custom', label: 'Personalizado' }
+            { value: 'custom', label: 'Custom' }
           ].map((option) => (
             <button
               key={option.value}
@@ -290,11 +324,12 @@ export default function JoyeroDashboard() {
                 setDateRange(option.value as any);
                 setShowCustomDate(option.value === 'custom');
               }}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                dateRange === option.value
-                  ? 'bg-gold-500 text-charcoal-900'
-                  : 'bg-charcoal-800 text-charcoal-300 hover:bg-charcoal-700'
-              }`}
+              className="flex-1 py-2 rounded-xl text-[10px] font-medium uppercase tracking-[0.08em] transition-all duration-300 font-sans-custom"
+              style={{
+                background: dateRange === option.value ? 'rgba(212,175,55,0.12)' : 'transparent',
+                color: dateRange === option.value ? '#D4AF37' : 'rgba(242,240,237,0.35)',
+                border: dateRange === option.value ? '1px solid rgba(212,175,55,0.2)' : '1px solid transparent',
+              }}
             >
               {option.label}
             </button>
@@ -302,84 +337,135 @@ export default function JoyeroDashboard() {
         </div>
 
         {showCustomDate && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3 mt-3">
             <div>
-              <label className="block text-sm text-charcoal-400 mb-1">Desde</label>
+              <label className="block text-[10px] mb-1.5 uppercase tracking-widest font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Desde</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 bg-charcoal-800 border border-charcoal-700 rounded-lg text-charcoal-300 focus:border-gold-500 focus:outline-none"
+                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-colors font-sans-custom"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'rgba(242,240,237,0.85)',
+                  colorScheme: 'dark',
+                }}
               />
             </div>
             <div>
-              <label className="block text-sm text-charcoal-400 mb-1">Hasta</label>
+              <label className="block text-[10px] mb-1.5 uppercase tracking-widest font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Hasta</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 bg-charcoal-800 border border-charcoal-700 rounded-lg text-charcoal-300 focus:border-gold-500 focus:outline-none"
+                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-colors font-sans-custom"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'rgba(242,240,237,0.85)',
+                  colorScheme: 'dark',
+                }}
               />
             </div>
           </div>
         )}
       </div>
 
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-charcoal-900 rounded-lg p-4 border border-charcoal-800">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-3xl font-bold text-gold-500">{stats.total}</div>
-              <BarChart3 className="w-5 h-5 text-gold-500" />
+      {/* Payment confirmation CTA */}
+      {pendingConfirmCount > 0 && (
+        <div className="px-5">
+          <Link
+            href="/joyero/pagos"
+            className="flex items-center justify-between rounded-2xl p-4 transition-all duration-300"
+            style={{
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.12), rgba(212,175,55,0.06))',
+              border: '1px solid rgba(212,175,55,0.25)',
+              boxShadow: '0 4px 24px rgba(212,175,55,0.08)',
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.2)' }}
+              >
+                <Wallet className="w-4 h-4" style={{ color: 'rgba(212,175,55,0.9)' }} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: 'rgba(232,197,71,0.95)' }}>
+                  {pendingConfirmCount} pago{pendingConfirmCount !== 1 ? 's' : ''} por confirmar
+                </p>
+                <p className="text-[10px] mt-0.5" style={{ color: 'rgba(212,175,55,0.5)' }}>Toca para confirmar</p>
+              </div>
             </div>
-            <div className="text-sm text-charcoal-400">Asignados</div>
-          </div>
-          <div className="bg-charcoal-900 rounded-lg p-4 border border-charcoal-800">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-3xl font-bold text-yellow-500">{stats.pending}</div>
-              <Clock className="w-5 h-5 text-yellow-500" />
-            </div>
-            <div className="text-sm text-charcoal-400">Pendientes</div>
-          </div>
-          <div className="bg-charcoal-900 rounded-lg p-4 border border-charcoal-800">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-3xl font-bold text-blue-500">{stats.inProgress}</div>
-              <TrendingUp className="w-5 h-5 text-blue-500" />
-            </div>
-            <div className="text-sm text-charcoal-400">En progreso</div>
-          </div>
-          <div className="bg-charcoal-900 rounded-lg p-4 border border-charcoal-800">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-3xl font-bold text-green-500">{stats.completed}</div>
-              <DollarSign className="w-5 h-5 text-green-500" />
-            </div>
-            <div className="text-sm text-charcoal-400">Completados</div>
-          </div>
+            <ChevronRight className="w-4 h-4" style={{ color: 'rgba(212,175,55,0.6)' }} />
+          </Link>
         </div>
       )}
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* State Distribution Chart */}
+      {/* Stats Cards */}
+      {stats && (
+        <div className="px-5 grid grid-cols-2 gap-3">
+          {[
+            { value: stats.total, label: 'Asignados', icon: BarChart3, color: 'rgba(212,175,55,1)', bg: 'rgba(212,175,55,0.08)', border: 'rgba(212,175,55,0.15)' },
+            { value: stats.pending, label: 'Pendientes', icon: Clock, color: 'rgba(251,191,36,1)', bg: 'rgba(251,191,36,0.07)', border: 'rgba(251,191,36,0.14)' },
+            { value: stats.inProgress, label: 'En progreso', icon: TrendingUp, color: 'rgba(96,165,250,1)', bg: 'rgba(96,165,250,0.07)', border: 'rgba(96,165,250,0.14)' },
+            { value: stats.completed, label: 'Completados', icon: DollarSign, color: 'rgba(52,211,153,1)', bg: 'rgba(52,211,153,0.07)', border: 'rgba(52,211,153,0.14)' },
+          ].map(({ value, label, icon: Icon, color, bg, border }) => (
+            <div
+              key={label}
+              className="rounded-2xl p-4"
+              style={{
+                background: bg,
+                border: `1px solid ${border}`,
+              }}
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${border}` }}
+                >
+                  <Icon className="w-4 h-4" style={{ color }} />
+                </div>
+              </div>
+              <div className="font-display text-3xl font-semibold" style={{ color }}>
+                {value}
+              </div>
+              <div className="text-[10px] uppercase tracking-[0.1em] mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
+                {label}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Charts + data sections */}
+      <div className="px-5 space-y-4 pb-4">
+        {/* State Distribution */}
         {stateDistribution.length > 0 && (
-          <div className="bg-charcoal-900 rounded-lg p-4 border border-charcoal-800">
-            <h2 className="text-lg font-semibold text-gold-500 mb-4">Distribución por estado</h2>
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <h2 className="font-display text-xs font-semibold uppercase tracking-[0.12em] mb-4"
+              style={{ color: 'rgba(242,240,237,0.5)' }}>Distribución por estado</h2>
             <div className="space-y-3">
               {stateDistribution.map((state) => {
                 const maxCount = Math.max(...stateDistribution.map(d => d.count));
                 const percentage = (state.count / maxCount) * 100;
-                
                 return (
-                  <div key={state.stageCode} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-charcoal-300 text-sm">{state.stageName}</span>
-                      <span className="text-charcoal-400 text-sm font-medium">{state.count}</span>
+                  <div key={state.stageCode}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.6)' }}>{state.stageName}</span>
+                      <span className="text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{state.count}</span>
                     </div>
-                    <div className="w-full bg-charcoal-800 rounded-full h-3">
-                      <div 
-                        className="bg-gradient-to-r from-gold-600 to-gold-500 h-3 rounded-full transition-all duration-500" 
-                        style={{ width: `${percentage}%` }}
+                    <div className="w-full rounded-full h-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                      <div
+                        className="h-1.5 rounded-full transition-all duration-700"
+                        style={{
+                          width: `${percentage}%`,
+                          background: 'linear-gradient(90deg, #B8960F, #D4AF37, #E8C547)',
+                        }}
                       />
                     </div>
                   </div>
@@ -389,99 +475,103 @@ export default function JoyeroDashboard() {
           </div>
         )}
 
-        {/* Time Series Chart */}
+        {/* Time Series */}
         {timeSeriesData.length > 0 && (
-          <div className="bg-charcoal-900 rounded-lg p-4 border border-charcoal-800">
-            <h2 className="text-lg font-semibold text-gold-500 mb-4">Trabajos completados</h2>
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <h2 className="font-display text-xs font-semibold uppercase tracking-[0.12em] mb-4"
+              style={{ color: 'rgba(242,240,237,0.5)' }}>Trabajos completados</h2>
             <div className="space-y-2">
-              {timeSeriesData.slice(-7).map((data, index) => {
+              {timeSeriesData.slice(-7).map((data) => {
                 const maxCompleted = Math.max(...timeSeriesData.map(d => d.completed));
-                const height = (data.completed / maxCompleted) * 100;
-                
+                const pct = maxCompleted > 0 ? (data.completed / maxCompleted) * 100 : 0;
                 return (
-                  <div key={data.date} className="flex items-end space-x-2 h-16">
-                    <div className="flex-1 flex items-end space-x-1">
-                      <div 
-                        className="bg-gradient-to-t from-blue-600 to-blue-500 rounded-t transition-all duration-500"
-                        style={{ height: `${height}%`, width: '20px' }}
+                  <div key={data.date} className="flex items-center gap-3">
+                    <span className="text-[10px] w-16 flex-shrink-0 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
+                      {new Date(data.date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
+                    </span>
+                    <div className="flex-1 rounded-full h-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                      <div
+                        className="h-1.5 rounded-full transition-all duration-700"
+                        style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #1d4ed8, #60a5fa)' }}
                       />
-                      <div className="text-xs text-charcoal-400 flex-1">
-                        {new Date(data.date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
-                      </div>
                     </div>
-                    <div className="text-xs text-charcoal-300 w-8 text-right">
+                    <span className="text-[10px] w-4 text-right font-sans-custom" style={{ color: 'rgba(242,240,237,0.6)' }}>
                       {data.completed}
-                    </div>
+                    </span>
                   </div>
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* Average Times */}
+        {avgTimes.length > 0 && (
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <h2 className="font-display text-xs font-semibold uppercase tracking-[0.12em] mb-4"
+              style={{ color: 'rgba(242,240,237,0.5)' }}>Tiempos promedio</h2>
+            <div className="space-y-3">
+              {avgTimes.map((time) => (
+                <div key={time.stageCode}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.6)' }}>{time.stageName}</span>
+                    <span className="text-xs font-semibold font-sans-custom" style={{ color: 'rgba(212,175,55,0.9)' }}>{formatHours(time.avgHours)}</span>
+                  </div>
+                  <div className="w-full rounded-full h-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                    <div
+                      className="h-1.5 rounded-full"
+                      style={{
+                        width: `${Math.min((time.avgHours / 8) * 100, 100)}%`,
+                        background: 'linear-gradient(90deg, #B8960F, #E8C547)',
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Payment Summary */}
+        {payments && (
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <h2 className="font-display text-xs font-semibold uppercase tracking-[0.12em] mb-4"
+              style={{ color: 'rgba(242,240,237,0.5)' }}>Resumen de pagos</h2>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: 'Pendiente', value: formatCOP(payments.pendingAmount), color: 'rgba(251,191,36,1)' },
+                { label: 'Pagado', value: formatCOP(payments.paidAmount), color: 'rgba(52,211,153,1)' },
+                { label: 'Bonos', value: payments.bonusAmount > 0 ? formatCOP(payments.bonusAmount) : '$0', color: 'rgba(212,175,55,1)' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <div className="text-[9px] uppercase tracking-[0.1em] mb-2 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>{label}</div>
+                  <div className="text-sm font-display font-semibold leading-tight" style={{ color }}>{value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {stateDistribution.length === 0 && avgTimes.length === 0 && (
+          <div
+            className="rounded-2xl p-8 text-center"
+            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
+          >
+            <div className="text-sm mb-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Sin trabajos en este período</div>
+            <div className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.2)' }}>Cambia el rango de fechas</div>
           </div>
         )}
       </div>
-
-      {/* Average Times */}
-      {avgTimes.length > 0 && (
-        <div className="bg-charcoal-900 rounded-lg p-4 border border-charcoal-800">
-          <h2 className="text-lg font-semibold text-gold-500 mb-4">Tiempos promedio por etapa</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {avgTimes.map((time) => (
-              <div key={time.stageCode} className="bg-charcoal-800 rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-charcoal-300 text-sm">{time.stageName}</span>
-                  <span className="text-gold-500 font-medium">{formatHours(time.avgHours)}</span>
-                </div>
-                <div className="mt-2 w-full bg-charcoal-700 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-gold-600 to-gold-500 h-2 rounded-full" 
-                    style={{ width: `${Math.min((time.avgHours / 8) * 100, 100)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Payment Summary */}
-      {payments && (
-        <div className="bg-charcoal-900 rounded-lg p-4 border border-charcoal-800">
-          <h2 className="text-lg font-semibold text-gold-500 mb-4">Resumen de pagos</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-charcoal-800 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <Clock className="w-4 h-4 text-yellow-500" />
-                <span className="text-charcoal-400 text-sm">Pendiente</span>
-              </div>
-              <div className="text-xl font-bold text-yellow-500">{formatCOP(payments.pendingAmount)}</div>
-            </div>
-            <div className="bg-charcoal-800 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <DollarSign className="w-4 h-4 text-green-500" />
-                <span className="text-charcoal-400 text-sm">Pagado</span>
-              </div>
-              <div className="text-xl font-bold text-green-500">{formatCOP(payments.paidAmount)}</div>
-            </div>
-            <div className="bg-charcoal-800 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <TrendingUp className="w-4 h-4 text-gold-500" />
-                <span className="text-charcoal-400 text-sm">Bonificaciones</span>
-              </div>
-              <div className="text-xl font-bold text-gold-500">
-                {payments.bonusAmount > 0 ? formatCOP(payments.bonusAmount) : '$0'}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Empty states */}
-      {stateDistribution.length === 0 && avgTimes.length === 0 && (
-        <div className="bg-charcoal-900 rounded-lg p-8 border border-charcoal-800 text-center">
-          <div className="text-charcoal-400 mb-2">No tienes trabajos asignados en este período</div>
-          <div className="text-charcoal-500 text-sm">Intenta con un rango de fechas diferente</div>
-        </div>
-      )}
     </div>
   );
 }

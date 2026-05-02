@@ -1,5 +1,7 @@
 import { Metadata } from 'next';
 import TrackingForm from './tracking-form';
+import { Header } from '@/components/layout/header';
+import { WhatsAppButton } from '@/components/whatsapp-button';
 
 export const metadata: Metadata = {
   title: 'Seguimiento de Pedido | H2 Oro',
@@ -8,19 +10,12 @@ export const metadata: Metadata = {
 
 export default function SeguimientoPage() {
   return (
-    <main className="min-h-screen bg-gray-50">
-      <section className="bg-white border-b">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-3xl font-bold text-gray-900">Seguimiento de Pedido</h1>
-          <p className="mt-2 text-gray-600">
-            Ingresa tu número de pedido y los últimos 4 dígitos de tu teléfono para consultar el estado.
-          </p>
-        </div>
-      </section>
-
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <Header />
+      <main className="min-h-screen" style={{ background: 'rgba(8,8,8,1)' }}>
         <TrackingForm />
-      </div>
-    </main>
+      </main>
+      <WhatsAppButton />
+    </>
   );
 }

@@ -90,26 +90,29 @@ export default function MetalCard({ metal, onSave }: MetalCardProps) {
     : null;
 
   return (
-    <div className="bg-charcoal-800 border border-white/5 rounded-lg overflow-hidden">
+    <div className="rounded-lg overflow-hidden font-sans-custom" style={{ background: 'rgba(8,8,8,1)', border: '1px solid rgba(255,255,255,0.05)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+      <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gold-500/10 flex items-center justify-center">
-            <span className="text-gold-400 font-serif font-bold text-lg">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.1)' }}>
+            <span className="font-bold text-lg font-sans-custom" style={{ color: 'rgba(212,175,55,0.9)' }}>
               {metal.metal_code === 'gold' ? 'Au' : metal.metal_code === 'silver' ? 'Ag' : metal.metal_code === 'palladium' ? 'Pd' : 'Cu'}
             </span>
           </div>
           <div>
-            <h3 className="text-cream-200 font-semibold text-base">{metal.metal_name}</h3>
+            <h3 className="font-semibold text-base font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{metal.metal_name}</h3>
             {metal.has_percentages && (
-              <span className="text-charcoal-400 text-xs">Con porcentajes de compra/venta</span>
+              <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Con porcentajes de compra/venta</span>
             )}
           </div>
         </div>
         {!editing ? (
           <button
             onClick={() => setEditing(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-gold-400 hover:bg-gold-500/10 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors font-sans-custom"
+            style={{ color: 'rgba(212,175,55,0.9)' }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(212,175,55,0.1)'}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
           >
             <Pencil size={14} />
             Editar
@@ -119,7 +122,10 @@ export default function MetalCard({ metal, onSave }: MetalCardProps) {
             <button
               onClick={handleCancel}
               disabled={saving}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-charcoal-400 hover:bg-white/5 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors font-sans-custom"
+              style={{ color: 'rgba(242,240,237,0.4)' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
             >
               <X size={14} />
               Cancelar
@@ -127,7 +133,10 @@ export default function MetalCard({ metal, onSave }: MetalCardProps) {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-gold-500 text-charcoal-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 font-sans-custom"
+              style={{ background: 'rgba(212,175,55,0.9)', color: 'rgba(8,8,8,0.9)' }}
+              onMouseEnter={e => !(e.currentTarget as HTMLButtonElement).disabled && ((e.currentTarget as HTMLElement).style.background = 'rgba(212,175,55,1)')}
+              onMouseLeave={e => !(e.currentTarget as HTMLButtonElement).disabled && ((e.currentTarget as HTMLElement).style.background = 'rgba(212,175,55,0.9)')}
             >
               <Save size={14} />
               {saving ? 'Guardando...' : 'Guardar'}
@@ -140,7 +149,7 @@ export default function MetalCard({ metal, onSave }: MetalCardProps) {
       <div className="px-5 py-4 space-y-4">
         {/* Precio Internacional */}
         <div>
-          <label className="block text-xs text-charcoal-400 mb-1.5">
+          <label className="block text-xs mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
             Precio Internacional (COP/gramo)
           </label>
           {editing ? (
@@ -148,134 +157,149 @@ export default function MetalCard({ metal, onSave }: MetalCardProps) {
               type="number"
               value={internationalPrice}
               onChange={(e) => setInternationalPrice(Number(e.target.value))}
-              className="w-full px-3 py-2 bg-charcoal-900 border border-gold-500/30 rounded-md text-cream-200 text-sm focus:outline-none focus:border-gold-500 transition-colors"
+              className="w-full px-3 py-2 rounded-md text-sm focus:outline-none transition-colors font-sans-custom"
+              style={{ background: 'rgba(8,8,8,1)', border: '1px solid rgba(212,175,55,0.3)', color: 'rgba(242,240,237,0.8)' }}
+              onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(212,175,55,0.9)'}
+              onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(212,175,55,0.3)'}
               min={0}
               step={0.01}
             />
           ) : (
-            <p className="text-cream-200 text-lg font-semibold">
+            <p className="text-lg font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>
               {formatPriceCOP(internationalPrice)}
-              <span className="text-charcoal-400 text-xs font-normal ml-1">/gramo</span>
+              <span className="text-xs font-normal ml-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>/gramo</span>
             </p>
           )}
         </div>
 
         {/* Porcentajes y campos calculados (solo para has_percentages) */}
         {metal.has_percentages && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2 border-t border-white/5">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
             {/* Compra */}
             <div className="space-y-3">
-              <h4 className="text-xs font-medium text-charcoal-300 uppercase tracking-wider">Compra</h4>
+              <h4 className="text-xs font-medium uppercase tracking-wider font-sans-custom" style={{ color: 'rgba(242,240,237,0.6)' }}>Compra</h4>
               <div>
-                <label className="block text-xs text-charcoal-400 mb-1">Porcentaje</label>
+                <label className="block text-xs mb-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Porcentaje</label>
                 {editing ? (
                   <div className="relative">
                     <input
                       type="number"
                       value={purchasePercentage ?? ''}
                       onChange={(e) => setPurchasePercentage(e.target.value ? Number(e.target.value) : null)}
-                      className="w-full px-3 py-2 pr-8 bg-charcoal-900 border border-gold-500/30 rounded-md text-cream-200 text-sm focus:outline-none focus:border-gold-500 transition-colors"
+                      className="w-full px-3 py-2 pr-8 rounded-md text-sm focus:outline-none transition-colors font-sans-custom"
+                      style={{ background: 'rgba(8,8,8,1)', border: '1px solid rgba(212,175,55,0.3)', color: 'rgba(242,240,237,0.8)' }}
+                      onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(212,175,55,0.9)'}
+                      onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(212,175,55,0.3)'}
                       min={0}
                       max={200}
                       step={0.01}
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal-400 text-sm">%</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>%</span>
                   </div>
                 ) : (
-                  <p className="text-cream-200 text-sm">{formatPercentage(purchasePercentage)}</p>
+                  <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{formatPercentage(purchasePercentage)}</p>
                 )}
               </div>
               <div>
-                <label className="block text-xs text-charcoal-400 mb-1">Precio Base</label>
-                <div className="px-3 py-2 bg-charcoal-700/50 rounded-md">
-                  <p className="text-cream-300 text-sm font-medium">{formatPriceCOP(purchaseBase)}</p>
+                <label className="block text-xs mb-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Precio Base</label>
+                <div className="px-3 py-2 rounded-md" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <p className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>{formatPriceCOP(purchaseBase)}</p>
                 </div>
               </div>
             </div>
 
             {/* Venta Cliente */}
             <div className="space-y-3">
-              <h4 className="text-xs font-medium text-charcoal-300 uppercase tracking-wider">Venta Cliente</h4>
+              <h4 className="text-xs font-medium uppercase tracking-wider font-sans-custom" style={{ color: 'rgba(242,240,237,0.6)' }}>Venta Cliente</h4>
               <div>
-                <label className="block text-xs text-charcoal-400 mb-1">Porcentaje</label>
+                <label className="block text-xs mb-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Porcentaje</label>
                 {editing ? (
                   <div className="relative">
                     <input
                       type="number"
                       value={clientSalePercentage ?? ''}
                       onChange={(e) => setClientSalePercentage(e.target.value ? Number(e.target.value) : null)}
-                      className="w-full px-3 py-2 pr-8 bg-charcoal-900 border border-gold-500/30 rounded-md text-cream-200 text-sm focus:outline-none focus:border-gold-500 transition-colors"
+                      className="w-full px-3 py-2 pr-8 rounded-md text-sm focus:outline-none transition-colors font-sans-custom"
+                      style={{ background: 'rgba(8,8,8,1)', border: '1px solid rgba(212,175,55,0.3)', color: 'rgba(242,240,237,0.8)' }}
+                      onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(212,175,55,0.9)'}
+                      onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(212,175,55,0.3)'}
                       min={0}
                       max={300}
                       step={0.01}
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal-400 text-sm">%</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>%</span>
                   </div>
                 ) : (
-                  <p className="text-cream-200 text-sm">{formatPercentage(clientSalePercentage)}</p>
+                  <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{formatPercentage(clientSalePercentage)}</p>
                 )}
               </div>
               <div>
-                <label className="block text-xs text-charcoal-400 mb-1">Precio Base</label>
-                <div className="px-3 py-2 bg-charcoal-700/50 rounded-md">
-                  <p className="text-cream-300 text-sm font-medium">{formatPriceCOP(clientSaleBase)}</p>
+                <label className="block text-xs mb-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Precio Base</label>
+                <div className="px-3 py-2 rounded-md" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <p className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>{formatPriceCOP(clientSaleBase)}</p>
                 </div>
               </div>
             </div>
 
             {/* Venta Joyero */}
             <div className="space-y-3">
-              <h4 className="text-xs font-medium text-charcoal-300 uppercase tracking-wider">Venta Joyero</h4>
+              <h4 className="text-xs font-medium uppercase tracking-wider font-sans-custom" style={{ color: 'rgba(242,240,237,0.6)' }}>Venta Joyero</h4>
               <div>
-                <label className="block text-xs text-charcoal-400 mb-1">Porcentaje</label>
+                <label className="block text-xs mb-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Porcentaje</label>
                 {editing ? (
                   <div className="relative">
                     <input
                       type="number"
                       value={jewelerSalePercentage ?? ''}
                       onChange={(e) => setJewelerSalePercentage(e.target.value ? Number(e.target.value) : null)}
-                      className="w-full px-3 py-2 pr-8 bg-charcoal-900 border border-gold-500/30 rounded-md text-cream-200 text-sm focus:outline-none focus:border-gold-500 transition-colors"
+                      className="w-full px-3 py-2 pr-8 rounded-md text-sm focus:outline-none transition-colors font-sans-custom"
+                      style={{ background: 'rgba(8,8,8,1)', border: '1px solid rgba(212,175,55,0.3)', color: 'rgba(242,240,237,0.8)' }}
+                      onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(212,175,55,0.9)'}
+                      onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(212,175,55,0.3)'}
                       min={0}
                       max={300}
                       step={0.01}
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal-400 text-sm">%</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>%</span>
                   </div>
                 ) : (
-                  <p className="text-cream-200 text-sm">{formatPercentage(jewelerSalePercentage)}</p>
+                  <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{formatPercentage(jewelerSalePercentage)}</p>
                 )}
               </div>
               <div>
-                <label className="block text-xs text-charcoal-400 mb-1">Precio Base</label>
-                <div className="px-3 py-2 bg-charcoal-700/50 rounded-md">
-                  <p className="text-cream-300 text-sm font-medium">{formatPriceCOP(jewelerSaleBase)}</p>
+                <label className="block text-xs mb-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Precio Base</label>
+                <div className="px-3 py-2 rounded-md" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <p className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>{formatPriceCOP(jewelerSaleBase)}</p>
                 </div>
               </div>
             </div>
 
             {/* Merma */}
             <div className="space-y-3">
-              <h4 className="text-xs font-medium text-charcoal-300 uppercase tracking-wider">Merma</h4>
+              <h4 className="text-xs font-medium uppercase tracking-wider font-sans-custom" style={{ color: 'rgba(242,240,237,0.6)' }}>Merma</h4>
               <div>
-                <label className="block text-xs text-charcoal-400 mb-1">Porcentaje</label>
+                <label className="block text-xs mb-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Porcentaje</label>
                 {editing ? (
                   <div className="relative">
                     <input
                       type="number"
                       value={mermaPercentage ?? ''}
                       onChange={(e) => setMermaPercentage(e.target.value ? Number(e.target.value) : null)}
-                      className="w-full px-3 py-2 pr-8 bg-charcoal-900 border border-gold-500/30 rounded-md text-cream-200 text-sm focus:outline-none focus:border-gold-500 transition-colors"
+                      className="w-full px-3 py-2 pr-8 rounded-md text-sm focus:outline-none transition-colors font-sans-custom"
+                      style={{ background: 'rgba(8,8,8,1)', border: '1px solid rgba(212,175,55,0.3)', color: 'rgba(242,240,237,0.8)' }}
+                      onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(212,175,55,0.9)'}
+                      onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(212,175,55,0.3)'}
                       min={0}
                       max={50}
                       step={0.01}
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal-400 text-sm">%</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>%</span>
                   </div>
                 ) : (
-                  <p className="text-cream-200 text-sm">{formatPercentage(mermaPercentage)}</p>
+                  <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{formatPercentage(mermaPercentage)}</p>
                 )}
               </div>
-              <div className="text-xs text-charcoal-500 italic">
+              <div className="text-xs italic font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
                 Pérdida inevitable durante fabricación
               </div>
             </div>
@@ -285,7 +309,7 @@ export default function MetalCard({ metal, onSave }: MetalCardProps) {
 
       {/* Footer - last updated info */}
       {updatedByName && (
-        <div className="px-5 py-3 border-t border-white/5 flex items-center gap-2 text-xs text-charcoal-400">
+        <div className="px-5 py-3 flex items-center gap-2 text-xs font-sans-custom" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.4)' }}>
           <Clock size={12} />
           <span>Última actualización: {updatedAtFormatted} por {updatedByName}</span>
         </div>

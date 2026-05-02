@@ -162,58 +162,58 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-serif text-cream-100">Usuarios</h1>
-          <p className="text-sm text-charcoal-400 mt-1">
+          <h1 className="text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>Usuarios</h1>
+          <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
             {loading ? 'Cargando...' : `${total} usuario${total !== 1 ? 's' : ''} registrados`}
           </p>
         </div>
       </div>
 
-      <div className="bg-charcoal-800 rounded-lg border border-white/5 overflow-hidden">
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/5">
-                <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Nombre</th>
-                <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Email</th>
-                <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Teléfono</th>
-                <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Rol</th>
-                <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Estado</th>
-                <th className="text-left px-5 py-3 text-xs text-charcoal-400 font-medium">Registro</th>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Nombre</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Email</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Teléfono</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Rol</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Estado</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Registro</th>
                 <th className="px-5 py-3"></th>
               </tr>
             </thead>
             <tbody>
               {loading && [...Array(5)].map((_, i) => (
-                <tr key={i} className="border-b border-white/5">
+                <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                   {[...Array(7)].map((_, j) => (
-                    <td key={j} className="px-5 py-4"><div className="h-4 bg-charcoal-700 rounded animate-pulse w-24" /></td>
+                    <td key={j} className="px-5 py-4"><div className="h-4 rounded animate-pulse w-24" style={{ background: 'rgba(255,255,255,0.08)' }} /></td>
                   ))}
                 </tr>
               ))}
               {!loading && users.map((u) => {
                 const badge = roleBadges[u.role.name] || { label: u.role.name, color: 'bg-charcoal-700 text-charcoal-300' };
                 return (
-                  <tr key={u.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
+                  <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }} className="hover:bg-white/[0.02] transition-colors">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-charcoal-700 flex items-center justify-center text-xs text-charcoal-300 font-medium">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(242,240,237,0.4)' }}>
                           {u.firstName[0]}{u.lastName[0]}
                         </div>
-                        <span className="text-cream-200">{u.firstName} {u.lastName}</span>
+                        <span className="font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{u.firstName} {u.lastName}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-3 text-charcoal-400 text-xs">{u.email}</td>
-                    <td className="px-5 py-3 text-charcoal-400 text-xs">{u.phone || '—'}</td>
+                    <td className="px-5 py-3 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{u.email}</td>
+                    <td className="px-5 py-3 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{u.phone || '—'}</td>
                     <td className="px-5 py-3">
-                      <span className={`text-[11px] px-2 py-0.5 rounded ${badge.color}`}>{badge.label}</span>
+                      <span className={`text-[11px] px-2 py-0.5 rounded font-sans-custom ${badge.color}`}>{badge.label}</span>
                     </td>
                     <td className="px-5 py-3">
-                      <span className={`text-[11px] px-2 py-0.5 rounded ${u.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                      <span className={`text-[11px] px-2 py-0.5 rounded font-sans-custom ${u.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
                         {u.isActive ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    <td className="px-5 py-3 text-charcoal-500 text-xs">
+                    <td className="px-5 py-3 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
                       {new Date(u.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="px-5 py-3 text-right">
@@ -229,17 +229,17 @@ export default function UsersPage() {
                 );
               })}
               {!loading && users.length === 0 && (
-                <tr><td colSpan={7} className="px-5 py-12 text-center text-charcoal-500">No hay usuarios</td></tr>
+                <tr><td colSpan={7} className="px-5 py-12 text-center text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>No hay usuarios</td></tr>
               )}
             </tbody>
           </table>
         </div>
         {totalPages > 1 && (
-          <div className="px-5 py-3 border-t border-white/5 flex items-center justify-between">
-            <p className="text-xs text-charcoal-500">Página {page} de {totalPages}</p>
+          <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <p className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Página {page} de {totalPages}</p>
             <div className="flex gap-1">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded hover:bg-white/5 text-charcoal-400 disabled:opacity-30"><ChevronLeft size={16} /></button>
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded hover:bg-white/5 text-charcoal-400 disabled:opacity-30"><ChevronRight size={16} /></button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded transition-all disabled:opacity-30" style={{ color: 'rgba(242,240,237,0.5)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}><ChevronLeft size={16} /></button>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded transition-all disabled:opacity-30" style={{ color: 'rgba(242,240,237,0.5)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}><ChevronRight size={16} /></button>
             </div>
           </div>
         )}
@@ -252,14 +252,14 @@ export default function UsersPage() {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeEdit} />
 
           {/* Modal */}
-          <div className="relative bg-charcoal-800 border border-white/10 rounded-lg shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="relative rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" style={{ background: 'rgba(20,18,14,0.98)', border: '1px solid rgba(255,255,255,0.1)' }}>
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <div>
-                <h2 className="text-lg font-serif text-cream-100">Editar Usuario</h2>
-                <p className="text-xs text-charcoal-400 mt-0.5">{editingUser.email}</p>
+                <h2 className="text-lg font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>Editar Usuario</h2>
+                <p className="text-xs mt-0.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>{editingUser.email}</p>
               </div>
-              <button onClick={closeEdit} className="p-1.5 rounded hover:bg-white/5 text-charcoal-400 hover:text-cream-200 transition-colors">
+              <button onClick={closeEdit} className="p-1.5 rounded transition-colors" style={{ color: 'rgba(242,240,237,0.4)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.8)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.4)'}>
                 <X size={18} />
               </button>
             </div>
@@ -267,13 +267,13 @@ export default function UsersPage() {
             {/* Body */}
             <div className="px-6 py-5 space-y-4">
               {saveError && (
-                <div className="p-3 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                <div className="p-3 rounded-2xl text-sm text-center font-sans-custom" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', color: 'rgba(248,113,113,0.9)' }}>
                   {saveError}
                 </div>
               )}
 
               {saveSuccess && (
-                <div className="p-3 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center gap-2">
+                <div className="p-3 rounded-2xl text-sm flex items-center justify-center gap-2 font-sans-custom" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', color: 'rgba(16,185,129,0.9)' }}>
                   <Check size={14} /> Usuario actualizado correctamente
                 </div>
               )}
@@ -281,55 +281,60 @@ export default function UsersPage() {
               {/* Name row */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-charcoal-400 mb-1.5">Nombre</label>
+                  <label className="block text-xs mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Nombre</label>
                   <input
                     type="text"
                     value={editForm.firstName}
                     onChange={(e) => setEditForm((f) => ({ ...f, firstName: e.target.value }))}
-                    className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+                    className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.85)' }}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-charcoal-400 mb-1.5">Apellido</label>
+                  <label className="block text-xs mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Apellido</label>
                   <input
                     type="text"
                     value={editForm.lastName}
                     onChange={(e) => setEditForm((f) => ({ ...f, lastName: e.target.value }))}
-                    className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+                    className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.85)' }}
                   />
                 </div>
               </div>
 
               {/* Email */}
               <div>
-                <label className="block text-xs text-charcoal-400 mb-1.5">Email</label>
+                <label className="block text-xs mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Email</label>
                 <input
                   type="email"
                   value={editForm.email}
                   onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.85)' }}
                 />
               </div>
 
               {/* Phone */}
               <div>
-                <label className="block text-xs text-charcoal-400 mb-1.5">Teléfono</label>
+                <label className="block text-xs mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Teléfono</label>
                 <input
                   type="tel"
                   value={editForm.phone}
                   onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
                   placeholder="+57 300 123 4567"
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-600 focus:outline-none focus:border-gold-500/30"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.85)' }}
                 />
               </div>
 
               {/* Role */}
               <div>
-                <label className="block text-xs text-charcoal-400 mb-1.5">Rol</label>
+                <label className="block text-xs mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Rol</label>
                 <select
                   value={editForm.roleId}
                   onChange={(e) => setEditForm((f) => ({ ...f, roleId: e.target.value }))}
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.85)' }}
                 >
                   {roles.map((r) => (
                     <option key={r.id} value={r.id}>
@@ -342,8 +347,8 @@ export default function UsersPage() {
               {/* Active toggle */}
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <p className="text-sm text-cream-200">Estado de la cuenta</p>
-                  <p className="text-xs text-charcoal-500 mt-0.5">
+                  <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>Estado de la cuenta</p>
+                  <p className="text-xs mt-0.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
                     {editForm.isActive ? 'El usuario puede iniciar sesión' : 'El usuario no puede iniciar sesión'}
                   </p>
                 </div>
@@ -360,17 +365,21 @@ export default function UsersPage() {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-white/5 flex items-center justify-end gap-3">
+            <div className="px-6 py-4 flex items-center justify-end gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
               <button
                 onClick={closeEdit}
-                className="px-4 py-2 text-sm text-charcoal-300 hover:text-cream-200 transition-colors"
+                className="px-4 py-2 text-sm transition-colors font-sans-custom"
+                style={{ color: 'rgba(242,240,237,0.5)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.8)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.5)'}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving || !editForm.firstName || !editForm.lastName || !editForm.email || !editForm.roleId}
-                className="inline-flex items-center gap-2 px-5 py-2 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-sans-custom"
+                style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400', borderRadius: '0.75rem' }}
               >
                 {saving ? <Loader2 size={14} className="animate-spin" /> : null}
                 {saving ? 'Guardando...' : 'Guardar cambios'}

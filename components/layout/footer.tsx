@@ -22,7 +22,7 @@ export function Footer() {
             {/* Brand */}
             <div className="max-w-xs">
               <Link href="/" className="inline-block mb-5">
-                <span className="font-serif text-xl tracking-tight">
+                <span className="font-display text-xl tracking-tight">
                   <span className="text-gold-400 font-semibold">H2</span>
                   <span className="text-cream-200 font-light"> Oro</span>
                 </span>

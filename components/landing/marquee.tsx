@@ -25,7 +25,7 @@ export function Marquee({ items, reverse = false, className = '' }: MarqueeProps
         {[0, 1, 2, 3].map((i) => (
           <span
             key={i}
-            className="text-hero-sub font-serif italic text-cream-200/[0.06] select-none shrink-0"
+            className="text-hero-sub font-display italic text-cream-200/[0.05] select-none shrink-0 tracking-tight"
           >
             {track} —{' '}
           </span>

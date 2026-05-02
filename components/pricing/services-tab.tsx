@@ -44,17 +44,23 @@ export default function ServicesTab({ userId }: ServicesTabProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <RefreshCw size={24} className="animate-spin text-gold-500" />
+        <RefreshCw size={24} className="animate-spin" style={{ color: 'rgba(212,175,55,0.9)' }} />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-        <AlertCircle size={20} className="text-red-400" />
-        <span className="text-red-300 text-sm">{error}</span>
-        <button onClick={loadServices} className="ml-auto text-xs text-red-400 hover:text-red-300 underline">
+      <div className="flex items-center gap-3 p-4 rounded-lg font-sans-custom" style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)' }}>
+        <AlertCircle size={20} style={{ color: 'rgba(248,113,113,0.9)' }} />
+        <span className="text-sm" style={{ color: 'rgba(248,113,113,0.8)' }}>{error}</span>
+        <button
+          onClick={loadServices}
+          className="ml-auto text-xs underline font-sans-custom"
+          style={{ color: 'rgba(248,113,113,0.9)' }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(248,113,113,0.7)'}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(248,113,113,0.9)'}
+        >
           Reintentar
         </button>
       </div>
@@ -64,7 +70,7 @@ export default function ServicesTab({ userId }: ServicesTabProps) {
   // Group services by category in the defined order
   const grouped = SERVICE_CATEGORY_ORDER.map((catCode) => {
     const meta = SERVICE_CATEGORY_META[catCode] || { name: catCode, icon: 'circle' };
-    const catServices = services.filter((s) => s.service_category === catCode);
+    const catServices = services.filter((s) => s.category === catCode);
     return {
       code: catCode,
       name: meta.name,
@@ -75,7 +81,7 @@ export default function ServicesTab({ userId }: ServicesTabProps) {
   return (
     <div className="space-y-4">
       <div className="mb-2">
-        <p className="text-sm text-charcoal-400">
+        <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
           Valores que se cobran al cliente por cada tipo de servicio
         </p>
       </div>
@@ -88,7 +94,7 @@ export default function ServicesTab({ userId }: ServicesTabProps) {
           valueLabel="Precio"
           services={group.services.map((s) => ({
             id: s.id,
-            service_code: s.service_code,
+            service_code: s.category + (s.subcategory ? '_' + s.subcategory : '') + (s.difficulty_level ? '_' + s.difficulty_level : ''),
             service_name: s.service_name,
             difficulty_level: s.difficulty_level,
             value: s.price_cop,

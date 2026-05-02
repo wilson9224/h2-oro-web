@@ -70,15 +70,16 @@ export default function CotizacionListPage() {
             <Calculator size={20} className="text-gold-400" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-cream-200">Cotizaciones</h1>
-            <p className="text-sm text-charcoal-400">
+            <h1 className="text-xl font-semibold font-display" style={{ color: 'rgba(242,240,237,0.95)' }}>Cotizaciones</h1>
+            <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
               {count > 0 ? `${count} cotización${count !== 1 ? 'es' : ''}` : 'Sin cotizaciones'}
             </p>
           </div>
         </div>
         <Link
           href="/admin/cotizacion/nueva"
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all duration-200 font-sans-custom"
+          style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400', borderRadius: '0.75rem' }}
         >
           <Plus size={16} />
           Nueva Cotización
@@ -92,43 +93,43 @@ export default function CotizacionListPage() {
         </div>
       ) : quotations.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Calculator size={40} className="text-charcoal-600 mb-4" />
-          <p className="text-charcoal-400">No hay cotizaciones registradas</p>
-          <p className="text-sm text-charcoal-600 mt-1">
+          <Calculator size={40} className="mb-4" style={{ color: 'rgba(242,240,237,0.15)' }} />
+          <p className="font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>No hay cotizaciones registradas</p>
+          <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>
             Crea una nueva cotización para comenzar
           </p>
           <Link
             href="/admin/cotizacion/nueva"
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm text-gold-500 hover:text-gold-400 transition-colors"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm transition-colors font-sans-custom" style={{ color: 'rgba(212,175,55,0.7)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(212,175,55,0.9)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(212,175,55,0.7)'}
           >
             <Plus size={14} /> Nueva cotización
           </Link>
         </div>
       ) : (
-        <div className="bg-charcoal-800 border border-white/5 rounded-lg overflow-hidden">
+        <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/5">
-                  <th className="text-left px-4 py-3 text-xs uppercase tracking-widest text-charcoal-400 font-normal">
+                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <th className="text-left px-4 py-3 text-xs uppercase tracking-widest font-normal font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
                     N° Cotización
                   </th>
-                  <th className="text-left px-4 py-3 text-xs uppercase tracking-widest text-charcoal-400 font-normal">
+                  <th className="text-left px-4 py-3 text-xs uppercase tracking-widest font-normal font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
                     Tipo
                   </th>
-                  <th className="text-left px-4 py-3 text-xs uppercase tracking-widest text-charcoal-400 font-normal">
+                  <th className="text-left px-4 py-3 text-xs uppercase tracking-widest font-normal font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
                     Cliente
                   </th>
-                  <th className="text-left px-4 py-3 text-xs uppercase tracking-widest text-charcoal-400 font-normal">
+                  <th className="text-left px-4 py-3 text-xs uppercase tracking-widest font-normal font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
                     Pieza
                   </th>
-                  <th className="text-right px-4 py-3 text-xs uppercase tracking-widest text-charcoal-400 font-normal">
+                  <th className="text-right px-4 py-3 text-xs uppercase tracking-widest font-normal font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
                     Total
                   </th>
-                  <th className="text-center px-4 py-3 text-xs uppercase tracking-widest text-charcoal-400 font-normal">
+                  <th className="text-center px-4 py-3 text-xs uppercase tracking-widest font-normal font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
                     Estado
                   </th>
-                  <th className="text-left px-4 py-3 text-xs uppercase tracking-widest text-charcoal-400 font-normal">
+                  <th className="text-left px-4 py-3 text-xs uppercase tracking-widest font-normal font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
                     Fecha
                   </th>
                   <th className="w-10" />
@@ -144,37 +145,37 @@ export default function CotizacionListPage() {
                   return (
                     <tr key={q.id} className="hover:bg-white/2 transition-colors group">
                       <td className="px-4 py-3">
-                        <span className="font-mono text-xs text-cream-200">{q.quote_number}</span>
+                        <span className="font-mono text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{q.quote_number}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-xs text-charcoal-300">
+                        <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>
                           {QUOTE_TYPE_LABEL[q.quote_type] ?? q.quote_type}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-sm text-cream-200 truncate max-w-[120px] block">
+                        <span className="text-sm font-sans-custom truncate max-w-[120px] block" style={{ color: 'rgba(242,240,237,0.8)' }}>
                           {clientName}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-sm text-charcoal-300 truncate max-w-[120px] block">
+                        <span className="text-sm font-sans-custom truncate max-w-[120px] block" style={{ color: 'rgba(242,240,237,0.5)' }}>
                           {q.piece_type || '—'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className="text-sm font-medium text-cream-200">
+                        <span className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>
                           {q.total_cop > 0 ? formatPriceCOP(q.total_cop) : '—'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span
-                          className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium border ${chip.classes}`}
+                          className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium border font-sans-custom ${chip.classes}`}
                         >
                           {chip.label}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-xs text-charcoal-400">
+                        <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
                           {new Date(q.created_at).toLocaleDateString('es-CO', {
                             day: '2-digit',
                             month: 'short',
@@ -188,12 +189,12 @@ export default function CotizacionListPage() {
                             <Link
                               href={`/admin/pedidos/${q.order_id}`}
                               title="Ver pedido"
-                              className="p-1.5 rounded hover:bg-white/5 text-charcoal-400 hover:text-emerald-400 transition-colors"
+                              className="p-1.5 rounded transition-colors" style={{ color: 'rgba(242,240,237,0.3)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(16,185,129,0.9)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'}
                             >
                               <ExternalLink size={13} />
                             </Link>
                           )}
-                          <ChevronRight size={14} className="text-charcoal-600" />
+                          <ChevronRight size={14} style={{ color: 'rgba(242,240,237,0.2)' }} />
                         </div>
                       </td>
                     </tr>
@@ -205,22 +206,22 @@ export default function CotizacionListPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
-              <p className="text-xs text-charcoal-500">
+            <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              <p className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
                 Mostrando {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, count)} de {count}
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
-                  className="px-3 py-1.5 rounded text-xs border border-white/5 text-charcoal-300 hover:bg-white/5 disabled:opacity-40 transition-colors"
+                  className="px-3 py-1.5 rounded text-xs border transition-colors font-sans-custom" style={{ borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(242,240,237,0.5)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                 >
                   Anterior
                 </button>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
-                  className="px-3 py-1.5 rounded text-xs border border-white/5 text-charcoal-300 hover:bg-white/5 disabled:opacity-40 transition-colors"
+                  className="px-3 py-1.5 rounded text-xs border transition-colors font-sans-custom" style={{ borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(242,240,237,0.5)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                 >
                   Siguiente
                 </button>

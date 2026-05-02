@@ -190,6 +190,21 @@ export async function updateWorkerRate(
   if (logError) console.error('Error logging change:', logError);
 }
 
+export async function updateCustomValuePercentage(
+  newPercentage: number,
+  userId: string
+): Promise<void> {
+  const { error: updateError } = await supabase
+    .from('pricing_worker_rates')
+    .update({
+      custom_value_percentage: newPercentage,
+      updated_by_user_id: userId,
+      updated_at: new Date().toISOString(),
+    });
+
+  if (updateError) throw updateError;
+}
+
 // ============================================
 // CHANGE LOG
 // ============================================
