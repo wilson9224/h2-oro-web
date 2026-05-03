@@ -121,7 +121,7 @@ export function SplashScreen() {
                 transition={{ duration: 0.6, delay: 1, ease: 'easeOut' }}
                 className="text-cream-200/30 font-sans text-xs tracking-[0.3em] uppercase"
               >
-                Joyería artesanal · Colombia
+                Taller de joyería · Bogotá, Colombia
               </motion.p>
             </motion.div>
           </div>

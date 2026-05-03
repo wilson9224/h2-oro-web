@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 function formatCOP(value: number) {
@@ -391,68 +390,100 @@ export function Hero() {
         >
           <div className="w-8 h-px bg-gold-500/50" />
           <span className="text-label uppercase text-cream-200/35 font-sans tracking-[0.2em]">
-            Joyería artesanal · Colombia
+            Taller de joyería · Bogotá, Colombia
           </span>
         </motion.div>
 
         {/* Main heading — cinematic scale */}
-        <h1 className="font-display mb-10 md:mb-16">
+        <h1 className="font-display mb-10 md:mb-16 pr-4 md:pr-0">
           <RevealLine delay={0.25}>
-            <span className="text-hero text-cream-100 font-light leading-[0.95]">
-              El arte de
+            <span className="text-hero text-cream-100 font-light leading-[1.1]">
+              Tu idea
             </span>
           </RevealLine>
           <RevealLine delay={0.38}>
             <span
-              className="text-hero leading-[0.95] font-semibold"
+              className="text-hero leading-[1.1] font-semibold"
               style={{
                 WebkitTextFillColor: 'transparent',
                 WebkitTextStroke: '1.5px rgba(212,175,55,0.5)',
               }}
             >
-              crear
+              hecha
             </span>
-            <span className="text-hero text-gold-400 font-semibold leading-[0.95] ml-4 md:ml-6">
-              joyas
+            <span className="text-hero text-gold-400 font-semibold leading-[1.1] ml-4 md:ml-6">
+              joya
             </span>
           </RevealLine>
           <RevealLine delay={0.5}>
-            <span className="text-hero text-cream-100 font-extralight leading-[0.95]">
-              únicas
+            <span className="text-hero text-cream-100 font-extralight leading-[1.1]">
+              en
+            </span>
+            <span className="text-hero text-gold-400 font-semibold leading-[1.1] ml-4 md:ml-6">
+              oro
             </span>
           </RevealLine>
         </h1>
 
-        {/* Bottom — description + CTAs */}
+        {/* Bottom — description */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.85, ease }}
-          className="flex flex-col md:flex-row md:items-end md:justify-between gap-8"
+          className="flex flex-col gap-8"
         >
           <div>
             <p className="max-w-[26rem] text-sm md:text-base leading-[1.8] text-cream-200/45 font-sans">
-              Cada pieza nace de la tradición orfebre colombiana
-              y la visión contemporánea. Oro de alta pureza,
-              diseño personalizado, artesanía excepcional.
+              Diseñamos, fabricamos y reparamos joyas en oro desde nuestro taller en Bogotá. Cuéntanos tu idea y te acompañamos hasta convertirla en una pieza hecha para ti.
             </p>
             <GoldBubblesMobile price={goldPrice} />
           </div>
 
-          <div className="flex items-center gap-4">
-            <Link href="/catalogo" className="btn-pill group">
-              Explorar colección
-              <ArrowRight
-                size={13}
-                className="group-hover:translate-x-1 transition-transform duration-500"
-              />
-            </Link>
-            <Link href="/proceso" className="btn-pill-outline">
-              Ver proceso
-            </Link>
-          </div>
+          {/* Scroll indicator — mobile only */}
+          <motion.button
+            onClick={() => window.scrollBy({ top: window.innerHeight * 0.85, behavior: 'smooth' })}
+            className="md:hidden flex flex-col items-center gap-2 group cursor-pointer select-none mx-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 1.4 }}
+            aria-label="Ver más"
+          >
+            <span className="text-[9px] uppercase tracking-[0.25em] font-sans text-cream-200/25 group-hover:text-cream-200/50 transition-colors duration-300">
+              Ver más
+            </span>
+            <motion.div
+              animate={{ y: [0, 6, 0] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+              className="flex flex-col items-center gap-0.5"
+            >
+              <ChevronDown size={14} className="text-gold-500/40 group-hover:text-gold-500/70 transition-colors duration-300" />
+              <ChevronDown size={14} className="text-gold-500/20 group-hover:text-gold-500/40 transition-colors duration-300 -mt-2" />
+            </motion.div>
+          </motion.button>
         </motion.div>
       </div>
+
+      {/* Scroll indicator — desktop centered, aligned with vertical line */}
+      <motion.button
+        onClick={() => window.scrollBy({ top: window.innerHeight * 0.85, behavior: 'smooth' })}
+        className="hidden md:flex absolute bottom-8 left-1/2 -translate-x-1/2 flex-col items-center gap-2 group cursor-pointer select-none z-20"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 1.6 }}
+        aria-label="Ver más"
+      >
+        <span className="text-[9px] uppercase tracking-[0.25em] font-sans text-cream-200/25 group-hover:text-cream-200/50 transition-colors duration-300">
+          Ver más
+        </span>
+        <motion.div
+          animate={{ y: [0, 6, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+          className="flex flex-col items-center gap-0.5"
+        >
+          <ChevronDown size={14} className="text-gold-500/40 group-hover:text-gold-500/70 transition-colors duration-300" />
+          <ChevronDown size={14} className="text-gold-500/20 group-hover:text-gold-500/40 transition-colors duration-300 -mt-2" />
+        </motion.div>
+      </motion.button>
 
       {/* Bottom horizontal line */}
       <motion.div
