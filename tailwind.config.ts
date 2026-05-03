@@ -50,7 +50,7 @@ const config: Config = {
         mono: ["var(--font-geist-mono)", "monospace"],
       },
       fontSize: {
-        "hero": ["clamp(3rem, 10vw, 9rem)", { lineHeight: "1.05", letterSpacing: "0em" }],
+        "hero": ["clamp(2.5rem, 8vw, 7rem)", { lineHeight: "1.05", letterSpacing: "0em" }],
         "hero-sub": ["clamp(2rem, 6vw, 5rem)", { lineHeight: "1.1", letterSpacing: "-0.03em" }],
         "display-xl": ["clamp(2.5rem, 5vw, 5rem)", { lineHeight: "1", letterSpacing: "-0.03em" }],
         "display-lg": ["clamp(2rem, 4vw, 3.75rem)", { lineHeight: "1.05", letterSpacing: "-0.02em" }],

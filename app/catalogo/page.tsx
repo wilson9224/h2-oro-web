@@ -66,7 +66,7 @@ export default async function CatalogoPage({ searchParams }: PageProps) {
             Catálogo
           </h1>
           <p className="mt-3 text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
-            Explora nuestra colección de joyería artesanal
+            Explora nuestras piezas e inspírate para crear con nosotros una joya a tu medida.
           </p>
         </div>
       </section>
