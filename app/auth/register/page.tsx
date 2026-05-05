@@ -62,61 +62,74 @@ export default function RegisterPage() {
     }
   };
 
+  const inputStyle = {
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    color: 'rgba(242,240,237,0.9)',
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-charcoal-900">
+    <div className="min-h-screen flex flex-col" style={{ background: '#0A0A0A' }}>
+      {/* Ambient glow */}
+      <div
+        className="fixed top-0 left-1/2 -translate-x-1/2 w-[50vw] h-[40vh] pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse, rgba(212,175,55,0.06) 0%, transparent 70%)', filter: 'blur(60px)' }}
+      />
+
       {/* Back link */}
-      <div className="section-padding pt-6">
+      <div className="section-padding pt-6 relative z-10">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-charcoal-400 hover:text-cream-200 transition-colors duration-300"
+          className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] transition-colors duration-300 font-sans-custom"
+          style={{ color: 'rgba(242,240,237,0.3)' }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.7)'}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'}
         >
-          <ArrowLeft size={16} />
-          Volver al inicio
+          <ArrowLeft size={14} />
+          Volver
         </Link>
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-5 py-12">
+      <div className="flex-1 flex items-center justify-center px-5 py-12 relative z-10">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.25, 0.4, 0.25, 1] }}
-          className="w-full max-w-md"
+          className="w-full max-w-sm"
         >
-          {/* Header */}
+          {/* Logo + heading */}
           <div className="text-center mb-10">
-            <Link href="/" className="inline-block mb-8">
-              <span className="font-serif text-3xl font-semibold tracking-tight">
+            <Link href="/" className="inline-block mb-7">
+              <span className="font-display text-3xl font-semibold tracking-tight">
                 <span className="text-gold-400">H2</span>
-                <span className="text-cream-200"> Oro</span>
+                <span style={{ color: 'rgba(242,240,237,0.85)' }}> Oro</span>
               </span>
             </Link>
-            <h1 className="font-serif text-2xl text-cream-100">
+            <h1 className="font-display text-xl font-semibold" style={{ color: 'rgba(242,240,237,0.92)' }}>
               Crea tu cuenta
             </h1>
-            <p className="mt-2 text-sm text-charcoal-300">
+            <p className="mt-2 text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
               Únete y descubre nuestra colección exclusiva
             </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <motion.div
-                initial={{ opacity: 0, y: -10 }}
+                initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-3 rounded-sm bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center"
+                className="p-3 rounded-2xl text-sm text-center font-sans-custom"
+                style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', color: 'rgba(248,113,113,0.9)' }}
               >
                 {error}
               </motion.div>
             )}
 
             {/* Name row */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label
-                  htmlFor="firstName"
-                  className="block text-xs tracking-[0.15em] uppercase text-charcoal-300 mb-2"
-                >
+                <label htmlFor="firstName" className="block text-[10px] tracking-[0.16em] uppercase mb-2 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
                   Nombre
                 </label>
                 <input
@@ -127,14 +140,12 @@ export default function RegisterPage() {
                   required
                   autoComplete="given-name"
                   placeholder="María"
-                  className="w-full px-4 py-3 bg-charcoal-800 border border-gold-500/10 rounded-sm text-cream-200 text-sm placeholder:text-charcoal-500 focus:outline-none focus:border-gold-500/40 transition-colors duration-300"
+                  className="w-full px-4 py-3 rounded-2xl text-sm focus:outline-none transition-all duration-300 font-sans-custom"
+                  style={inputStyle}
                 />
               </div>
               <div>
-                <label
-                  htmlFor="lastName"
-                  className="block text-xs tracking-[0.15em] uppercase text-charcoal-300 mb-2"
-                >
+                <label htmlFor="lastName" className="block text-[10px] tracking-[0.16em] uppercase mb-2 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
                   Apellido
                 </label>
                 <input
@@ -145,17 +156,15 @@ export default function RegisterPage() {
                   required
                   autoComplete="family-name"
                   placeholder="García"
-                  className="w-full px-4 py-3 bg-charcoal-800 border border-gold-500/10 rounded-sm text-cream-200 text-sm placeholder:text-charcoal-500 focus:outline-none focus:border-gold-500/40 transition-colors duration-300"
+                  className="w-full px-4 py-3 rounded-2xl text-sm focus:outline-none transition-all duration-300 font-sans-custom"
+                  style={inputStyle}
                 />
               </div>
             </div>
 
             {/* Email */}
             <div>
-              <label
-                htmlFor="email"
-                className="block text-xs tracking-[0.15em] uppercase text-charcoal-300 mb-2"
-              >
+              <label htmlFor="email" className="block text-[10px] tracking-[0.16em] uppercase mb-2 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
                 Email
               </label>
               <input
@@ -166,17 +175,15 @@ export default function RegisterPage() {
                 required
                 autoComplete="email"
                 placeholder="tu@email.com"
-                className="w-full px-4 py-3 bg-charcoal-800 border border-gold-500/10 rounded-sm text-cream-200 text-sm placeholder:text-charcoal-500 focus:outline-none focus:border-gold-500/40 transition-colors duration-300"
+                className="w-full px-4 py-3 rounded-2xl text-sm focus:outline-none transition-all duration-300 font-sans-custom"
+                style={inputStyle}
               />
             </div>
 
             {/* Phone */}
             <div>
-              <label
-                htmlFor="phone"
-                className="block text-xs tracking-[0.15em] uppercase text-charcoal-300 mb-2"
-              >
-                Teléfono
+              <label htmlFor="phone" className="block text-[10px] tracking-[0.16em] uppercase mb-2 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
+                Teléfono <span style={{ color: 'rgba(242,240,237,0.2)' }}>(opcional)</span>
               </label>
               <input
                 id="phone"
@@ -185,16 +192,14 @@ export default function RegisterPage() {
                 onChange={(e) => update('phone', e.target.value)}
                 autoComplete="tel"
                 placeholder="+57 300 123 4567"
-                className="w-full px-4 py-3 bg-charcoal-800 border border-gold-500/10 rounded-sm text-cream-200 text-sm placeholder:text-charcoal-500 focus:outline-none focus:border-gold-500/40 transition-colors duration-300"
+                className="w-full px-4 py-3 rounded-2xl text-sm focus:outline-none transition-all duration-300 font-sans-custom"
+                style={inputStyle}
               />
             </div>
 
             {/* Password */}
             <div>
-              <label
-                htmlFor="password"
-                className="block text-xs tracking-[0.15em] uppercase text-charcoal-300 mb-2"
-              >
+              <label htmlFor="password" className="block text-[10px] tracking-[0.16em] uppercase mb-2 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
                 Contraseña
               </label>
               <div className="relative">
@@ -207,25 +212,24 @@ export default function RegisterPage() {
                   minLength={8}
                   autoComplete="new-password"
                   placeholder="Mínimo 8 caracteres"
-                  className="w-full px-4 py-3 pr-12 bg-charcoal-800 border border-gold-500/10 rounded-sm text-cream-200 text-sm placeholder:text-charcoal-500 focus:outline-none focus:border-gold-500/40 transition-colors duration-300"
+                  className="w-full px-4 py-3 pr-12 rounded-2xl text-sm focus:outline-none transition-all duration-300 font-sans-custom"
+                  style={inputStyle}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal-400 hover:text-charcoal-300 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors"
+                  style={{ color: 'rgba(242,240,237,0.25)' }}
                   aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
             {/* Confirm Password */}
             <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-xs tracking-[0.15em] uppercase text-charcoal-300 mb-2"
-              >
+              <label htmlFor="confirmPassword" className="block text-[10px] tracking-[0.16em] uppercase mb-2 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
                 Confirmar contraseña
               </label>
               <input
@@ -236,7 +240,8 @@ export default function RegisterPage() {
                 required
                 autoComplete="new-password"
                 placeholder="Repite tu contraseña"
-                className="w-full px-4 py-3 bg-charcoal-800 border border-gold-500/10 rounded-sm text-cream-200 text-sm placeholder:text-charcoal-500 focus:outline-none focus:border-gold-500/40 transition-colors duration-300"
+                className="w-full px-4 py-3 rounded-2xl text-sm focus:outline-none transition-all duration-300 font-sans-custom"
+                style={inputStyle}
               />
             </div>
 
@@ -244,42 +249,45 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-xs font-semibold uppercase tracking-[0.12em] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed mt-2 font-sans-custom"
+              style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400' }}
             >
               {loading ? (
-                <Loader2 size={18} className="animate-spin" />
+                <Loader2 size={16} className="animate-spin" />
               ) : (
                 'Crear cuenta'
               )}
             </button>
 
             {/* Terms */}
-            <p className="text-[11px] text-charcoal-500 text-center leading-relaxed">
+            <p className="text-[10px] text-center leading-relaxed font-sans-custom" style={{ color: 'rgba(242,240,237,0.2)' }}>
               Al crear una cuenta, aceptas nuestros{' '}
-              <Link href="#" className="text-gold-500/50 hover:text-gold-400 transition-colors">
+              <Link href="/terminos" className="transition-colors" style={{ color: 'rgba(212,175,55,0.5)' }}>
                 Términos y Condiciones
               </Link>{' '}
               y{' '}
-              <Link href="#" className="text-gold-500/50 hover:text-gold-400 transition-colors">
+              <Link href="/privacidad" className="transition-colors" style={{ color: 'rgba(212,175,55,0.5)' }}>
                 Política de Privacidad
-              </Link>
-              .
+              </Link>.
             </p>
           </form>
 
           {/* Divider */}
           <div className="mt-8 flex items-center gap-4">
-            <div className="flex-1 h-px bg-white/5" />
-            <span className="text-xs text-charcoal-500">o</span>
-            <div className="flex-1 h-px bg-white/5" />
+            <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+            <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.2)' }}>o</span>
+            <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
           </div>
 
           {/* Login link */}
-          <p className="mt-8 text-center text-sm text-charcoal-400">
+          <p className="mt-6 text-center text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
             ¿Ya tienes cuenta?{' '}
             <Link
               href="/auth/login"
-              className="text-gold-400 hover:text-gold-300 transition-colors duration-300"
+              className="transition-colors duration-300 font-sans-custom"
+              style={{ color: 'rgba(212,175,55,0.8)' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(212,175,55,1)'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(212,175,55,0.8)'}
             >
               Ingresar
             </Link>

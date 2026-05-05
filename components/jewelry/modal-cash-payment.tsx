@@ -114,184 +114,208 @@ export default function ModalCashPayment({
     return labels[method] || method;
   };
 
+  const inputStyle: React.CSSProperties = {
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    color: 'rgba(242,240,237,0.85)',
+    borderRadius: 12,
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: 13,
+    outline: 'none',
+    fontFamily: 'inherit',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    color: 'rgba(242,240,237,0.3)',
+    marginBottom: 6,
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-charcoal-900/95 flex items-center justify-center z-50 p-4">
-      <div className="bg-charcoal-800 rounded-lg max-w-lg w-full">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/5">
-          <div>
-            <h2 className="text-lg font-medium text-cream-100">Abono en Dinero</h2>
-            <p className="text-sm text-charcoal-400">Registrar pago del cliente</p>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      style={{ background: 'rgba(10,10,10,0.88)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-lg my-auto rounded-2xl font-sans-custom flex flex-col"
+        style={{
+          background: 'rgba(18,16,14,0.98)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+          maxHeight: 'calc(100vh - 2rem)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header — fijo */}
+        <div
+          className="flex items-center justify-between px-5 py-4 shrink-0"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center"
+              style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.2)' }}
+            >
+              <DollarSign size={15} style={{ color: 'rgba(212,175,55,0.8)' }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'rgba(242,240,237,0.88)' }}>Abono en Dinero</p>
+              <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: 'rgba(242,240,237,0.3)' }}>Registrar pago del cliente</p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-charcoal-400 hover:text-cream-200 transition-colors"
+            className="p-2 rounded-xl transition-all"
+            style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.5)' }}
           >
-            <X size={20} />
+            <X size={16} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle size={16} className="text-red-500 mt-0.5" />
-                <p className="text-sm text-red-400">{error}</p>
-              </div>
-            </div>
-          )}
+        {/* Body — scrollable */}
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1">
+          <div className="px-5 py-4 space-y-5">
 
-          {/* Información del Pedido */}
-          {orderData.totalAmountCop && (
-            <div className="bg-charcoal-900/50 border border-white/5 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-cream-100 mb-3 flex items-center gap-2">
-                <DollarSign size={16} className="text-gold-500" />
-                Estado de Pagos
-              </h3>
-              
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-charcoal-400">Total pedido:</span>
-                  <span className="text-cream-200">
-                    ${new Intl.NumberFormat('es-CO').format(orderData.totalAmountCop)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-charcoal-400">Pagado anterior:</span>
-                  <span className="text-emerald-400">
-                    ${new Intl.NumberFormat('es-CO').format(orderData.totalPaidAmount)}
-                  </span>
-                </div>
-                <div className="flex justify-between pt-2 border-t border-white/5">
-                  <span className="text-charcoal-400">Saldo pendiente:</span>
-                  <span className="text-gold-400 font-medium">
-                    ${new Intl.NumberFormat('es-CO').format(remainingBalance)}
-                  </span>
-                </div>
+            {/* Error */}
+            {error && (
+              <div
+                className="flex items-start gap-3 p-3 rounded-xl"
+                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+              >
+                <AlertCircle size={14} className="shrink-0 mt-0.5" style={{ color: 'rgba(252,165,165,0.8)' }} />
+                <p className="text-xs" style={{ color: 'rgba(252,165,165,0.85)' }}>{error}</p>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Monto y Método */}
-          <div>
-            <h3 className="text-sm font-medium text-cream-100 mb-4">Datos del Pago</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  Monto ({orderData.currency}) *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-500">
-                    {orderData.currency === 'COP' ? '$' : orderData.currency}
-                  </span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={formData.amountCop}
-                    onChange={(e) => updateField('amountCop', parseFloat(e.target.value))}
-                    placeholder="0.00"
-                    className="w-full pl-8 pr-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-600 focus:outline-none focus:border-gold-500/30"
-                  />
-                </div>
-                {orderData.totalAmountCop && remainingBalance > 0 && (
-                  <p className="text-[11px] text-charcoal-500 mt-1">
-                    Saldo pendiente: ${new Intl.NumberFormat('es-CO').format(remainingBalance)}
-                  </p>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  Método de pago *
-                </label>
-                <div className="grid grid-cols-2 gap-2">
+            {/* Resumen de saldo */}
+            {orderData.totalAmountCop && (
+              <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <p className="text-[10px] uppercase tracking-[0.12em] font-semibold mb-3 flex items-center gap-2" style={{ color: 'rgba(212,175,55,0.6)' }}>
+                  <DollarSign size={11} /> Estado de Pagos
+                </p>
+                <div className="space-y-2">
                   {[
-                    { value: 'cash', label: 'Efectivo' },
-                    { value: 'transfer', label: 'Transferencia' },
-                    { value: 'card', label: 'Tarjeta' },
-                    { value: 'other', label: 'Otro' },
-                  ].map((method) => (
+                    { label: 'Total pedido', value: `$${new Intl.NumberFormat('es-CO').format(orderData.totalAmountCop)}`, color: 'rgba(242,240,237,0.75)' },
+                    { label: 'Pagado anterior', value: `$${new Intl.NumberFormat('es-CO').format(orderData.totalPaidAmount)}`, color: 'rgba(110,231,183,0.8)' },
+                    { label: 'Saldo pendiente', value: `$${new Intl.NumberFormat('es-CO').format(remainingBalance)}`, color: 'rgba(212,175,55,0.9)', bold: true },
+                  ].map((row) => (
+                    <div key={row.label} className="flex justify-between items-center">
+                      <span className="text-xs" style={{ color: 'rgba(242,240,237,0.35)' }}>{row.label}</span>
+                      <span className="text-xs font-semibold" style={{ color: row.color }}>{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Monto */}
+            <div>
+              <label style={labelStyle}>Monto ({orderData.currency}) *</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: 'rgba(242,240,237,0.3)' }}>
+                  {orderData.currency === 'COP' ? '$' : orderData.currency}
+                </span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={formData.amountCop || ''}
+                  onChange={(e) => updateField('amountCop', parseFloat(e.target.value))}
+                  placeholder="0"
+                  style={{ ...inputStyle, paddingLeft: 28 }}
+                />
+              </div>
+              {orderData.totalAmountCop && remainingBalance > 0 && (
+                <p className="text-[10px] mt-1" style={{ color: 'rgba(242,240,237,0.25)' }}>
+                  Saldo pendiente: ${new Intl.NumberFormat('es-CO').format(remainingBalance)}
+                </p>
+              )}
+            </div>
+
+            {/* Método de pago */}
+            <div>
+              <label style={labelStyle}>Método de pago *</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: 'cash', label: 'Efectivo' },
+                  { value: 'transfer', label: 'Transferencia' },
+                  { value: 'card', label: 'Tarjeta' },
+                  { value: 'other', label: 'Otro' },
+                ].map((method) => {
+                  const isActive = formData.method === method.value;
+                  return (
                     <button
                       key={method.value}
                       type="button"
                       onClick={() => updateField('method', method.value)}
-                      className={`px-3 py-2 rounded-md text-sm border transition-all flex items-center justify-center gap-2 ${
-                        formData.method === method.value
-                          ? 'bg-gold-500/10 border-gold-500/30 text-gold-400'
-                          : 'bg-charcoal-900 border-white/5 text-charcoal-300 hover:border-white/10'
-                      }`}
+                      className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all"
+                      style={{
+                        background: isActive ? 'rgba(212,175,55,0.12)' : 'rgba(255,255,255,0.04)',
+                        border: isActive ? '1px solid rgba(212,175,55,0.3)' : '1px solid rgba(255,255,255,0.07)',
+                        color: isActive ? 'rgba(212,175,55,0.95)' : 'rgba(242,240,237,0.4)',
+                      }}
                     >
                       {getMethodIcon(method.value)}
                       {method.label}
                     </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  Estado *
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => updateField('status', 'completed')}
-                    className={`px-3 py-2 rounded-md text-sm border transition-all ${
-                      formData.status === 'completed'
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                        : 'bg-charcoal-900 border-white/5 text-charcoal-300 hover:border-white/10'
-                    }`}
-                  >
-                    Completado
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateField('status', 'pending')}
-                    className={`px-3 py-2 rounded-md text-sm border transition-all ${
-                      formData.status === 'pending'
-                        ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
-                        : 'bg-charcoal-900 border-white/5 text-charcoal-300 hover:border-white/10'
-                    }`}
-                  >
-                    Pendiente
-                  </button>
-                </div>
+                  );
+                })}
               </div>
             </div>
-          </div>
 
-          {/* Fecha y Registrado por */}
-          <div>
-            <h3 className="text-sm font-medium text-cream-100 mb-4 flex items-center gap-2">
-              <Calendar size={16} className="text-gold-500" />
-              Fecha y Registrante
-            </h3>
-            
+            {/* Estado */}
+            <div>
+              <label style={labelStyle}>Estado *</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: 'completed', label: 'Completado', activeColor: 'rgba(110,231,183,0.9)', activeBg: 'rgba(16,185,129,0.1)', activeBorder: 'rgba(16,185,129,0.25)' },
+                  { value: 'pending', label: 'Pendiente', activeColor: 'rgba(250,204,21,0.9)', activeBg: 'rgba(234,179,8,0.1)', activeBorder: 'rgba(234,179,8,0.25)' },
+                ].map((s) => {
+                  const isActive = formData.status === s.value;
+                  return (
+                    <button
+                      key={s.value}
+                      type="button"
+                      onClick={() => updateField('status', s.value)}
+                      className="py-2.5 px-3 rounded-xl text-xs font-semibold transition-all"
+                      style={{
+                        background: isActive ? s.activeBg : 'rgba(255,255,255,0.04)',
+                        border: isActive ? `1px solid ${s.activeBorder}` : '1px solid rgba(255,255,255,0.07)',
+                        color: isActive ? s.activeColor : 'rgba(242,240,237,0.4)',
+                      }}
+                    >
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Fecha y registrado por */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  Fecha de pago *
-                </label>
+                <label style={labelStyle}>Fecha de pago *</label>
                 <input
                   type="date"
                   value={formData.paidAt}
                   onChange={(e) => updateField('paidAt', e.target.value)}
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+                  style={inputStyle}
                 />
               </div>
-              
               <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  Registrado por *
-                </label>
+                <label style={labelStyle}>Registrado por *</label>
                 <select
                   value={formData.registeredByUserId}
                   onChange={(e) => updateField('registeredByUserId', e.target.value)}
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+                  style={{ ...inputStyle, appearance: 'none' }}
                 >
                   <option value="">Seleccionar...</option>
                   {users.map((user) => (
@@ -302,65 +326,57 @@ export default function ModalCashPayment({
                 </select>
               </div>
             </div>
-          </div>
 
-          {/* Observaciones */}
-          <div>
-            <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-              Observaciones
-            </label>
-            <textarea
-              value={formData.observation}
-              onChange={(e) => updateField('observation', e.target.value)}
-              rows={3}
-              placeholder="Notas sobre el pago (referencia, número de operación, etc.)..."
-              className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-600 focus:outline-none focus:border-gold-500/30 resize-none"
-            />
-          </div>
+            {/* Observaciones */}
+            <div>
+              <label style={labelStyle}>Observaciones</label>
+              <textarea
+                value={formData.observation}
+                onChange={(e) => updateField('observation', e.target.value)}
+                rows={2}
+                placeholder="Referencia, número de operación..."
+                style={{ ...inputStyle, resize: 'none' }}
+              />
+            </div>
 
-          {/* Resumen */}
-          <div className="bg-charcoal-900/50 border border-white/5 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-cream-100 mb-3">Resumen del Pago</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-charcoal-400">Monto:</span>
-                <span className="text-gold-400 font-medium">
-                  ${new Intl.NumberFormat('es-CO').format(formData.amountCop)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-charcoal-400">Método:</span>
-                <span className="text-cream-200 flex items-center gap-1">
-                  {getMethodIcon(formData.method)}
-                  {getMethodLabel(formData.method)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-charcoal-400">Estado:</span>
-                <span className={`font-medium ${
-                  formData.status === 'completed' ? 'text-emerald-400' : 'text-yellow-400'
-                }`}>
-                  {formData.status === 'completed' ? 'Completado' : 'Pendiente'}
-                </span>
+            {/* Resumen rápido */}
+            <div className="rounded-xl p-4" style={{ background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.12)' }}>
+              <p className="text-[10px] uppercase tracking-[0.12em] font-semibold mb-3" style={{ color: 'rgba(212,175,55,0.55)' }}>Resumen del Pago</p>
+              <div className="space-y-2">
+                {[
+                  { label: 'Monto', value: `$${new Intl.NumberFormat('es-CO').format(formData.amountCop || 0)}`, color: 'rgba(212,175,55,0.9)' },
+                  { label: 'Método', value: getMethodLabel(formData.method), color: 'rgba(242,240,237,0.75)' },
+                  { label: 'Estado', value: formData.status === 'completed' ? 'Completado' : 'Pendiente', color: formData.status === 'completed' ? 'rgba(110,231,183,0.85)' : 'rgba(250,204,21,0.8)' },
+                ].map((row) => (
+                  <div key={row.label} className="flex justify-between">
+                    <span className="text-xs" style={{ color: 'rgba(242,240,237,0.35)' }}>{row.label}</span>
+                    <span className="text-xs font-semibold" style={{ color: row.color }}>{row.value}</span>
+                  </div>
+                ))}
               </div>
             </div>
+
           </div>
 
-          {/* Acciones */}
-          <div className="flex items-center gap-3 pt-4 border-t border-white/5">
+          {/* Footer con botones — siempre visible */}
+          <div
+            className="px-5 py-4 flex items-center gap-3 shrink-0"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
+          >
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors disabled:opacity-50"
+              className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-6 rounded-xl text-xs font-semibold uppercase tracking-[0.08em] transition-all disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400' }}
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-charcoal-900 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   Procesando...
                 </>
               ) : (
                 <>
-                  <DollarSign size={16} />
+                  <DollarSign size={13} />
                   Registrar Pago
                 </>
               )}
@@ -368,7 +384,8 @@ export default function ModalCashPayment({
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2.5 text-sm text-charcoal-400 hover:text-cream-200 transition-colors"
+              className="px-5 py-2.5 rounded-xl text-xs font-semibold transition-all"
+              style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.5)', border: '1px solid rgba(255,255,255,0.07)' }}
             >
               Cancelar
             </button>

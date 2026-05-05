@@ -131,226 +131,209 @@ export default function ModalMaterialPayment({
     }
   };
 
+  const inputStyle: React.CSSProperties = {
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    color: 'rgba(242,240,237,0.85)',
+    borderRadius: 12,
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: 13,
+    outline: 'none',
+    fontFamily: 'inherit',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    color: 'rgba(242,240,237,0.3)',
+    marginBottom: 6,
+  };
+
+  const readonlyStyle: React.CSSProperties = {
+    ...inputStyle,
+    background: 'rgba(255,255,255,0.02)',
+    color: 'rgba(242,240,237,0.4)',
+    border: '1px solid rgba(255,255,255,0.05)',
+  };
+
   if (!isOpen) return null;
 
   const metalLabel = isGold ? 'Oro' : 'Plata';
-  const purityLabel = isGold ? 'k' : '';
   const requiredPure = quotation?.required_pure_metal_gr ?? 0;
   const pendingBefore = Math.max(0, requiredPure - previousPureMetal_gr);
 
   return (
-    <div className="fixed inset-0 bg-charcoal-900/95 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-charcoal-800 rounded-lg max-w-lg w-full my-4">
-
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      style={{ background: 'rgba(10,10,10,0.88)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-lg my-auto rounded-2xl font-sans-custom flex flex-col"
+        style={{
+          background: 'rgba(18,16,14,0.98)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+          maxHeight: 'calc(100vh - 2rem)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-white/5">
-          <div>
-            <h2 className="text-base font-medium text-cream-100">Abono en Material</h2>
-            <p className="text-xs text-charcoal-400 mt-0.5">
-              Registrar material entregado — {metalLabel}
-              {quotation ? ` · ${quotation.quote_type === 'jeweler' ? 'Precio joyero' : 'Precio cliente'}` : ''}
-            </p>
+        <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.2)' }}>
+              <Scale size={15} style={{ color: 'rgba(212,175,55,0.8)' }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'rgba(242,240,237,0.88)' }}>Abono en Material</p>
+              <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: 'rgba(242,240,237,0.3)' }}>
+                {metalLabel}{quotation ? ` · ${quotation.quote_type === 'jeweler' ? 'Precio joyero' : 'Precio cliente'}` : ''}
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 text-charcoal-400 hover:text-cream-200">
-            <X size={18} />
+          <button onClick={onClose} className="p-2 rounded-xl transition-all" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.5)' }}>
+            <X size={16} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-5">
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-start gap-2">
-              <AlertCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
-              <p className="text-sm text-red-400">{error}</p>
-            </div>
-          )}
+        {/* Body — scrollable */}
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1">
+          <div className="px-5 py-4 space-y-5">
 
-          {/* Contexto cotización */}
-          {quotation && (
-            <div className="bg-charcoal-900/50 border border-white/5 rounded-lg p-4">
-              <p className="text-xs text-charcoal-400 uppercase tracking-widest mb-3">Contexto del pedido</p>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-[11px] text-charcoal-500 mb-0.5">Peso total requerido</p>
-                  <p className="text-cream-200">{Number(quotation.total_weight_gr).toFixed(3)} gr</p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-charcoal-500 mb-0.5">Metal puro requerido</p>
-                  <p className="text-cream-200">{requiredPure.toFixed(4)} gr puro</p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-charcoal-500 mb-0.5">Ya abonado (metal puro)</p>
-                  <p className="text-cream-200">{previousPureMetal_gr.toFixed(4)} gr</p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-charcoal-500 mb-0.5">Pendiente antes de este abono</p>
-                  <p className={`font-medium ${pendingBefore <= 0 ? 'text-emerald-400' : 'text-gold-400'}`}>
-                    {pendingBefore.toFixed(4)} gr
-                  </p>
-                </div>
+            {/* Error */}
+            {error && (
+              <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <AlertCircle size={14} className="shrink-0 mt-0.5" style={{ color: 'rgba(252,165,165,0.8)' }} />
+                <p className="text-xs" style={{ color: 'rgba(252,165,165,0.85)' }}>{error}</p>
               </div>
-              {pendingBefore <= 0 && (
-                <div className="mt-3 flex items-center gap-2 text-emerald-400 text-xs">
-                  <AlertTriangle size={12} />
-                  El metal ya está saldado. ¿Seguro que deseas registrar más?
+            )}
+
+            {/* Contexto cotización */}
+            {quotation && (
+              <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <p className="text-[10px] uppercase tracking-[0.12em] font-semibold mb-3" style={{ color: 'rgba(212,175,55,0.6)' }}>Contexto del pedido</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: 'Peso total requerido', value: `${Number(quotation.total_weight_gr).toFixed(3)} gr` },
+                    { label: 'Metal puro requerido', value: `${requiredPure.toFixed(4)} gr` },
+                    { label: 'Ya abonado', value: `${previousPureMetal_gr.toFixed(4)} gr` },
+                    { label: 'Pendiente', value: `${pendingBefore.toFixed(4)} gr`, color: pendingBefore <= 0 ? 'rgba(110,231,183,0.85)' : 'rgba(212,175,55,0.9)' },
+                  ].map((f) => (
+                    <div key={f.label}>
+                      <p className="text-[10px] mb-0.5" style={{ color: 'rgba(242,240,237,0.28)' }}>{f.label}</p>
+                      <p className="text-xs font-semibold" style={{ color: (f as any).color ?? 'rgba(242,240,237,0.75)' }}>{f.value}</p>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Datos del metal entregado */}
-          <div>
-            <p className="text-xs text-charcoal-400 uppercase tracking-widest mb-3">Material que entrega ahora</p>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-charcoal-400 mb-1.5">
-                  Peso metal cliente (gr) *
-                </label>
-                <input
-                  type="number"
-                  step="0.001"
-                  min="0.001"
-                  value={weightGr}
-                  onChange={e => setWeightGr(e.target.value)}
-                  placeholder="0.000"
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-600 focus:outline-none focus:border-gold-500/30"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-charcoal-400 mb-1.5">
-                  Ley metal cliente {isGold ? '(k)' : '(ley)'} *
-                </label>
-                <input
-                  type="number"
-                  step={isGold ? '0.5' : '0.001'}
-                  min={isGold ? '1' : '0.1'}
-                  max={isGold ? '24' : '1'}
-                  value={purity}
-                  onChange={e => setPurity(e.target.value)}
-                  placeholder={isGold ? '18' : '0.925'}
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-600 focus:outline-none focus:border-gold-500/30"
-                />
-              </div>
-
-              {/* % de metal calculado */}
-              <div>
-                <label className="block text-xs text-charcoal-400 mb-1.5">% de metal cliente</label>
-                <div className="px-3 py-2.5 bg-charcoal-900/50 border border-white/5 rounded-md text-sm text-charcoal-300">
-                  {calc ? `${(calc.purityPct * 100).toFixed(2)}%` : '—'}
-                </div>
-              </div>
-
-              {/* Metal puro calculado */}
-              <div>
-                <label className="block text-xs text-charcoal-400 mb-1.5">Metal pendiente (oro puro 24k)</label>
-                <div className="px-3 py-2.5 bg-charcoal-900/50 border border-white/5 rounded-md text-sm text-charcoal-300">
-                  {calc ? `${calc.pureMetal_gr.toFixed(4)} gr` : '—'}
-                </div>
-              </div>
-
-              {isGold && (
-                <div className="col-span-2">
-                  <label className="block text-xs text-charcoal-400 mb-1.5">Color del oro</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['yellow', 'rose', 'white'] as const).map(c => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setGoldColor(c)}
-                        className={`py-2 rounded-md text-xs border transition-all ${
-                          goldColor === c
-                            ? 'bg-gold-500/10 border-gold-500/30 text-gold-400'
-                            : 'bg-charcoal-900 border-white/5 text-charcoal-300 hover:border-white/10'
-                        }`}
-                      >
-                        {c === 'yellow' ? 'Amarillo' : c === 'rose' ? 'Rosado' : 'Blanco'}
-                      </button>
-                    ))}
+                {pendingBefore <= 0 && (
+                  <div className="mt-3 flex items-center gap-2 text-xs" style={{ color: 'rgba(110,231,183,0.7)' }}>
+                    <AlertTriangle size={11} /> El metal ya está saldado. ¿Seguro que deseas registrar más?
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* Material que entrega */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.12em] font-semibold mb-3" style={{ color: 'rgba(242,240,237,0.3)' }}>Material que entrega ahora</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label style={labelStyle}>Peso (gr) *</label>
+                  <input type="number" step="0.001" min="0.001" value={weightGr} onChange={e => setWeightGr(e.target.value)} placeholder="0.000" style={inputStyle} />
                 </div>
-              )}
+                <div>
+                  <label style={labelStyle}>Ley {isGold ? '(k)' : '(ley)'} *</label>
+                  <input type="number" step={isGold ? '0.5' : '0.001'} min={isGold ? '1' : '0.1'} max={isGold ? '24' : '1'} value={purity} onChange={e => setPurity(e.target.value)} placeholder={isGold ? '18' : '0.925'} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>% metal cliente</label>
+                  <div style={readonlyStyle}>{calc ? `${(calc.purityPct * 100).toFixed(2)}%` : '—'}</div>
+                </div>
+                <div>
+                  <label style={labelStyle}>Metal puro equiv.</label>
+                  <div style={readonlyStyle}>{calc ? `${calc.pureMetal_gr.toFixed(4)} gr` : '—'}</div>
+                </div>
+                {isGold && (
+                  <div className="col-span-2">
+                    <label style={labelStyle}>Color del oro</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['yellow', 'rose', 'white'] as const).map(c => {
+                        const isActive = goldColor === c;
+                        return (
+                          <button key={c} type="button" onClick={() => setGoldColor(c)}
+                            className="py-2.5 rounded-xl text-xs font-semibold transition-all"
+                            style={{
+                              background: isActive ? 'rgba(212,175,55,0.12)' : 'rgba(255,255,255,0.04)',
+                              border: isActive ? '1px solid rgba(212,175,55,0.3)' : '1px solid rgba(255,255,255,0.07)',
+                              color: isActive ? 'rgba(212,175,55,0.95)' : 'rgba(242,240,237,0.4)',
+                            }}
+                          >
+                            {c === 'yellow' ? 'Amarillo' : c === 'rose' ? 'Rosado' : 'Blanco'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Cálculo del valor */}
-          {calc && (
-            <div className="bg-charcoal-900/50 border border-gold-500/10 rounded-lg p-4 space-y-2">
-              <p className="text-xs text-charcoal-400 uppercase tracking-widest mb-2">Cálculo del abono</p>
-              <div className="flex justify-between text-sm">
-                <span className="text-charcoal-400">Metal puro que entrega</span>
-                <span className="text-cream-200">{calc.pureMetal_gr.toFixed(4)} gr</span>
+            {/* Cálculo del valor */}
+            {calc && (
+              <div className="rounded-xl p-4" style={{ background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.12)' }}>
+                <p className="text-[10px] uppercase tracking-[0.12em] font-semibold mb-3" style={{ color: 'rgba(212,175,55,0.55)' }}>Cálculo del abono</p>
+                <div className="space-y-2">
+                  {[
+                    { label: 'Metal puro que entrega', value: `${calc.pureMetal_gr.toFixed(4)} gr` },
+                    { label: `Precio base (${quotation?.quote_type === 'jeweler' ? 'joyero' : 'cliente'}) / gr`, value: formatCOP(calc.basePrice) },
+                    { label: 'Valor abonado', value: formatCOP(calc.amountCop), color: 'rgba(212,175,55,0.9)', bold: true },
+                    { label: 'Metal puro pendiente después', value: `${Math.max(0, calc.pendingAfter).toFixed(4)} gr${calc.pendingAfter <= 0 ? ' ✓' : ''}`, color: calc.pendingAfter <= 0 ? 'rgba(110,231,183,0.85)' : 'rgba(242,240,237,0.75)' },
+                  ].map((row) => (
+                    <div key={row.label} className="flex justify-between">
+                      <span className="text-xs" style={{ color: 'rgba(242,240,237,0.35)' }}>{row.label}</span>
+                      <span className="text-xs font-semibold" style={{ color: (row as any).color ?? 'rgba(242,240,237,0.75)' }}>{row.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-charcoal-400">
-                  Precio base ({quotation?.quote_type === 'jeweler' ? 'joyero' : 'cliente'}) / gr puro
-                </span>
-                <span className="text-cream-200">{formatCOP(calc.basePrice)}</span>
-              </div>
-              <div className="flex justify-between text-sm font-semibold border-t border-white/5 pt-2 mt-1">
-                <span className="text-cream-100">Valor abonado</span>
-                <span className="text-gold-400">{formatCOP(calc.amountCop)}</span>
-              </div>
-              <div className="flex justify-between text-sm border-t border-white/5 pt-2">
-                <span className="text-charcoal-400">Metal puro pendiente después</span>
-                <span className={calc.pendingAfter <= 0 ? 'text-emerald-400' : 'text-cream-200'}>
-                  {Math.max(0, calc.pendingAfter).toFixed(4)} gr
-                  {calc.pendingAfter <= 0 ? ' ✓' : ''}
-                </span>
-              </div>
+            )}
+
+            {/* Observaciones */}
+            <div>
+              <label style={labelStyle}>Observaciones</label>
+              <textarea value={observation} onChange={e => setObservation(e.target.value)} rows={2} placeholder="Notas sobre el material entregado..." style={{ ...inputStyle, resize: 'none' }} />
             </div>
-          )}
 
-          {/* Observaciones */}
-          <div>
-            <label className="block text-xs text-charcoal-400 mb-1.5">Observaciones</label>
-            <textarea
-              value={observation}
-              onChange={e => setObservation(e.target.value)}
-              rows={2}
-              placeholder="Notas sobre el material entregado..."
-              className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-600 focus:outline-none focus:border-gold-500/30 resize-none"
-            />
+            {/* Registrado por */}
+            <div>
+              <label style={labelStyle}>Registrado por *</label>
+              <select value={registeredByUserId} onChange={e => setRegisteredByUserId(e.target.value)} style={{ ...inputStyle, appearance: 'none' }}>
+                <option value="">Seleccionar...</option>
+                {users.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
+              </select>
+            </div>
+
           </div>
 
-          {/* Registrado por */}
-          <div>
-            <label className="block text-xs text-charcoal-400 mb-1.5">Registrado por *</label>
-            <select
-              value={registeredByUserId}
-              onChange={e => setRegisteredByUserId(e.target.value)}
-              className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
-            >
-              <option value="">Seleccionar...</option>
-              {users.map(u => (
-                <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Acciones */}
-          <div className="flex items-center gap-3 pt-3 border-t border-white/5">
+          {/* Footer */}
+          <div className="px-5 py-4 flex items-center gap-3 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
             <button
               type="submit"
               disabled={loading || !calc}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors disabled:opacity-50"
+              className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-6 rounded-xl text-xs font-semibold uppercase tracking-[0.08em] transition-all disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400' }}
             >
               {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-charcoal-900 border-t-transparent rounded-full animate-spin" />
-                  Procesando...
-                </>
+                <><div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> Procesando...</>
               ) : (
-                <>
-                  <Scale size={16} />
-                  Registrar Abono
-                </>
+                <><Scale size={13} /> Registrar Abono</>
               )}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2.5 text-sm text-charcoal-400 hover:text-cream-200 transition-colors"
-            >
+            <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl text-xs font-semibold transition-all" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.5)', border: '1px solid rgba(255,255,255,0.07)' }}>
               Cancelar
             </button>
           </div>

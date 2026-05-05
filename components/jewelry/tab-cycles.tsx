@@ -72,29 +72,17 @@ function CycleCard({ cycle, isExpanded, onToggle }: CycleCardProps) {
   };
 
   const getStatusIcon = () => {
-    if (cycle.qcResult === 'approved') {
-      return <CheckCircle size={16} className="text-emerald-500" />;
-    }
-    if (cycle.qcResult === 'rejected') {
-      return <XCircle size={16} className="text-red-500" />;
-    }
-    if (cycle.materialDeliveryDate && !cycle.workDeliveryDate) {
-      return <Clock size={16} className="text-gold-500 animate-pulse" />;
-    }
-    return <Clock size={16} className="text-charcoal-500" />;
+    if (cycle.qcResult === 'approved') return <CheckCircle size={15} style={{ color: 'rgba(110,231,183,0.85)' }} />;
+    if (cycle.qcResult === 'rejected') return <XCircle size={15} style={{ color: 'rgba(252,165,165,0.85)' }} />;
+    if (cycle.materialDeliveryDate && !cycle.workDeliveryDate) return <Clock size={15} className="animate-pulse" style={{ color: 'rgba(212,175,55,0.85)' }} />;
+    return <Clock size={15} style={{ color: 'rgba(242,240,237,0.2)' }} />;
   };
 
-  const getStatusColor = () => {
-    if (cycle.qcResult === 'approved') {
-      return 'bg-emerald-500/20 border-emerald-500/30';
-    }
-    if (cycle.qcResult === 'rejected') {
-      return 'bg-red-500/20 border-red-500/30';
-    }
-    if (cycle.materialDeliveryDate && !cycle.workDeliveryDate) {
-      return 'bg-gold-500/20 border-gold-500/30';
-    }
-    return 'bg-charcoal-800 border-white/5';
+  const getStatusStyle = (): React.CSSProperties => {
+    if (cycle.qcResult === 'approved') return { background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.22)' };
+    if (cycle.qcResult === 'rejected') return { background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.22)' };
+    if (cycle.materialDeliveryDate && !cycle.workDeliveryDate) return { background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.22)' };
+    return { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' };
   };
 
   const getStatusLabel = () => {
@@ -105,224 +93,106 @@ function CycleCard({ cycle, isExpanded, onToggle }: CycleCardProps) {
     return 'Pendiente';
   };
 
+  const MiniField = ({ label, value, color }: { label: string; value: string; color?: string }) => (
+    <div>
+      <p className="text-[10px] uppercase tracking-[0.1em] font-semibold font-sans-custom mb-0.5" style={{ color: 'rgba(242,240,237,0.28)' }}>{label}</p>
+      <p className="text-xs font-sans-custom" style={{ color: color ?? 'rgba(242,240,237,0.75)' }}>{value}</p>
+    </div>
+  );
+
   return (
-    <div className={`border rounded-lg transition-all ${getStatusColor()}`}>
-      {/* Header del ciclo */}
+    <div className="rounded-2xl overflow-hidden transition-all" style={getStatusStyle()}>
       <div className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {getStatusIcon()}
             <div>
-              <h4 className="text-sm font-medium text-cream-200 flex items-center gap-2">
-                {cycle.isRework && <RotateCcw size={14} className="text-orange-500" />}
+              <p className="text-sm font-semibold font-sans-custom flex items-center gap-2" style={{ color: 'rgba(242,240,237,0.85)' }}>
+                {cycle.isRework && <RotateCcw size={13} style={{ color: 'rgba(249,115,22,0.8)' }} />}
                 Ciclo #{cycle.cycleNumber}
-              </h4>
-              <p className="text-xs text-charcoal-500">{getStatusLabel()}</p>
+              </p>
+              <p className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>{getStatusLabel()}</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {cycle.reworkReason && (
-              <span className="text-xs text-orange-400 bg-orange-500/10 px-2 py-1 rounded">
+              <span className="text-xs font-sans-custom px-2 py-1 rounded-lg" style={{ background: 'rgba(249,115,22,0.1)', color: 'rgba(253,186,116,0.85)' }}>
                 {cycle.reworkReason}
               </span>
             )}
-            <button
-              type="button"
-              onClick={onToggle}
-              className="text-charcoal-400 hover:text-cream-200 transition-colors"
-            >
-              {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            <button type="button" onClick={onToggle} className="transition-colors" style={{ color: 'rgba(242,240,237,0.3)' }}>
+              {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
             </button>
           </div>
         </div>
 
-        {/* Resumen rápido */}
-        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div>
-            <p className="text-charcoal-500">Inicio</p>
-            <p className="text-cream-200">{formatDate(cycle.materialDeliveryDate)}</p>
-          </div>
-          <div>
-            <p className="text-charcoal-500">Fin</p>
-            <p className="text-cream-200">{formatDate(cycle.workDeliveryDate)}</p>
-          </div>
-          <div>
-            <p className="text-charcoal-500">Peso final</p>
-            <p className="text-cream-200">{cycle.finalWeightGr || '-'} gr</p>
-          </div>
-          <div>
-            <p className="text-charcoal-500">QC</p>
-            <p className="text-cream-200">{cycle.qcResult || '-'}</p>
-          </div>
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <MiniField label="Inicio" value={formatDate(cycle.materialDeliveryDate)} />
+          <MiniField label="Fin" value={formatDate(cycle.workDeliveryDate)} />
+          <MiniField label="Peso final" value={cycle.finalWeightGr ? `${cycle.finalWeightGr} gr` : '—'} />
+          <MiniField
+            label="QC"
+            value={cycle.qcResult === 'approved' ? 'Aprobado' : cycle.qcResult === 'rejected' ? 'Rechazado' : '—'}
+            color={cycle.qcResult === 'approved' ? 'rgba(110,231,183,0.85)' : cycle.qcResult === 'rejected' ? 'rgba(252,165,165,0.85)' : 'rgba(242,240,237,0.35)'}
+          />
         </div>
       </div>
 
-      {/* Detalles expandidos */}
       {isExpanded && (
-        <div className="border-t border-white/5 p-4 space-y-6">
-          {/* Fase 2: Inicio Trabajo */}
+        <div className="p-4 space-y-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <div>
-            <h5 className="text-xs font-medium text-gold-400 mb-3 flex items-center gap-2">
-              <Calendar size={12} />
-              Fase 2: Inicio Trabajo
-            </h5>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-              {cycle.jewelryMetalPurity && (
-                <div>
-                  <p className="text-charcoal-500">Pureza metal joyería</p>
-                  <p className="text-cream-200">{cycle.jewelryMetalPurity} K</p>
-                </div>
-              )}
-              
-              {cycle.jewelryMetalWeightGr && (
-                <div>
-                  <p className="text-charcoal-500">Peso metal joyería</p>
-                  <p className="text-cream-200">{cycle.jewelryMetalWeightGr} gr</p>
-                </div>
-              )}
-              
-              {cycle.jewelryGoldColor && (
-                <div>
-                  <p className="text-charcoal-500">Color del oro</p>
-                  <p className="text-cream-200">{getGoldColorLabel(cycle.jewelryGoldColor)}</p>
-                </div>
-              )}
-              
-              {cycle.approxGoldLaw && (
-                <div>
-                  <p className="text-charcoal-500">Ley aprox. oro</p>
-                  <p className="text-cream-200">{cycle.approxGoldLaw} K</p>
-                </div>
-              )}
-              
+            <p className="text-xs font-semibold font-sans-custom mb-3 flex items-center gap-2" style={{ color: 'rgba(212,175,55,0.7)' }}>
+              <Calendar size={12} /> Fase 2: Inicio Trabajo
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {cycle.jewelryMetalPurity && <MiniField label="Pureza metal joya" value={`${cycle.jewelryMetalPurity} K`} />}
+              {cycle.jewelryMetalWeightGr && <MiniField label="Peso metal joya" value={`${cycle.jewelryMetalWeightGr} gr`} />}
+              {cycle.jewelryGoldColor && <MiniField label="Color del oro" value={getGoldColorLabel(cycle.jewelryGoldColor)} />}
+              {cycle.approxGoldLaw && <MiniField label="Ley aprox. oro" value={`${cycle.approxGoldLaw} K`} />}
               {cycle.materialSurplusGr !== null && (
-                <div>
-                  <p className="text-charcoal-500">Excedente material</p>
-                  <p className={`text-cream-200 ${cycle.materialSurplusGr < 0 ? 'text-orange-400' : ''}`}>
-                    {cycle.materialSurplusGr > 0 ? '+' : ''}{cycle.materialSurplusGr} gr
-                  </p>
-                </div>
+                <MiniField
+                  label="Excedente material"
+                  value={`${cycle.materialSurplusGr > 0 ? '+' : ''}${cycle.materialSurplusGr} gr`}
+                  color={cycle.materialSurplusGr < 0 ? 'rgba(253,186,116,0.85)' : undefined}
+                />
               )}
-              
-              {cycle.totalMetalWeightGr && (
-                <div>
-                  <p className="text-charcoal-500">Peso total metal</p>
-                  <p className="text-cream-200">{cycle.totalMetalWeightGr} gr</p>
-                </div>
-              )}
-              
+              {cycle.totalMetalWeightGr && <MiniField label="Peso total metal" value={`${cycle.totalMetalWeightGr} gr`} />}
               {cycle.includesStones && (
                 <>
-                  <div>
-                    <p className="text-charcoal-500">Tipo de piedras</p>
-                    <p className="text-cream-200">{cycle.stoneType || 'No especificado'}</p>
-                  </div>
-                  
-                  {cycle.stoneCount && (
-                    <div>
-                      <p className="text-charcoal-500">Cantidad piedras</p>
-                      <p className="text-cream-200">{cycle.stoneCount}</p>
-                    </div>
-                  )}
-                  
-                  {cycle.stoneWeightGr && (
-                    <div>
-                      <p className="text-charcoal-500">Peso piedras</p>
-                      <p className="text-cream-200">{cycle.stoneWeightGr} gr</p>
-                    </div>
-                  )}
+                  <MiniField label="Tipo de piedras" value={cycle.stoneType || 'No especificado'} />
+                  {cycle.stoneCount && <MiniField label="Cantidad piedras" value={String(cycle.stoneCount)} />}
+                  {cycle.stoneWeightGr && <MiniField label="Peso piedras" value={`${cycle.stoneWeightGr} gr`} />}
                 </>
               )}
-              
-              <div>
-                <p className="text-charcoal-500">Entregado por</p>
-                <p className="text-cream-200">
-                  {cycle.deliveredBy ? `${cycle.deliveredBy.firstName} ${cycle.deliveredBy.lastName}` : 'No asignado'}
-                </p>
-              </div>
-              
-              <div>
-                <p className="text-charcoal-500">Recibido por</p>
-                <p className="text-cream-200">
-                  {cycle.receivedBy ? `${cycle.receivedBy.firstName} ${cycle.receivedBy.lastName}` : 'No asignado'}
-                </p>
-              </div>
-              
-              <div>
-                <p className="text-charcoal-500">Fecha entrega material</p>
-                <p className="text-cream-200">{formatDate(cycle.materialDeliveryDate)}</p>
-              </div>
+              <MiniField label="Entregado por" value={cycle.deliveredBy ? `${cycle.deliveredBy.firstName} ${cycle.deliveredBy.lastName}` : 'No asignado'} />
+              <MiniField label="Recibido por" value={cycle.receivedBy ? `${cycle.receivedBy.firstName} ${cycle.receivedBy.lastName}` : 'No asignado'} />
+              <MiniField label="Fecha entrega material" value={formatDate(cycle.materialDeliveryDate)} />
             </div>
           </div>
 
-          {/* Fase 3: Fin Trabajo */}
           <div>
-            <h5 className="text-xs font-medium text-gold-400 mb-3 flex items-center gap-2">
-              <CheckCircle size={12} />
-              Fase 3: Fin Trabajo
-            </h5>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-              {cycle.finalWeightGr && (
-                <div>
-                  <p className="text-charcoal-500">Peso final</p>
-                  <p className="text-cream-200">{cycle.finalWeightGr} gr</p>
-                </div>
-              )}
-              
-              {cycle.leftoverStonesGr !== null && (
-                <div>
-                  <p className="text-charcoal-500">Sobrantes piedras</p>
-                  <p className="text-cream-200">{cycle.leftoverStonesGr} gr</p>
-                </div>
-              )}
-              
-              {cycle.returnedMaterialGr !== null && (
-                <div>
-                  <p className="text-charcoal-500">Material devuelto</p>
-                  <p className="text-cream-200">{cycle.returnedMaterialGr} gr</p>
-                </div>
-              )}
-              
-              <div>
-                <p className="text-charcoal-500">Resultado QC</p>
-                <p className={`text-cream-200 ${
-                  cycle.qcResult === 'approved' ? 'text-emerald-400' : 
-                  cycle.qcResult === 'rejected' ? 'text-red-400' : 
-                  'text-charcoal-400'
-                }`}>
-                  {cycle.qcResult === 'approved' ? 'Aprobado' : 
-                   cycle.qcResult === 'rejected' ? 'Rechazado' : 
-                   'Pendiente'}
-                </p>
-              </div>
-              
-              <div>
-                <p className="text-charcoal-500">QC por</p>
-                <p className="text-cream-200">
-                  {cycle.qcBy ? `${cycle.qcBy.firstName} ${cycle.qcBy.lastName}` : 'No asignado'}
-                </p>
-              </div>
-              
-              <div>
-                <p className="text-charcoal-500">Recibido trabajo por</p>
-                <p className="text-cream-200">
-                  {cycle.workReceivedBy ? `${cycle.workReceivedBy.firstName} ${cycle.workReceivedBy.lastName}` : 'No asignado'}
-                </p>
-              </div>
-              
-              <div>
-                <p className="text-charcoal-500">Fecha entrega trabajo</p>
-                <p className="text-cream-200">{formatDate(cycle.workDeliveryDate)}</p>
-              </div>
+            <p className="text-xs font-semibold font-sans-custom mb-3 flex items-center gap-2" style={{ color: 'rgba(212,175,55,0.7)' }}>
+              <CheckCircle size={12} /> Fase 3: Fin Trabajo
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {cycle.finalWeightGr && <MiniField label="Peso final" value={`${cycle.finalWeightGr} gr`} />}
+              {cycle.leftoverStonesGr !== null && <MiniField label="Sobrantes piedras" value={`${cycle.leftoverStonesGr} gr`} />}
+              {cycle.returnedMaterialGr !== null && <MiniField label="Material devuelto" value={`${cycle.returnedMaterialGr} gr`} />}
+              <MiniField
+                label="Resultado QC"
+                value={cycle.qcResult === 'approved' ? 'Aprobado' : cycle.qcResult === 'rejected' ? 'Rechazado' : 'Pendiente'}
+                color={cycle.qcResult === 'approved' ? 'rgba(110,231,183,0.85)' : cycle.qcResult === 'rejected' ? 'rgba(252,165,165,0.85)' : undefined}
+              />
+              <MiniField label="QC por" value={cycle.qcBy ? `${cycle.qcBy.firstName} ${cycle.qcBy.lastName}` : 'No asignado'} />
+              <MiniField label="Trabajo recibido por" value={cycle.workReceivedBy ? `${cycle.workReceivedBy.firstName} ${cycle.workReceivedBy.lastName}` : 'No asignado'} />
+              <MiniField label="Fecha entrega trabajo" value={formatDate(cycle.workDeliveryDate)} />
             </div>
 
             {cycle.qcObservations && (
-              <div className="mt-4 p-3 bg-charcoal-900 rounded">
-                <p className="text-xs text-charcoal-500 mb-1">Observaciones QC:</p>
-                <p className="text-xs text-charcoal-300">{cycle.qcObservations}</p>
+              <div className="mt-4 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                <p className="text-[10px] uppercase tracking-wider font-sans-custom mb-1" style={{ color: 'rgba(242,240,237,0.3)' }}>Observaciones QC</p>
+                <p className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.65)' }}>{cycle.qcObservations}</p>
               </div>
             )}
           </div>
@@ -349,22 +219,22 @@ export default function TabCiclos({ cycles }: TabCiclosProps) {
   const sortedCycles = [...cycles].sort((a, b) => b.cycleNumber - a.cycleNumber);
 
   return (
-    <div className="space-y-6">
-      <div className="bg-charcoal-800/50 border border-white/5 rounded-lg p-6">
+    <div className="space-y-4">
+      <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-cream-100">Ciclos de Trabajo</h3>
-          <span className="text-xs text-charcoal-400">
+          <p className="text-sm font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>Ciclos de Trabajo</p>
+          <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
             {cycles.length} ciclo{cycles.length !== 1 ? 's' : ''}
           </span>
         </div>
 
         {cycles.length === 0 ? (
           <div className="text-center py-8">
-            <RotateCcw size={32} className="mx-auto text-charcoal-600 mb-2" />
-            <p className="text-sm text-charcoal-500">No hay ciclos de trabajo registrados</p>
+            <RotateCcw size={28} className="mx-auto mb-2" style={{ color: 'rgba(242,240,237,0.12)' }} />
+            <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>No hay ciclos de trabajo registrados</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {sortedCycles.map((cycle) => (
               <CycleCard
                 key={cycle.id}
@@ -377,37 +247,21 @@ export default function TabCiclos({ cycles }: TabCiclosProps) {
         )}
       </div>
 
-      {/* Estadísticas */}
       {cycles.length > 0 && (
-        <div className="bg-charcoal-800/50 border border-white/5 rounded-lg p-6">
-          <h3 className="text-sm font-medium text-cream-100 mb-4">Estadísticas</h3>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <p className="text-xs text-charcoal-500 mb-1">Ciclos totales</p>
-              <p className="text-sm text-cream-200 font-medium">{cycles.length}</p>
-            </div>
-            
-            <div>
-              <p className="text-xs text-charcoal-500 mb-1">Retrabajos</p>
-              <p className="text-sm text-orange-400 font-medium">
-                {cycles.filter(c => c.isRework).length}
-              </p>
-            </div>
-            
-            <div>
-              <p className="text-xs text-charcoal-500 mb-1">QC Aprobados</p>
-              <p className="text-sm text-emerald-400 font-medium">
-                {cycles.filter(c => c.qcResult === 'approved').length}
-              </p>
-            </div>
-            
-            <div>
-              <p className="text-xs text-charcoal-500 mb-1">QC Rechazados</p>
-              <p className="text-sm text-red-400 font-medium">
-                {cycles.filter(c => c.qcResult === 'rejected').length}
-              </p>
-            </div>
+        <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <p className="text-sm font-semibold font-sans-custom mb-4" style={{ color: 'rgba(242,240,237,0.7)' }}>Estadísticas</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              { label: 'Ciclos totales', value: cycles.length, color: 'rgba(242,240,237,0.8)' },
+              { label: 'Retrabajos', value: cycles.filter(c => c.isRework).length, color: 'rgba(253,186,116,0.85)' },
+              { label: 'QC Aprobados', value: cycles.filter(c => c.qcResult === 'approved').length, color: 'rgba(110,231,183,0.85)' },
+              { label: 'QC Rechazados', value: cycles.filter(c => c.qcResult === 'rejected').length, color: 'rgba(252,165,165,0.85)' },
+            ].map((stat) => (
+              <div key={stat.label}>
+                <p className="text-[10px] uppercase tracking-[0.12em] font-semibold font-sans-custom mb-1" style={{ color: 'rgba(242,240,237,0.28)' }}>{stat.label}</p>
+                <p className="text-lg font-semibold font-sans-custom" style={{ color: stat.color }}>{stat.value}</p>
+              </div>
+            ))}
           </div>
         </div>
       )}

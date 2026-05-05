@@ -72,11 +72,11 @@ export default function TabAbonos({
   const getPaymentStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle size={14} className="text-emerald-500" />;
+        return <CheckCircle size={14} style={{ color: 'rgba(110,231,183,0.85)' }} />;
       case 'pending':
-        return <Clock size={14} className="text-yellow-500" />;
+        return <Clock size={14} style={{ color: 'rgba(250,204,21,0.75)' }} />;
       default:
-        return <Clock size={14} className="text-charcoal-500" />;
+        return <Clock size={14} style={{ color: 'rgba(242,240,237,0.2)' }} />;
     }
   };
 
@@ -111,126 +111,103 @@ export default function TabAbonos({
   const totalMaterialWeightGr = materialPayments.reduce((sum, p) => sum + (Number(p.weightGr) || 0), 0);
 
   return (
-    <div className="space-y-6">
-      {/* Tabs de navegación */}
-      <div className="bg-charcoal-800/50 border border-white/5 rounded-lg p-2">
-        <div className="flex space-x-1">
+    <div className="space-y-4">
+      {/* Sub-tabs de navegación */}
+      <div className="rounded-2xl p-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex gap-1">
           {[
             { key: 'resumen', label: 'Resumen', icon: Scale },
             { key: 'dinero', label: 'Abonos en Dinero', icon: DollarSign },
             { key: 'material', label: 'Abonos en Material', icon: Scale },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as any)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm transition-all ${
-                activeTab === tab.key
-                  ? 'bg-gold-500/10 text-gold-400'
-                  : 'text-charcoal-400 hover:text-cream-200'
-              }`}
-            >
-              <tab.icon size={14} />
-              {tab.label}
-            </button>
-          ))}
+          ].map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as any)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-sans-custom transition-all"
+                style={{
+                  background: isActive ? 'rgba(212,175,55,0.12)' : 'transparent',
+                  color: isActive ? 'rgba(212,175,55,0.95)' : 'rgba(242,240,237,0.35)',
+                  border: isActive ? '1px solid rgba(212,175,55,0.2)' : '1px solid transparent',
+                }}
+              >
+                <tab.icon size={13} />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Contenido del tab activo */}
-      <div className="bg-charcoal-800/50 border border-white/5 rounded-lg p-6">
+      {/* Contenido */}
+      <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
         {/* Tab Resumen */}
         {activeTab === 'resumen' && (
-          <div className="space-y-6">
-            <h3 className="text-sm font-medium text-cream-100">Resumen de Pagos</h3>
-            
-            {/* Tarjeta de resumen principal */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-charcoal-900 rounded-lg p-4">
-                <p className="text-xs text-charcoal-500 mb-1">Valor total del pedido</p>
-                <p className="text-lg font-semibold text-gold-400">
-                  {totalAmountCop ? formatCOP(totalAmountCop) : 'No definido'}
-                </p>
-              </div>
+          <div className="space-y-5">
+            <p className="text-sm font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>Resumen de Pagos</p>
 
-              <div className="bg-charcoal-900 rounded-lg p-4">
-                <p className="text-xs text-charcoal-500 mb-1">Abonado en dinero</p>
-                <p className="text-lg font-semibold text-yellow-400">{formatCOP(totalPaidCash)}</p>
-              </div>
-
-              <div className="bg-charcoal-900 rounded-lg p-4">
-                <p className="text-xs text-charcoal-500 mb-1">Abonado en material</p>
-                <p className="text-lg font-semibold text-yellow-400">
-                  {totalPaidMaterial > 0 ? formatCOP(totalPaidMaterial) : '—'}
-                </p>
-                {totalMaterialWeightGr > 0 && (
-                  <p className="text-xs text-charcoal-600 mt-0.5">{totalMaterialWeightGr.toFixed(3)} gr</p>
-                )}
-              </div>
-
-              <div className="bg-charcoal-900 rounded-lg p-4">
-                <p className="text-xs text-charcoal-500 mb-1">Saldo pendiente</p>
-                <p className={`text-lg font-semibold ${isFullyPaid ? 'text-emerald-400' : pendingBalance > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                  {isFullyPaid ? '✓ Saldado' : formatCOP(pendingBalance)}
-                </p>
-                {totalAmountCop != null && totalPaid > 0 && (
-                  <p className="text-xs text-charcoal-600 mt-0.5">Pagado: {formatCOP(totalPaid)}</p>
-                )}
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                { label: 'Valor total', value: totalAmountCop ? formatCOP(totalAmountCop) : 'No definido', valueColor: 'rgba(212,175,55,0.9)' },
+                { label: 'Abonado en dinero', value: formatCOP(totalPaidCash), valueColor: 'rgba(212,175,55,0.75)', sub: null },
+                { label: 'Abonado en material', value: totalPaidMaterial > 0 ? formatCOP(totalPaidMaterial) : '—', valueColor: 'rgba(212,175,55,0.75)', sub: totalMaterialWeightGr > 0 ? `${totalMaterialWeightGr.toFixed(3)} gr` : null },
+                { label: 'Saldo pendiente', value: isFullyPaid ? '✓ Saldado' : formatCOP(pendingBalance), valueColor: isFullyPaid ? 'rgba(110,231,183,0.9)' : 'rgba(252,165,165,0.9)', sub: totalAmountCop != null && totalPaid > 0 ? `Pagado: ${formatCOP(totalPaid)}` : null },
+              ].map((card) => (
+                <div key={card.label} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <p className="text-[10px] uppercase tracking-[0.12em] font-semibold font-sans-custom mb-1" style={{ color: 'rgba(242,240,237,0.3)' }}>{card.label}</p>
+                  <p className="text-base font-semibold font-sans-custom" style={{ color: card.valueColor }}>{card.value}</p>
+                  {card.sub && <p className="text-[10px] mt-0.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>{card.sub}</p>}
+                </div>
+              ))}
             </div>
 
-            {/* Alertas */}
             {pendingBalance > 0 && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle size={16} className="text-red-500 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-red-400">Saldo pendiente</p>
-                    <p className="text-xs text-red-300 mt-1">
-                      El pedido tiene un saldo pendiente de {formatCOP(pendingBalance)}. 
-                      {isDelivered ? ' El pedido ya fue entregado.' : ' No se puede entregar hasta que el saldo sea cancelado.'}
-                    </p>
-                  </div>
+              <div className="flex items-start gap-3 p-4 rounded-2xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <AlertTriangle size={15} className="shrink-0 mt-0.5" style={{ color: 'rgba(252,165,165,0.8)' }} />
+                <div>
+                  <p className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(252,165,165,0.9)' }}>Saldo pendiente</p>
+                  <p className="text-xs mt-0.5 font-sans-custom" style={{ color: 'rgba(252,165,165,0.55)' }}>
+                    El pedido tiene un saldo pendiente de {formatCOP(pendingBalance)}.
+                    {isDelivered ? ' El pedido ya fue entregado.' : ' No se puede entregar hasta que el saldo sea cancelado.'}
+                  </p>
                 </div>
               </div>
             )}
 
-            {/* Resumen de material */}
             {materialPayments.length > 0 && (
-              <div className="bg-charcoal-900 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-cream-200 mb-3">Material Abonado</h4>
+              <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <p className="text-sm font-semibold font-sans-custom mb-3" style={{ color: 'rgba(242,240,237,0.65)' }}>Material Abonado</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-xs text-charcoal-500 mb-1">Total peso abonado</p>
-                    <p className="text-sm text-cream-200">{totalMaterialWeightGr.toFixed(3)} gr</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-charcoal-500 mb-1">Valor abonado en material</p>
-                    <p className="text-sm font-medium text-gold-400">{totalPaidMaterial > 0 ? formatCOP(totalPaidMaterial) : '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-charcoal-500 mb-1">Cantidad de abonos</p>
-                    <p className="text-sm text-cream-200">{materialPayments.length}</p>
-                  </div>
+                  {[
+                    { label: 'Total peso abonado', value: `${totalMaterialWeightGr.toFixed(3)} gr` },
+                    { label: 'Valor abonado en material', value: totalPaidMaterial > 0 ? formatCOP(totalPaidMaterial) : '—', gold: true },
+                    { label: 'Cantidad de abonos', value: String(materialPayments.length) },
+                  ].map((row) => (
+                    <div key={row.label}>
+                      <p className="text-[10px] uppercase tracking-[0.12em] font-semibold font-sans-custom mb-1" style={{ color: 'rgba(242,240,237,0.3)' }}>{row.label}</p>
+                      <p className="text-sm font-sans-custom" style={{ color: (row as any).gold ? 'rgba(212,175,55,0.85)' : 'rgba(242,240,237,0.75)' }}>{row.value}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* Acciones */}
             {!isDelivered && (
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={onAddCashPayment}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-[0.08em] font-sans-custom transition-all"
+                  style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400' }}
                 >
-                  <Plus size={14} />
-                  Abono en Dinero
+                  <Plus size={13} /> Abono en Dinero
                 </button>
                 <button
                   onClick={onAddMaterialPayment}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-charcoal-700 text-cream-200 text-sm font-medium rounded-md hover:bg-charcoal-600 transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold font-sans-custom transition-all"
+                  style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.7)', border: '1px solid rgba(255,255,255,0.08)' }}
                 >
-                  <Plus size={14} />
-                  Abono en Material
+                  <Plus size={13} /> Abono en Material
                 </button>
               </div>
             )}
@@ -239,40 +216,40 @@ export default function TabAbonos({
 
         {/* Tab Dinero */}
         {activeTab === 'dinero' && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-cream-100">Historial de Abonos en Dinero</h3>
+              <p className="text-sm font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>Historial de Abonos en Dinero</p>
               {!isDelivered && (
                 <button
                   onClick={onAddCashPayment}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-gold-500 text-charcoal-900 text-xs font-medium rounded-md hover:bg-gold-400 transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold font-sans-custom transition-all"
+                  style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400' }}
                 >
-                  <Plus size={12} />
-                  Nuevo Abono
+                  <Plus size={12} /> Nuevo Abono
                 </button>
               )}
             </div>
 
             {payments.length === 0 ? (
               <div className="text-center py-8">
-                <DollarSign size={32} className="mx-auto text-charcoal-600 mb-2" />
-                <p className="text-sm text-charcoal-500">No hay abonos registrados</p>
+                <DollarSign size={28} className="mx-auto mb-2" style={{ color: 'rgba(242,240,237,0.12)' }} />
+                <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>No hay abonos registrados</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {payments.map((payment) => (
-                  <div key={payment.id} className="bg-charcoal-900 rounded-lg p-4">
+                  <div key={payment.id} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {getPaymentStatusIcon(payment.status)}
                         <div>
-                          <p className="text-sm font-medium text-cream-200">{formatCOP(payment.amountCop)}</p>
-                          <p className="text-xs text-charcoal-500">{payment.method}</p>
+                          <p className="text-sm font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.85)' }}>{formatCOP(payment.amountCop)}</p>
+                          <p className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>{payment.method}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-charcoal-400">{formatDate(payment.paidAt)}</p>
-                        <p className="text-xs text-charcoal-500">
+                        <p className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.45)' }}>{formatDate(payment.paidAt)}</p>
+                        <p className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>
                           Por: {payment.registeredBy ? `${payment.registeredBy.firstName} ${payment.registeredBy.lastName}` : 'Usuario no especificado'}
                         </p>
                       </div>
@@ -286,56 +263,56 @@ export default function TabAbonos({
 
         {/* Tab Material */}
         {activeTab === 'material' && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-cream-100">Historial de Abonos en Material</h3>
+              <p className="text-sm font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>Historial de Abonos en Material</p>
               {!isDelivered && (
                 <button
                   onClick={onAddMaterialPayment}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-charcoal-700 text-cream-200 text-xs font-medium rounded-md hover:bg-charcoal-600 transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold font-sans-custom transition-all"
+                  style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.7)', border: '1px solid rgba(255,255,255,0.08)' }}
                 >
-                  <Plus size={12} />
-                  Nuevo Abono
+                  <Plus size={12} /> Nuevo Abono
                 </button>
               )}
             </div>
 
             {materialPayments.length === 0 ? (
               <div className="text-center py-8">
-                <Scale size={32} className="mx-auto text-charcoal-600 mb-2" />
-                <p className="text-sm text-charcoal-500">No hay abonos de material registrados</p>
+                <Scale size={28} className="mx-auto mb-2" style={{ color: 'rgba(242,240,237,0.12)' }} />
+                <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>No hay abonos de material registrados</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {materialPayments.map((payment) => (
-                  <div key={payment.id} className="bg-charcoal-900 rounded-lg p-4">
+                  <div key={payment.id} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <Scale size={16} className="text-gold-500" />
+                        <Scale size={15} style={{ color: 'rgba(212,175,55,0.6)' }} />
                         <div>
-                          <p className="text-sm font-medium text-cream-200">
+                          <p className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.85)' }}>
                             {Number(payment.weightGr).toFixed(3)} gr de {getMetalLabel(payment.metalType)}
                           </p>
-                          <p className="text-xs text-charcoal-500">
+                          <p className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
                             {payment.purity} {payment.metalType === 'gold' ? 'K' : 'Ley'}
-                            {payment.goldColor && ` - ${getGoldColorLabel(payment.goldColor)}`}
+                            {payment.goldColor && ` · ${getGoldColorLabel(payment.goldColor)}`}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
                         {payment.amount_cop && payment.amount_cop > 0 && (
-                          <p className="text-sm font-medium text-gold-400">{formatCOP(payment.amount_cop)}</p>
+                          <p className="text-sm font-semibold font-sans-custom" style={{ color: 'rgba(212,175,55,0.85)' }}>{formatCOP(payment.amount_cop)}</p>
                         )}
-                        <p className="text-xs text-charcoal-400">
+                        <p className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
                           {new Date(payment.createdAt).toLocaleDateString('es-CO')}
                         </p>
-                        <p className="text-xs text-charcoal-500">
+                        <p className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>
                           Por: {payment.registeredBy ? `${payment.registeredBy.firstName} ${payment.registeredBy.lastName}` : 'Sin registro'}
                         </p>
                       </div>
                     </div>
                     {payment.observation && (
-                      <p className="text-xs text-charcoal-400 mt-2 italic">{payment.observation}</p>
+                      <p className="text-xs font-sans-custom italic mt-2" style={{ color: 'rgba(242,240,237,0.4)' }}>{payment.observation}</p>
                     )}
                   </div>
                 ))}

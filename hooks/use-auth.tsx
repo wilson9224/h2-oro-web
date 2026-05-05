@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
@@ -63,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const isUserLoaded = useRef(false);
 
   const supabase = createClient();
 
@@ -132,10 +134,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(profile);
       setToken(accessToken);
+      isUserLoaded.current = true;
       return profile;
     } catch {
       setUser(null);
       setToken(null);
+      isUserLoaded.current = false;
       return null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -161,10 +165,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_IN' && session?.access_token) {
-          await fetchProfile(session.access_token);
+          // Only fetch profile on actual sign-in (user was null).
+          // Token refreshes also emit SIGNED_IN; skip them to avoid loops.
+          if (!isUserLoaded.current) {
+            fetchProfile(session.access_token);
+          } else {
+            setToken(session.access_token);
+          }
+        } else if (event === 'TOKEN_REFRESHED' && session?.access_token) {
+          setToken(session.access_token);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
           setToken(null);
+          isUserLoaded.current = false;
         }
       },
     );

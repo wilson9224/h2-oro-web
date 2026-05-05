@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { formatPriceCOP } from '@/lib/pricing/calculations';
 import { STONE_TYPES, STONE_CUTS } from '@/lib/quotation/types';
@@ -138,6 +139,10 @@ function StoneRowEditor({
   onUpdate: (changes: Partial<StoneRow>) => void;
   onRemove: () => void;
 }) {
+  const [weightStr, setWeightStr] = useState(
+    row.weight_ct > 0 ? String(row.weight_ct) : ''
+  );
+
   const inputCls =
     'w-full px-2 py-1.5 bg-charcoal-800 border border-white/5 rounded text-xs text-cream-200 placeholder:text-charcoal-500 focus:outline-none focus:border-gold-500/30';
   const selectCls =
@@ -193,11 +198,17 @@ function StoneRowEditor({
       <td className="py-2 px-2">
         <input
           type="number"
-          value={row.weight_ct || ''}
-          onChange={(e) => onUpdate({ weight_ct: parseFloat(e.target.value) || 0 })}
-          placeholder="0.00"
+          value={weightStr}
+          onChange={(e) => setWeightStr(e.target.value)}
+          onBlur={(e) => {
+            const val = parseFloat(e.target.value);
+            const clean = isNaN(val) || val < 0 ? 0 : val;
+            setWeightStr(clean > 0 ? String(clean) : '');
+            onUpdate({ weight_ct: clean });
+          }}
+          placeholder="0.005"
           step="0.001"
-          min="0"
+          min="0.001"
           className={inputCls}
         />
       </td>

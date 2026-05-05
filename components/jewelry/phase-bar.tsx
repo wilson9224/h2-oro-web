@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Clock, Lock, PlayCircle, ChevronRight, Calendar, User, Package } from 'lucide-react';
+import { Check, Clock, Lock, PlayCircle, Calendar, User, Package } from 'lucide-react';
 
 interface Phase {
   key: string;
@@ -15,22 +15,39 @@ interface PhaseBarProps {
   deliveredBy?: string;
 }
 
+const STATUS_LABEL: Record<Phase['status'], string> = {
+  completed: 'Completada',
+  active: 'Activa',
+  pending: 'Pendiente',
+  blocked: 'Bloqueada',
+};
+
+const STATUS_CIRCLE_STYLE: Record<Phase['status'], React.CSSProperties> = {
+  completed: { background: 'rgba(16,185,129,0.12)', border: '2px solid rgba(16,185,129,0.5)' },
+  active:    { background: 'rgba(212,175,55,0.14)', border: '2px solid rgba(212,175,55,0.6)' },
+  pending:   { background: 'rgba(255,255,255,0.04)', border: '2px solid rgba(255,255,255,0.1)' },
+  blocked:   { background: 'rgba(239,68,68,0.08)', border: '2px solid rgba(239,68,68,0.25)' },
+};
+
+const STATUS_ICON_COLOR: Record<Phase['status'], string> = {
+  completed: 'rgba(110,231,183,0.9)',
+  active:    'rgba(212,175,55,0.95)',
+  pending:   'rgba(242,240,237,0.22)',
+  blocked:   'rgba(252,165,165,0.7)',
+};
+
 export default function PhaseBar({ currentPhase, isDelivered, deliveredDate, deliveredBy }: PhaseBarProps) {
-  console.log('PhaseBar recibió currentPhase:', currentPhase);
-  console.log('PhaseBar recibió isDelivered:', isDelivered);
   const phases: Phase[] = [
-    { key: 'creation', name: 'Creación', status: 'pending' },
-    { key: 'start_work', name: 'Inicio Trabajo', status: 'pending' },
-    { key: 'end_work', name: 'Fin Trabajo', status: 'pending' },
-    { key: 'delivery', name: 'Entrega', status: 'pending' },
+    { key: 'creation',   name: 'Creación',       status: 'pending' },
+    { key: 'start_work', name: 'Inicio Trabajo',  status: 'pending' },
+    { key: 'end_work',   name: 'Fin Trabajo',     status: 'pending' },
+    { key: 'delivery',   name: 'Entrega',         status: 'pending' },
   ];
 
-  // Determinar el estado de cada fase
   const phaseIndex = phases.findIndex(p => p.key === currentPhase);
-  
+
   phases.forEach((phase, index) => {
     if (isDelivered) {
-      // Si está entregado, todo está completado
       phase.status = 'completed';
     } else if (index < phaseIndex) {
       phase.status = 'completed';
@@ -43,171 +60,154 @@ export default function PhaseBar({ currentPhase, isDelivered, deliveredDate, del
     }
   });
 
-  const getPhaseIcon = (status: Phase['status']) => {
+  const getIcon = (status: Phase['status']) => {
+    const color = STATUS_ICON_COLOR[status];
+    const isActive = status === 'active';
     switch (status) {
-      case 'completed':
-        return <Check size={18} className="text-emerald-400" />;
-      case 'active':
-        return <PlayCircle size={18} className="text-gold-400 animate-pulse" />;
-      case 'pending':
-        return <Clock size={18} className="text-charcoal-400" />;
-      case 'blocked':
-        return <Lock size={18} className="text-red-400" />;
+      case 'completed': return <Check size={16} style={{ color }} />;
+      case 'active':    return <PlayCircle size={16} className={isActive ? 'animate-pulse' : ''} style={{ color }} />;
+      case 'pending':   return <Clock size={16} style={{ color }} />;
+      case 'blocked':   return <Lock size={14} style={{ color }} />;
     }
   };
 
-  const getPhaseColor = (status: Phase['status']) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-emerald-500/20';
-      case 'active':
-        return 'bg-gold-500/10 border-gold-500/50 text-gold-400 shadow-gold-500/20 animate-pulse';
-      case 'pending':
-        return 'bg-charcoal-800/50 border-charcoal-600/50 text-charcoal-400';
-      case 'blocked':
-        return 'bg-red-500/10 border-red-500/50 text-red-400 shadow-red-500/20';
-    }
-  };
-
-  const getPhaseBg = (status: Phase['status']) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-emerald-500/5';
-      case 'active':
-        return 'bg-gold-500/5';
-      case 'pending':
-        return 'bg-charcoal-800/30';
-      case 'blocked':
-        return 'bg-red-500/5';
-    }
-  };
-
-  const getConnectorColor = (index: number) => {
-    if (index === phases.length - 1) return 'border-transparent';
-    const currentPhaseIndex = phases.findIndex(p => p.key === currentPhase);
-    if (index < currentPhaseIndex) return 'border-emerald-500/50';
-    if (index === currentPhaseIndex) return 'border-gold-500/50';
-    return 'border-charcoal-700';
-  };
+  const completedCount = phases.filter(p => p.status === 'completed').length;
+  const progressPct = Math.round((completedCount / phases.length) * 100);
+  const activePhase = phases.find(p => p.key === currentPhase);
 
   return (
-    <div className="bg-gradient-to-br from-charcoal-800/80 to-charcoal-900/80 border border-white/10 rounded-xl p-6 backdrop-blur-sm shadow-xl">
+    <div
+      className="rounded-2xl p-5 font-sans-custom"
+      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gold-500/20 rounded-lg flex items-center justify-center">
-            <Package size={16} className="text-gold-400" />
+          <div
+            className="w-8 h-8 rounded-xl flex items-center justify-center"
+            style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.2)' }}
+          >
+            <Package size={15} style={{ color: 'rgba(212,175,55,0.8)' }} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-cream-100">Progreso del Pedido</h3>
-            <p className="text-xs text-charcoal-400">
-              {isDelivered ? 'Entregado' : `Fase actual: ${phases.find(p => p.key === currentPhase)?.name}`}
+            <p className="text-sm font-semibold" style={{ color: 'rgba(242,240,237,0.82)' }}>Progreso del Pedido</p>
+            <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: 'rgba(242,240,237,0.3)' }}>
+              {isDelivered ? 'Entregado' : `Fase actual: ${activePhase?.name ?? '—'}`}
             </p>
           </div>
         </div>
-        
-        {/* Indicador de progreso */}
+
         <div className="flex items-center gap-2">
-          <div className="text-xs text-charcoal-400">
-            {Math.round((phases.filter(p => p.status === 'completed').length / phases.length) * 100)}%
-          </div>
-          <div className="w-16 h-2 bg-charcoal-700 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-emerald-500 to-gold-500 transition-all duration-500"
-              style={{ width: `${(phases.filter(p => p.status === 'completed').length / phases.length) * 100}%` }}
+          <span className="text-xs font-semibold tabular-nums" style={{ color: 'rgba(242,240,237,0.4)' }}>{progressPct}%</span>
+          <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${progressPct}%`,
+                background: progressPct === 100
+                  ? 'rgba(110,231,183,0.7)'
+                  : 'linear-gradient(90deg, rgba(110,231,183,0.6) 0%, rgba(212,175,55,0.7) 100%)',
+              }}
             />
           </div>
         </div>
       </div>
-      
-      {/* Fases */}
-      <div className="relative">
-        {/* Línea conectora - perfectamente centrada (36px = 24px centro círculo + 12px padding) */}
-        <div className="absolute top-[1.75rem] left-9 right-9 h-0.5 bg-gradient-to-r from-emerald-500/30 via-gold-500/30 to-charcoal-700/50 z-0" />
 
-        <div className="relative z-10 grid grid-cols-4 gap-4">
-          {phases.map((phase, index) => (
-            <div key={phase.key} className="flex flex-col items-center">
-              {/* Círculo de fase mejorado */}
-              <div className={`relative group transition-all duration-300 ${getPhaseBg(phase.status)} rounded-xl p-3`}>
-                <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-300 shadow-lg ${getPhaseColor(phase.status)} group-hover:scale-105`}>
-                  {getPhaseIcon(phase.status)}
-                </div>
-                
-                {/* Indicador numerado */}
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-charcoal-900 rounded-full flex items-center justify-center text-xs font-bold text-cream-200 border border-white/20">
-                  {index + 1}
-                </div>
-              </div>
-              
-              {/* Información de fase */}
-              <div className="mt-3 text-center">
-                <p className="text-xs font-semibold text-cream-200">{phase.name}</p>
-                <p className="text-[10px] text-charcoal-500 capitalize mt-1">{phase.status}</p>
-              </div>
+      {/* Steps */}
+      {/* Outer wrapper: relative so we can absolutely position the connector track */}
+      <div className="relative flex items-start justify-between">
+        {/* Background connector track — spans circle centers: left offset = half circle width (20px), right same */}
+        <div
+          className="absolute h-px"
+          style={{
+            top: 20, // half of the 40px circle height
+            left: 52,  // half minWidth(64) + half connector gap
+            right: 52,
+            background: 'rgba(255,255,255,0.07)',
+            zIndex: 0,
+          }}
+        />
+        {/* Filled progress overlay */}
+        <div
+          className="absolute h-px transition-all duration-500"
+          style={{
+            top: 20,
+            left: 52,
+            width: phaseIndex > 0 || isDelivered
+              ? `calc(${isDelivered ? 100 : (phaseIndex / (phases.length - 1)) * 100}% - 0px)`
+              : '0%',
+            background: 'rgba(110,231,183,0.45)',
+            zIndex: 0,
+          }}
+        />
 
-              {/* Flecha conectora */}
-              {index < phases.length - 1 && (
-                <ChevronRight 
-                  size={16} 
-                  className={`absolute top-6 -right-2 transition-colors duration-300 ${
-                    phase.status === 'completed' ? 'text-emerald-400' : 
-                    phase.status === 'active' ? 'text-gold-400' : 'text-charcoal-600'
-                  }`} 
-                />
-              )}
+        {phases.map((phase, index) => (
+          <div
+            key={phase.key}
+            className="flex flex-col items-center"
+            style={{ flex: 1, position: 'relative', zIndex: 1 }}
+          >
+            {/* Circle */}
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300"
+              style={STATUS_CIRCLE_STYLE[phase.status]}
+            >
+              {getIcon(phase.status)}
             </div>
-          ))}
-        </div>
+
+            {/* Number badge */}
+            <div className="mt-1.5 mb-1">
+              <span
+                className="text-[9px] font-bold tabular-nums px-1.5 py-0.5 rounded-full"
+                style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.28)' }}
+              >
+                {index + 1}
+              </span>
+            </div>
+
+            {/* Label */}
+            <p
+              className="text-[10px] font-semibold text-center leading-tight"
+              style={{ color: 'rgba(242,240,237,0.65)', maxWidth: 64 }}
+            >
+              {phase.name}
+            </p>
+            <p
+              className="text-[9px] mt-0.5 uppercase tracking-wider text-center"
+              style={{ color: STATUS_ICON_COLOR[phase.status] }}
+            >
+              {STATUS_LABEL[phase.status]}
+            </p>
+          </div>
+        ))}
       </div>
 
-      {/* Información de entrega */}
+      {/* Delivery info */}
       {isDelivered && deliveredDate && (
-        <div className="mt-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
-          <div className="flex items-center gap-3">
-            <Check size={20} className="text-emerald-400" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-emerald-400">Pedido Entregado</p>
-              <div className="flex items-center gap-4 mt-1">
-                {deliveredDate && (
-                  <div className="flex items-center gap-1 text-xs text-emerald-300">
-                    <Calendar size={12} />
-                    {new Date(deliveredDate).toLocaleDateString('es-CO')}
-                  </div>
-                )}
-                {deliveredBy && (
-                  <div className="flex items-center gap-1 text-xs text-emerald-300">
-                    <User size={12} />
-                    {deliveredBy}
-                  </div>
-                )}
-              </div>
+        <div
+          className="mt-5 p-4 rounded-2xl flex items-center gap-3"
+          style={{ background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.18)' }}
+        >
+          <Check size={16} style={{ color: 'rgba(110,231,183,0.85)' }} />
+          <div className="flex-1">
+            <p className="text-sm font-semibold" style={{ color: 'rgba(110,231,183,0.9)' }}>Pedido Entregado</p>
+            <div className="flex items-center gap-4 mt-1">
+              {deliveredDate && (
+                <span className="flex items-center gap-1 text-[11px]" style={{ color: 'rgba(110,231,183,0.55)' }}>
+                  <Calendar size={11} />
+                  {new Date(deliveredDate).toLocaleDateString('es-CO')}
+                </span>
+              )}
+              {deliveredBy && (
+                <span className="flex items-center gap-1 text-[11px]" style={{ color: 'rgba(110,231,183,0.55)' }}>
+                  <User size={11} />
+                  {deliveredBy}
+                </span>
+              )}
             </div>
           </div>
         </div>
       )}
-
-      {/* Leyenda optimizada */}
-      <div className="mt-6 pt-4 border-t border-white/5">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
-            <span className="text-charcoal-400">Completada</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-gold-400 rounded-full animate-pulse"></div>
-            <span className="text-charcoal-400">Activa</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-charcoal-400 rounded-full"></div>
-            <span className="text-charcoal-400">Pendiente</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-            <span className="text-charcoal-400">Bloqueada</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
