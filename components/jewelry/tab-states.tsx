@@ -41,24 +41,29 @@ interface TabEstadosProps {
   activeCycle?: ActiveCycle | null;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; icon: JSX.Element; rowClass: string; badgeClass: string }> = {
+const STATUS_CONFIG: Record<string, {
+  label: string;
+  icon: JSX.Element;
+  rowStyle: React.CSSProperties;
+  badgeStyle: React.CSSProperties;
+}> = {
   completed: {
     label: 'Completado',
-    icon: <Check size={15} className="text-emerald-400" />,
-    rowClass: 'border-emerald-500/20 bg-emerald-500/5',
-    badgeClass: 'bg-emerald-500/15 text-emerald-400',
+    icon: <Check size={14} style={{ color: 'rgba(110,231,183,0.9)' }} />,
+    rowStyle: { background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.18)' },
+    badgeStyle: { background: 'rgba(16,185,129,0.1)', color: 'rgba(110,231,183,0.9)', border: '1px solid rgba(16,185,129,0.2)' },
   },
   in_progress: {
     label: 'En progreso',
-    icon: <Clock size={15} className="text-gold-400 animate-pulse" />,
-    rowClass: 'border-gold-500/20 bg-gold-500/5',
-    badgeClass: 'bg-gold-500/15 text-gold-400',
+    icon: <Clock size={14} className="animate-pulse" style={{ color: 'rgba(212,175,55,0.9)' }} />,
+    rowStyle: { background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.18)' },
+    badgeStyle: { background: 'rgba(212,175,55,0.1)', color: 'rgba(212,175,55,0.9)', border: '1px solid rgba(212,175,55,0.2)' },
   },
   pending: {
     label: 'Pendiente',
-    icon: <Clock size={15} className="text-charcoal-500" />,
-    rowClass: 'border-white/5 bg-charcoal-900/40',
-    badgeClass: 'bg-charcoal-700 text-charcoal-400',
+    icon: <Clock size={14} style={{ color: 'rgba(242,240,237,0.25)' }} />,
+    rowStyle: { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' },
+    badgeStyle: { background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.35)', border: '1px solid rgba(255,255,255,0.08)' },
   },
 };
 
@@ -77,13 +82,13 @@ export default function TabEstados({ pieces, activeCycle }: TabEstadosProps) {
 
   if (sorted.length === 0) {
     return (
-      <div className="bg-charcoal-800/50 border border-white/5 rounded-lg p-6">
-        <h3 className="text-sm font-medium text-cream-100 mb-4">Mano de Obra</h3>
+      <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <p className="text-sm font-semibold font-sans-custom mb-4" style={{ color: 'rgba(242,240,237,0.7)' }}>Mano de Obra</p>
         <div className="text-center py-10">
-          <AlertCircle size={28} className="mx-auto text-charcoal-600 mb-3" />
-          <p className="text-sm text-charcoal-500">No hay estados de mano de obra registrados</p>
-          <p className="text-xs text-charcoal-600 mt-1">
-            Se asignan al hacer clic en <span className="text-gold-500">Iniciar Trabajo</span>
+          <AlertCircle size={26} className="mx-auto mb-3" style={{ color: 'rgba(242,240,237,0.15)' }} />
+          <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>No hay estados de mano de obra registrados</p>
+          <p className="text-xs mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.2)' }}>
+            Se asignan al hacer clic en <span style={{ color: 'rgba(212,175,55,0.7)' }}>Iniciar Trabajo</span>
           </p>
         </div>
       </div>
@@ -91,8 +96,8 @@ export default function TabEstados({ pieces, activeCycle }: TabEstadosProps) {
   }
 
   return (
-    <div className="bg-charcoal-800/50 border border-white/5 rounded-lg p-6">
-      <h3 className="text-sm font-medium text-cream-100 mb-5">Mano de Obra</h3>
+    <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <p className="text-sm font-semibold font-sans-custom mb-4" style={{ color: 'rgba(242,240,237,0.7)' }}>Mano de Obra</p>
 
       <div className="space-y-2">
         {sorted.map((item) => {
@@ -106,48 +111,46 @@ export default function TabEstados({ pieces, activeCycle }: TabEstadosProps) {
           return (
             <div
               key={item.service_code}
-              className={`flex items-center gap-4 border rounded-lg px-4 py-3 transition-colors ${cfg.rowClass}`}
+              className="flex items-center gap-4 px-4 py-3 rounded-xl transition-all"
+              style={cfg.rowStyle}
             >
-              {/* Número de orden */}
-              <span className="text-[11px] font-mono text-charcoal-500 w-5 shrink-0 text-center">
+              <span className="text-[11px] font-mono w-5 shrink-0 text-center" style={{ color: 'rgba(242,240,237,0.25)' }}>
                 {item.sort_order}
               </span>
 
-              {/* Ícono de estado */}
               <span className="shrink-0">{cfg.icon}</span>
 
-              {/* Nombre del servicio */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-cream-200 font-medium">{item.service_name}</p>
+                <p className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.85)' }}>{item.service_name}</p>
               </div>
 
-              {/* Encargado */}
               <div className="flex items-center gap-1.5 shrink-0">
                 {workerName ? (
                   <>
-                    <UserCircle2 size={13} className="text-charcoal-400" />
-                    <span className="text-xs text-charcoal-300">{workerName}</span>
+                    <UserCircle2 size={12} style={{ color: 'rgba(242,240,237,0.3)' }} />
+                    <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.55)' }}>{workerName}</span>
                   </>
                 ) : (
-                  <span className="text-xs text-charcoal-600 italic">Sin asignar</span>
+                  <span className="text-xs italic font-sans-custom" style={{ color: 'rgba(242,240,237,0.2)' }}>Sin asignar</span>
                 )}
               </div>
 
-              {/* Badge de estado */}
-              <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 ${cfg.badgeClass}`}>
+              <span
+                className="text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 font-sans-custom"
+                style={cfg.badgeStyle}
+              >
                 {cfg.label}
               </span>
 
-              {/* Barra de progreso (solo si hay progreso) */}
               {wa && wa.progressPct > 0 && (
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <div className="w-16 h-1.5 bg-charcoal-700 rounded-full overflow-hidden">
+                  <div className="w-16 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
                     <div
-                      className="h-full bg-gold-500/60 rounded-full transition-all"
-                      style={{ width: `${wa.progressPct}%` }}
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${wa.progressPct}%`, background: 'rgba(212,175,55,0.6)' }}
                     />
                   </div>
-                  <span className="text-[10px] text-charcoal-500">{wa.progressPct}%</span>
+                  <span className="text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>{wa.progressPct}%</span>
                 </div>
               )}
             </div>

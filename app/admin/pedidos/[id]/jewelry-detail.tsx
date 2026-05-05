@@ -1035,19 +1035,21 @@ export default function JewelryDetailPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 bg-charcoal-800 rounded w-48 animate-pulse" />
-        <div className="h-64 bg-charcoal-800 rounded-lg animate-pulse" />
+        <div className="h-5 rounded-xl animate-pulse w-48" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="h-20 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        <div className="h-48 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        <div className="h-96 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
       </div>
     );
   }
 
   if (error || !order || !jewelryData) {
     return (
-      <div className="space-y-6">
-        <Link href="/admin/pedidos" className="inline-flex items-center gap-2 text-sm text-charcoal-400 hover:text-cream-200">
-          <ArrowLeft size={16} /> Volver a pedidos
+      <div className="space-y-4">
+        <Link href="/admin/pedidos" className="inline-flex items-center gap-2 text-sm font-sans-custom transition-colors" style={{ color: 'rgba(242,240,237,0.4)' }}>
+          <ArrowLeft size={15} /> Pedidos
         </Link>
-        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6 text-red-400 text-sm">
+        <div className="rounded-2xl p-5 text-sm font-sans-custom" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'rgba(252,165,165,0.9)' }}>
           {error || 'Pedido de joyería no encontrado'}
         </div>
       </div>
@@ -1079,96 +1081,137 @@ export default function JewelryDetailPage() {
   const hasMinPayment = isJewelerQuote ? totalPaidTowardsMetal >= metalMinRequired : true;
   const paymentShortfall = Math.max(0, metalMinRequired - totalPaidTowardsMetal);
 
+  const statusBadge: Record<string, { label: string; bg: string; color: string; border: string }> = {
+    pending:     { label: 'Pendiente',   bg: 'rgba(234,179,8,0.1)',   color: 'rgba(250,204,21,0.9)',  border: 'rgba(234,179,8,0.25)' },
+    in_progress: { label: 'En progreso', bg: 'rgba(59,130,246,0.1)',  color: 'rgba(147,197,253,0.9)', border: 'rgba(59,130,246,0.25)' },
+    completed:   { label: 'Completado',  bg: 'rgba(16,185,129,0.1)',  color: 'rgba(110,231,183,0.9)', border: 'rgba(16,185,129,0.25)' },
+    delivered:   { label: 'Entregado',   bg: 'rgba(34,197,94,0.1)',   color: 'rgba(134,239,172,0.9)', border: 'rgba(34,197,94,0.25)' },
+    cancelled:   { label: 'Cancelado',   bg: 'rgba(239,68,68,0.1)',   color: 'rgba(252,165,165,0.9)', border: 'rgba(239,68,68,0.25)' },
+  };
+  const st = statusBadge[order.status] ?? { label: order.status, bg: 'rgba(255,255,255,0.06)', color: 'rgba(242,240,237,0.5)', border: 'rgba(255,255,255,0.1)' };
+
   return (
-    <div className="space-y-6 max-w-6xl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/admin/pedidos" className="inline-flex items-center gap-2 text-sm text-charcoal-400 hover:text-cream-200">
-            <ArrowLeft size={16} /> Pedidos
-          </Link>
+    <div className="space-y-5 max-w-6xl">
+
+      {/* Back + Header */}
+      <Link
+        href="/admin/pedidos"
+        className="inline-flex items-center gap-2 text-sm font-sans-custom transition-colors"
+        style={{ color: 'rgba(242,240,237,0.35)' }}
+        onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.7)'}
+        onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.35)'}
+      >
+        <ArrowLeft size={15} /> Pedidos
+      </Link>
+
+      {/* Title row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-2xl font-serif text-cream-200">{order.orderNumber}</h1>
-            <p className="text-sm text-charcoal-400">Pedido de Joyería · {order.status}</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.95)' }}>
+                {order.orderNumber}
+              </h1>
+              <span
+                className="text-[11px] px-2.5 py-0.5 rounded-full font-sans-custom font-medium"
+                style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}` }}
+              >
+                {st.label}
+              </span>
+            </div>
+            <p className="text-sm mt-0.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
+              Pedido de Joyería · {order.client ? `${order.client.firstName} ${order.client.lastName}` : ''}
+            </p>
           </div>
         </div>
-        
+
+        {/* Action buttons */}
         {jewelryData?.isDelivered ? (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-md">
-            <span className="text-xs text-emerald-400">Entregado</span>
-          </div>
+          <span
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold font-sans-custom"
+            style={{ background: 'rgba(34,197,94,0.1)', color: 'rgba(134,239,172,0.9)', border: '1px solid rgba(34,197,94,0.25)' }}
+          >
+            Entregado
+          </span>
         ) : (
-          <div className="flex items-center gap-2">
-            {/* Botón según fase actual */}
+          <div className="flex flex-wrap items-center gap-2">
             {(jewelryData?.currentPhase === 'creation' || !jewelryData?.currentPhase) && (
               <>
-                {/* Recotizar button when expired */}
                 {isQuotationExpired && (
                   <button
                     onClick={() => setShowRequoteModal(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm font-medium rounded-md hover:bg-amber-500/20 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold font-sans-custom transition-all"
+                    style={{ background: 'rgba(245,158,11,0.12)', color: 'rgba(252,211,77,0.9)', border: '1px solid rgba(245,158,11,0.3)' }}
                   >
-                    <RefreshCw size={14} />
-                    Recotizar
+                    <RefreshCw size={13} /> Recotizar
                   </button>
                 )}
-
                 {isQuotationExpired ? (
                   <button
                     disabled
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold font-sans-custom cursor-not-allowed"
+                    style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(242,240,237,0.25)', border: '1px solid rgba(255,255,255,0.06)' }}
                     title="La cotización venció. Recotiza con los precios del día para continuar."
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-charcoal-700 text-charcoal-500 text-sm font-medium rounded-md cursor-not-allowed"
                   >
                     Iniciar Trabajo
                   </button>
                 ) : !hasMinPayment ? (
                   <button
                     disabled
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold font-sans-custom cursor-not-allowed"
+                    style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(242,240,237,0.25)', border: '1px solid rgba(255,255,255,0.06)' }}
                     title={`Falta abonar mínimo el precio del metal. Pendiente: $${new Intl.NumberFormat('es-CO').format(paymentShortfall)}`}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-charcoal-700 text-charcoal-500 text-sm font-medium rounded-md cursor-not-allowed"
                   >
                     Iniciar Trabajo
                   </button>
                 ) : (
                   <button
                     onClick={() => setShowStartWorkModal(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-[0.08em] font-sans-custom transition-all"
+                    style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400' }}
                   >
                     Iniciar Trabajo
                   </button>
                 )}
               </>
             )}
-            
-            {(jewelryData?.currentPhase === 'start_work' || !jewelryData?.currentPhase) && (
+
+            {jewelryData?.currentPhase === 'start_work' && (
               <button
                 onClick={() => setShowFinishWorkModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-[0.08em] font-sans-custom transition-all"
+                style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400' }}
               >
                 Finalizar Trabajo
               </button>
             )}
-            
-            {(jewelryData?.currentPhase === 'end_work' || !jewelryData?.currentPhase) && (
+
+            {jewelryData?.currentPhase === 'end_work' && (
               <button
                 onClick={() => setShowDeliverModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white text-sm font-medium rounded-md hover:bg-emerald-400 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-[0.08em] font-sans-custom transition-all"
+                style={{ background: 'rgba(16,185,129,0.15)', color: 'rgba(110,231,183,0.95)', border: '1px solid rgba(16,185,129,0.3)' }}
               >
                 Entregar Pedido
               </button>
             )}
-            
-            {/* Botones de abonos siempre disponibles */}
+
             <button
               onClick={() => setShowMaterialPaymentModal(true)}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-charcoal-700 text-cream-200 text-sm font-medium rounded-md hover:bg-charcoal-600 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold font-sans-custom transition-all"
+              style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.7)', border: '1px solid rgba(255,255,255,0.08)' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.09)'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'}
             >
               Abono Material
             </button>
-            
+
             <button
               onClick={() => setShowCashPaymentModal(true)}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-charcoal-700 text-cream-200 text-sm font-medium rounded-md hover:bg-charcoal-600 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold font-sans-custom transition-all"
+              style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.7)', border: '1px solid rgba(255,255,255,0.08)' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.09)'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'}
             >
               Abono Dinero
             </button>
@@ -1177,43 +1220,43 @@ export default function JewelryDetailPage() {
       </div>
 
       {/* Barra de fases */}
-      <PhaseBar 
-        currentPhase={jewelryData?.currentPhase || 'creation'} 
+      <PhaseBar
+        currentPhase={jewelryData?.currentPhase || 'creation'}
         isDelivered={jewelryData?.isDelivered || false}
         deliveredDate={jewelryData?.deliveryDate || undefined}
         deliveredBy={jewelryData?.receiverName || undefined}
       />
 
-      {/* Alert banners: expiry + payment shortfall */}
+      {/* Alert banners */}
       {isJewelerQuote && (jewelryData?.currentPhase === 'creation' || !jewelryData?.currentPhase) && (
         <>
           {isQuotationExpired && (
-            <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-              <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 p-4 rounded-2xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+              <AlertTriangle size={15} className="shrink-0 mt-0.5" style={{ color: 'rgba(252,211,77,0.8)' }} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-amber-300">Cotización vencida</p>
-                <p className="text-xs text-amber-400/70 mt-0.5">
-                  Esta cotización fue creada el {new Date(quotation!.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}.
-                  Los precios del oro cambian a diario. Debes recotizar con los precios de hoy antes de iniciar el trabajo.
+                <p className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(252,211,77,0.9)' }}>Cotización vencida</p>
+                <p className="text-xs mt-0.5 font-sans-custom" style={{ color: 'rgba(252,211,77,0.55)' }}>
+                  Creada el {new Date(quotation!.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}.
+                  Los precios cambian diariamente. Recotiza antes de iniciar.
                 </p>
               </div>
               <button
                 onClick={() => setShowRequoteModal(true)}
-                className="shrink-0 px-3 py-1.5 text-xs font-medium bg-amber-500 text-charcoal-900 rounded-md hover:bg-amber-400 transition-colors"
+                className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold font-sans-custom transition-all"
+                style={{ background: 'rgba(245,158,11,0.2)', color: 'rgba(252,211,77,0.95)', border: '1px solid rgba(245,158,11,0.35)' }}
               >
                 Recotizar ahora
               </button>
             </div>
           )}
           {!isQuotationExpired && !hasMinPayment && metalMinRequired > 0 && (
-            <div className="flex items-start gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <AlertTriangle size={16} className="text-blue-400 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 p-4 rounded-2xl" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
+              <AlertTriangle size={15} className="shrink-0 mt-0.5" style={{ color: 'rgba(147,197,253,0.8)' }} />
               <div>
-                <p className="text-sm font-medium text-blue-300">Abono mínimo requerido para iniciar</p>
-                <p className="text-xs text-blue-400/70 mt-0.5">
-                  Se debe abonar al menos el precio del metal ({new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(metalMinRequired)}).
-                  Pendiente: <strong className="text-blue-300">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(paymentShortfall)}</strong>.
-                  Usa los botones de Abono para registrar el pago.
+                <p className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(147,197,253,0.9)' }}>Abono mínimo requerido para iniciar</p>
+                <p className="text-xs mt-0.5 font-sans-custom" style={{ color: 'rgba(147,197,253,0.55)' }}>
+                  Debe abonarse al menos el precio del metal ({new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(metalMinRequired)}).
+                  Pendiente: <strong style={{ color: 'rgba(147,197,253,0.9)' }}>{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(paymentShortfall)}</strong>.
                 </p>
               </div>
             </div>
@@ -1222,44 +1265,45 @@ export default function JewelryDetailPage() {
       )}
 
       {/* Tabs */}
-      <div className="bg-charcoal-800/50 border border-white/5 rounded-lg">
-        {/* Navegación de tabs */}
-        <div className="border-b border-white/5">
-          <nav className="flex space-x-1 p-2">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                  activeTab === tab.key
-                    ? 'bg-gold-500/10 text-gold-400'
-                    : 'text-charcoal-400 hover:text-cream-200'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <nav className="flex gap-1 p-2 overflow-x-auto">
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap font-sans-custom transition-all"
+                  style={{
+                    background: isActive ? 'rgba(212,175,55,0.12)' : 'transparent',
+                    color: isActive ? 'rgba(212,175,55,0.95)' : 'rgba(242,240,237,0.35)',
+                    border: isActive ? '1px solid rgba(212,175,55,0.2)' : '1px solid transparent',
+                  }}
+                  onMouseEnter={e => !isActive && ((e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.65)')}
+                  onMouseLeave={e => !isActive && ((e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.35)')}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </nav>
         </div>
-
-        {/* Contenido del tab */}
         <div className="p-6">
           {renderTabContent()}
         </div>
       </div>
 
-      {/* Alertas informativas */}
+      {/* Retrabajo alert */}
       {jewelryData.reworkCount > 0 && (
-        <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle size={16} className="text-orange-500 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-orange-400">Retrabajos registrados</p>
-              <p className="text-xs text-orange-300 mt-1">
-                Este pedido ha tenido {jewelryData.reworkCount} retrabajo{jewelryData.reworkCount !== 1 ? 's' : ''}. 
-                Revisa la pestaña de Ciclos para ver el historial completo.
-              </p>
-            </div>
+        <div className="flex items-start gap-3 p-4 rounded-2xl" style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)' }}>
+          <AlertTriangle size={15} className="shrink-0 mt-0.5" style={{ color: 'rgba(253,186,116,0.8)' }} />
+          <div>
+            <p className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(253,186,116,0.9)' }}>Retrabajos registrados</p>
+            <p className="text-xs mt-0.5 font-sans-custom" style={{ color: 'rgba(253,186,116,0.55)' }}>
+              Este pedido ha tenido {jewelryData.reworkCount} retrabajo{jewelryData.reworkCount !== 1 ? 's' : ''}.
+              Revisa la pestaña de Ciclos para ver el historial.
+            </p>
           </div>
         </div>
       )}

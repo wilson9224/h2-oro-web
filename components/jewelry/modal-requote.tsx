@@ -81,11 +81,15 @@ export default function ModalRequote({ isOpen, onClose, onSuccess, quotation }: 
   const totalDiff = newTotalCop - oldTotalCop;
 
   const DiffBadge = ({ diff }: { diff: number }) => {
-    if (diff === 0) return <span className="inline-flex items-center gap-1 text-xs text-charcoal-400"><Minus size={11} /> Sin cambio</span>;
+    if (diff === 0) return (
+      <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: 'rgba(242,240,237,0.3)' }}>
+        <Minus size={10} /> Sin cambio
+      </span>
+    );
     const positive = diff > 0;
     return (
-      <span className={`inline-flex items-center gap-1 text-xs font-medium ${positive ? 'text-red-400' : 'text-emerald-400'}`}>
-        {positive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold" style={{ color: positive ? 'rgba(252,165,165,0.85)' : 'rgba(110,231,183,0.85)' }}>
+        {positive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
         {positive ? '+' : ''}{formatCOP(diff)}
       </span>
     );
@@ -126,100 +130,114 @@ export default function ModalRequote({ isOpen, onClose, onSuccess, quotation }: 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-charcoal-900 border border-white/10 rounded-xl w-full max-w-md shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      style={{ background: 'rgba(10,10,10,0.88)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-md my-auto rounded-2xl font-sans-custom flex flex-col"
+        style={{
+          background: 'rgba(18,16,14,0.98)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+          maxHeight: 'calc(100vh - 2rem)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-          <div className="flex items-center gap-2">
-            <RefreshCw size={16} className="text-amber-400" />
-            <h2 className="text-base font-semibold text-cream-100">Recotizar con precios del día</h2>
+        <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.2)' }}>
+              <RefreshCw size={14} style={{ color: 'rgba(251,191,36,0.85)' }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'rgba(242,240,237,0.88)' }}>Recotizar con precios del día</p>
+              <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: 'rgba(242,240,237,0.3)' }}>Actualización de precios</p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-charcoal-400 hover:text-cream-200">
-            <X size={18} />
+          <button onClick={onClose} className="p-2 rounded-xl transition-all" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.5)' }}>
+            <X size={16} />
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
-          {/* Expiry warning */}
-          <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-            <AlertTriangle size={15} className="text-amber-400 shrink-0 mt-0.5" />
+        {/* Body */}
+        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+
+          {/* Aviso vencimiento */}
+          <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.18)' }}>
+            <AlertTriangle size={13} className="shrink-0 mt-0.5" style={{ color: 'rgba(251,191,36,0.8)' }} />
             <div>
-              <p className="text-sm font-medium text-amber-300">Cotización vencida</p>
-              <p className="text-xs text-amber-400/70 mt-0.5">
-                Fue creada el {new Date(quotation.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}.
-                Los precios del oro cambian a diario — se recalculará con los valores actuales.
+              <p className="text-xs font-semibold mb-0.5" style={{ color: 'rgba(251,191,36,0.9)' }}>Cotización vencida</p>
+              <p className="text-[11px]" style={{ color: 'rgba(251,191,36,0.55)' }}>
+                Fue creada el {new Date(quotation.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}. Los precios del oro cambian a diario — se recalculará con los valores actuales.
               </p>
             </div>
           </div>
 
           {loading ? (
-            <div className="py-6 text-center text-sm text-charcoal-400">Cargando precios actuales...</div>
+            <div className="py-8 text-center text-xs" style={{ color: 'rgba(242,240,237,0.3)' }}>Cargando precios actuales...</div>
           ) : (
             <>
-              {/* Comparison table */}
-              <div className="bg-charcoal-800 rounded-lg overflow-hidden">
-                <div className="grid grid-cols-3 text-[11px] uppercase tracking-wider text-charcoal-500 px-4 py-2 border-b border-white/5">
-                  <span>Concepto</span>
-                  <span className="text-center">Anterior</span>
-                  <span className="text-right">Nuevo</span>
+              {/* Tabla comparativa */}
+              <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                {/* Encabezado */}
+                <div className="grid grid-cols-3 px-4 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)' }}>
+                  {['Concepto', 'Anterior', 'Nuevo'].map((h, i) => (
+                    <span key={h} className={`text-[10px] uppercase tracking-wider font-semibold ${i === 1 ? 'text-center' : i === 2 ? 'text-right' : ''}`} style={{ color: 'rgba(242,240,237,0.25)' }}>{h}</span>
+                  ))}
                 </div>
-                <div className="divide-y divide-white/5">
-                  <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
-                    <span className="text-charcoal-300">Metal</span>
-                    <span className="text-center text-charcoal-400 text-xs">{formatCOP(oldMetalPriceCop)}</span>
-                    <span className="text-right text-cream-200 font-medium">{formatCOP(newMetalPriceCop)}</span>
+                {/* Filas */}
+                {[
+                  { label: 'Metal', old: oldMetalPriceCop, nuevo: newMetalPriceCop },
+                  ...(oldAlloyCop > 0 || newAlloyCop > 0 ? [{ label: 'Liga', old: oldAlloyCop, nuevo: newAlloyCop }] : []),
+                  { label: 'Piedras', old: quotation.stones_total_cop ?? 0, nuevo: quotation.stones_total_cop ?? 0 },
+                  { label: 'M. de obra', old: quotation.labor_total_cop ?? 0, nuevo: quotation.labor_total_cop ?? 0 },
+                ].map((row) => (
+                  <div key={row.label} className="grid grid-cols-3 px-4 py-2.5" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span className="text-xs" style={{ color: 'rgba(242,240,237,0.5)' }}>{row.label}</span>
+                    <span className="text-center text-[11px]" style={{ color: 'rgba(242,240,237,0.3)' }}>{formatCOP(row.old)}</span>
+                    <span className="text-right text-xs font-semibold" style={{ color: 'rgba(242,240,237,0.75)' }}>{formatCOP(row.nuevo)}</span>
                   </div>
-                  {(oldAlloyCop > 0 || newAlloyCop > 0) && (
-                    <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
-                      <span className="text-charcoal-300">Liga</span>
-                      <span className="text-center text-charcoal-400 text-xs">{formatCOP(oldAlloyCop)}</span>
-                      <span className="text-right text-cream-200 font-medium">{formatCOP(newAlloyCop)}</span>
-                    </div>
-                  )}
-                  <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
-                    <span className="text-charcoal-300">Piedras</span>
-                    <span className="text-center text-charcoal-400 text-xs">{formatCOP(quotation.stones_total_cop ?? 0)}</span>
-                    <span className="text-right text-charcoal-400 text-xs">{formatCOP(quotation.stones_total_cop ?? 0)}</span>
-                  </div>
-                  <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
-                    <span className="text-charcoal-300">M. de obra</span>
-                    <span className="text-center text-charcoal-400 text-xs">{formatCOP(quotation.labor_total_cop ?? 0)}</span>
-                    <span className="text-right text-charcoal-400 text-xs">{formatCOP(quotation.labor_total_cop ?? 0)}</span>
-                  </div>
-                  <div className="grid grid-cols-3 px-4 py-3 bg-charcoal-700/50 text-sm font-semibold">
-                    <span className="text-cream-100">Total</span>
-                    <span className="text-center text-charcoal-300">{formatCOP(oldTotalCop)}</span>
-                    <span className="text-right text-amber-400">{formatCOP(newTotalCop)}</span>
-                  </div>
+                ))}
+                {/* Total */}
+                <div className="grid grid-cols-3 px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)', background: 'rgba(212,175,55,0.04)' }}>
+                  <span className="text-xs font-semibold" style={{ color: 'rgba(242,240,237,0.85)' }}>Total</span>
+                  <span className="text-center text-[11px]" style={{ color: 'rgba(242,240,237,0.35)' }}>{formatCOP(oldTotalCop)}</span>
+                  <span className="text-right text-xs font-bold" style={{ color: 'rgba(251,191,36,0.9)' }}>{formatCOP(newTotalCop)}</span>
                 </div>
               </div>
 
-              {/* Diff summary */}
-              <div className="flex items-center justify-between text-sm px-1">
-                <span className="text-charcoal-400">Diferencia en metal:</span>
-                <DiffBadge diff={metalDiff} />
-              </div>
-              <div className="flex items-center justify-between text-sm px-1">
-                <span className="text-charcoal-400">Diferencia total:</span>
-                <DiffBadge diff={totalDiff} />
+              {/* Diferencias */}
+              <div className="space-y-1.5">
+                {[
+                  { label: 'Diferencia en metal:', diff: metalDiff },
+                  { label: 'Diferencia total:', diff: totalDiff },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between px-1">
+                    <span className="text-xs" style={{ color: 'rgba(242,240,237,0.35)' }}>{item.label}</span>
+                    <DiffBadge diff={item.diff} />
+                  </div>
+                ))}
               </div>
 
               {error && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-md text-xs text-red-400">{error}</div>
+                <div className="p-3 rounded-xl text-xs" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'rgba(252,165,165,0.85)' }}>{error}</div>
               )}
             </>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-5 pb-5 flex gap-3">
-          <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-md text-sm bg-charcoal-800 text-charcoal-300 hover:bg-charcoal-700 transition-colors">
+        <div className="px-5 py-4 flex gap-3 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+          <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.5)', border: '1px solid rgba(255,255,255,0.07)' }}>
             Cancelar
           </button>
           <button
             onClick={handleConfirm}
             disabled={loading || saving}
-            className="flex-1 px-4 py-2.5 rounded-md text-sm bg-amber-500 text-charcoal-900 font-semibold hover:bg-amber-400 transition-colors disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-[0.08em] transition-all disabled:opacity-50"
+            style={{ background: 'linear-gradient(135deg, #FBD232, #D4AF37)', color: '#1A1200' }}
           >
             {saving ? 'Actualizando...' : 'Confirmar recotización'}
           </button>

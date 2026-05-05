@@ -213,396 +213,307 @@ export default function ModalStartWork({
     }
   };
 
+  const inputStyle: React.CSSProperties = {
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    color: 'rgba(242,240,237,0.85)',
+    borderRadius: 12,
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: 13,
+    outline: 'none',
+    fontFamily: 'inherit',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    color: 'rgba(242,240,237,0.3)',
+    marginBottom: 6,
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-charcoal-900/95 flex items-center justify-center z-50 p-4">
-      <div className="bg-charcoal-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      style={{ background: 'rgba(10,10,10,0.88)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-2xl my-auto rounded-2xl font-sans-custom flex flex-col"
+        style={{
+          background: 'rgba(18,16,14,0.98)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+          maxHeight: 'calc(100vh - 2rem)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/5">
-          <div>
-            <h2 className="text-lg font-medium text-cream-100">Iniciar Trabajo</h2>
-            <p className="text-sm text-charcoal-400">Entrega de material al joyero</p>
+        <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.2)' }}>
+              <Calendar size={15} style={{ color: 'rgba(212,175,55,0.8)' }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'rgba(242,240,237,0.88)' }}>Iniciar Trabajo</p>
+              <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: 'rgba(242,240,237,0.3)' }}>Entrega de material al joyero</p>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 text-charcoal-400 hover:text-cream-200 transition-colors">
-            <X size={20} />
+          <button onClick={onClose} className="p-2 rounded-xl transition-all" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.5)' }}>
+            <X size={16} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 flex items-start gap-3">
-              <AlertCircle size={16} className="text-red-500 mt-0.5 shrink-0" />
-              <p className="text-sm text-red-400">{error}</p>
-            </div>
-          )}
+        {/* Body — scrollable */}
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1">
+          <div className="px-5 py-4 space-y-5">
 
-          {/* ── 1. DATOS TÉCNICOS (read-only desde cotización) ── */}
-          <div>
-            <h3 className="text-sm font-medium text-cream-100 mb-3 flex items-center gap-2">
-              <Scale size={16} className="text-gold-500" />
-              Metal de Joyería
-              <span className="text-[10px] text-charcoal-500 font-normal ml-1">(datos de la cotización)</span>
-            </h3>
-            <div className="bg-charcoal-900/60 border border-white/5 rounded-lg p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* Error */}
+            {error && (
+              <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <AlertCircle size={14} className="shrink-0 mt-0.5" style={{ color: 'rgba(252,165,165,0.8)' }} />
+                <p className="text-xs" style={{ color: 'rgba(252,165,165,0.85)' }}>{error}</p>
+              </div>
+            )}
+
+            {/* ── 1. DATOS TÉCNICOS ── */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.12em] font-semibold mb-3 flex items-center gap-2" style={{ color: 'rgba(212,175,55,0.6)' }}>
+                <Scale size={11} /> Metal de Joyería
+                <span className="font-normal ml-1" style={{ color: 'rgba(242,240,237,0.2)' }}>(datos de la cotización)</span>
+              </p>
+              <div className="rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                {[
+                  { label: 'Pureza', value: metalType === 'gold' ? `${metalPurity}K (${metalPurityPct}%)` : String(metalPurity) },
+                  { label: 'Peso joya', value: `${estimatedWeightGr} gr` },
+                  { label: 'Merma', value: `${mermaGr} gr` },
+                  ...(metalType === 'gold' && goldColor ? [{ label: 'Color', value: getGoldColorLabel(goldColor) }] : []),
+                ].map((f) => (
+                  <div key={f.label}>
+                    <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(242,240,237,0.25)' }}>{f.label}</p>
+                    <p className="text-xs font-mono font-semibold" style={{ color: 'rgba(242,240,237,0.75)' }}>{f.value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2 rounded-xl px-4 py-2.5 flex items-center justify-between" style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.12)' }}>
+                <p className="text-xs" style={{ color: 'rgba(242,240,237,0.35)' }}>{metalType === 'gold' ? 'Oro' : 'Plata'} puro requerido para la joya</p>
+                <p className="text-xs font-mono font-semibold" style={{ color: 'rgba(212,175,55,0.9)' }}>{requiredPureMetalGr} gr 24k</p>
+              </div>
+            </div>
+
+            {/* ── 2. PIEDRAS ── */}
+            {hasStones && stones.length > 0 && (
               <div>
-                <p className="text-[11px] uppercase tracking-widest text-charcoal-500 mb-1">Pureza</p>
-                <p className="text-cream-200 font-mono text-sm">
-                  {metalType === 'gold' ? `${metalPurity}K` : metalPurity}
-                  <span className="text-charcoal-400 text-xs ml-1">({metalPurityPct}%)</span>
+                <p className="text-[10px] uppercase tracking-[0.12em] font-semibold mb-3 flex items-center gap-2" style={{ color: 'rgba(212,175,55,0.6)' }}>
+                  <Gem size={11} /> Piedras
+                  <span className="font-normal" style={{ color: 'rgba(242,240,237,0.2)' }}>(datos de la cotización)</span>
                 </p>
+                <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  {stones.map((stone, i) => (
+                    <div key={i} className="px-4 py-3 grid grid-cols-3 sm:grid-cols-4 gap-3" style={{ borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                      {[
+                        { label: 'Tipo', value: stone.stone_type },
+                        { label: 'Corte', value: stone.cut },
+                        { label: 'Cant.', value: String(stone.quantity) },
+                        { label: 'Peso', value: `${stone.weight_ct} ct` },
+                      ].map((f) => (
+                        <div key={f.label}>
+                          <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(242,240,237,0.25)' }}>{f.label}</p>
+                          <p className="text-xs" style={{ color: 'rgba(242,240,237,0.7)' }}>{f.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-widest text-charcoal-500 mb-1">Peso joya</p>
-                <p className="text-cream-200 font-mono text-sm">{estimatedWeightGr} gr</p>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-widest text-charcoal-500 mb-1">Merma</p>
-                <p className="text-cream-200 font-mono text-sm">{mermaGr} gr</p>
-              </div>
-              {metalType === 'gold' && goldColor && (
+            )}
+
+            {/* ── 3. MATERIAL ENTREGADO ── */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.12em] font-semibold mb-3 flex items-center gap-2" style={{ color: 'rgba(212,175,55,0.6)' }}>
+                <Package size={11} /> Material Entregado
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                 <div>
-                  <p className="text-[11px] uppercase tracking-widest text-charcoal-500 mb-1">Color</p>
-                  <p className="text-cream-200 text-sm">{getGoldColorLabel(goldColor)}</p>
+                  <label style={labelStyle}>% Ley del material *</label>
+                  <div className="relative">
+                    <input type="number" step="0.01" min="0.01" max="100" value={deliveredPurityPct} onChange={e => setDeliveredPurityPct(e.target.value)} placeholder="Ej: 75 para 18K" style={{ ...inputStyle, paddingRight: 32 }} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px]" style={{ color: 'rgba(242,240,237,0.25)' }}>%</span>
+                  </div>
+                </div>
+                <div>
+                  <label style={labelStyle}>Peso metal entregado (gr) *</label>
+                  <div className="relative">
+                    <input type="number" step="0.01" min="0.01" value={deliveredWeightGr} onChange={e => setDeliveredWeightGr(e.target.value)} placeholder="Ej: 12.50" style={{ ...inputStyle, paddingRight: 32 }} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px]" style={{ color: 'rgba(242,240,237,0.25)' }}>gr</span>
+                  </div>
+                </div>
+              </div>
+              {/* Cálculo excedente */}
+              <div className="rounded-xl p-4 grid grid-cols-3 gap-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                {[
+                  {
+                    label: 'Oro puro entregado',
+                    value: weightGrNum > 0 && purityPctNum > 0 ? `${deliveredPureMetalGr} gr` : '—',
+                    sub: weightGrNum > 0 && purityPctNum > 0 ? `(${weightGrNum} × ${purityPctNum}%) / 100` : 'Ingresa peso y ley',
+                  },
+                  { label: 'Requerido joya', value: `${requiredPureMetalGr} gr`, sub: 'desde cotización' },
+                  {
+                    label: 'Excedente 24k',
+                    value: weightGrNum > 0 && purityPctNum > 0
+                      ? `${surplusPureMetalGr > 0 ? '+' : ''}${surplusPureMetalGr} gr`
+                      : '—',
+                    color: surplusPureMetalGr > 0 ? 'rgba(110,231,183,0.85)' : surplusPureMetalGr < 0 ? 'rgba(251,146,60,0.85)' : undefined,
+                    sub: 'requerido − entregado',
+                  },
+                ].map((f) => (
+                  <div key={f.label}>
+                    <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(242,240,237,0.25)' }}>{f.label}</p>
+                    <p className="text-xs font-mono font-semibold" style={{ color: (f as any).color ?? 'rgba(242,240,237,0.7)' }}>{f.value}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: 'rgba(242,240,237,0.2)' }}>{f.sub}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── 4. RESPONSABLES Y FECHA ── */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.12em] font-semibold mb-3 flex items-center gap-2" style={{ color: 'rgba(212,175,55,0.6)' }}>
+                <User size={11} /> Responsables y Fecha
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label style={labelStyle}>Entregado por *</label>
+                  <select value={deliveredByUserId} onChange={e => setDeliveredByUserId(e.target.value)} style={{ ...inputStyle, appearance: 'none' }}>
+                    <option value="">Seleccionar...</option>
+                    {users.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Recibido por (joyero) *</label>
+                  <select value={receivedByUserId} onChange={e => setReceivedByUserId(e.target.value)} style={{ ...inputStyle, appearance: 'none' }}>
+                    <option value="">Seleccionar...</option>
+                    {joyeros.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Fecha entrega *</label>
+                  <input type="date" value={materialDeliveryDate} onChange={e => setMaterialDeliveryDate(e.target.value)} style={inputStyle} />
+                </div>
+              </div>
+            </div>
+
+            {/* ── 5. MANO DE OBRA ── */}
+            {laborAssignments.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.12em] font-semibold mb-1 flex items-center gap-2" style={{ color: 'rgba(212,175,55,0.6)' }}>
+                  <Wrench size={11} /> Mano de Obra
+                  <span className="font-normal" style={{ color: 'rgba(242,240,237,0.2)' }}>(asigna y reordena)</span>
+                </p>
+                <p className="text-[10px] mb-3" style={{ color: 'rgba(242,240,237,0.22)' }}>
+                  Arrastra <GripVertical size={9} className="inline" /> o usa las flechas para reorganizar el orden de ejecución.
+                </p>
+                <div className="space-y-2">
+                  {laborAssignments.map((item, idx) => (
+                    <div
+                      key={item.service_code}
+                      draggable
+                      onDragStart={() => handleDragStart(idx)}
+                      onDragOver={e => handleDragOver(e, idx)}
+                      onDragEnd={handleDragEnd}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 cursor-grab active:cursor-grabbing"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                    >
+                      <GripVertical size={14} style={{ color: 'rgba(242,240,237,0.2)', flexShrink: 0 }} />
+                      <span className="text-[11px] font-mono w-5 shrink-0" style={{ color: 'rgba(242,240,237,0.25)' }}>{idx + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs truncate" style={{ color: 'rgba(242,240,237,0.75)' }}>{item.service_name}</p>
+                        <p className="text-[10px]" style={{ color: 'rgba(242,240,237,0.25)' }}>{CATEGORY_LABEL[item.service_category] ?? item.service_category}</p>
+                      </div>
+                      <select
+                        value={item.worker_id}
+                        onChange={e => updateAssignee(item.service_code, e.target.value)}
+                        onClick={e => e.stopPropagation()}
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.7)', borderRadius: 8, padding: '4px 8px', fontSize: 11, outline: 'none', width: 160, flexShrink: 0, fontFamily: 'inherit' }}
+                      >
+                        <option value="">Sin asignar</option>
+                        {assignableUsers.map(u => (
+                          <option key={u.id} value={u.id}>{u.firstName} ({ROLE_LABEL[u.role ?? ''] ?? u.role})</option>
+                        ))}
+                      </select>
+                      <div className="flex flex-col gap-0.5 shrink-0">
+                        <button type="button" onClick={() => moveItem(idx, idx - 1)} disabled={idx === 0} className="p-0.5 transition-all disabled:opacity-20" style={{ color: 'rgba(242,240,237,0.4)' }}>
+                          <ChevronUp size={13} />
+                        </button>
+                        <button type="button" onClick={() => moveItem(idx, idx + 1)} disabled={idx === laborAssignments.length - 1} className="p-0.5 transition-all disabled:opacity-20" style={{ color: 'rgba(242,240,237,0.4)' }}>
+                          <ChevronDown size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── 6. FOTO DE REFERENCIA ── */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.12em] font-semibold mb-3 flex items-center gap-2" style={{ color: 'rgba(212,175,55,0.6)' }}>
+                <Camera size={11} /> Foto de Referencia
+                <span className="font-normal" style={{ color: 'rgba(242,240,237,0.2)' }}>(opcional — máx. 5 archivos)</span>
+              </p>
+              {referenceFiles.length > 0 && (
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-3">
+                  {referenceFiles.map((file, idx) => (
+                    <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      {previews[idx] ? (
+                        <img src={previews[idx]} alt={file.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Camera size={18} style={{ color: 'rgba(242,240,237,0.2)' }} />
+                        </div>
+                      )}
+                      <button type="button" onClick={() => removeFile(idx)} className="absolute top-1 right-1 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'rgba(0,0,0,0.7)', color: 'rgba(252,165,165,0.85)' }}>
+                        <Trash2 size={11} />
+                      </button>
+                      <p className="absolute bottom-0 left-0 right-0 px-1 py-0.5 text-[9px] truncate" style={{ background: 'rgba(0,0,0,0.6)', color: 'rgba(242,240,237,0.4)' }}>{file.name}</p>
+                    </div>
+                  ))}
                 </div>
               )}
-            </div>
-
-            {/* Oro puro requerido (referencia) */}
-            <div className="mt-2 bg-gold-500/5 border border-gold-500/15 rounded-lg px-4 py-2 flex items-center justify-between">
-              <p className="text-xs text-charcoal-400">
-                {metalType === 'gold' ? 'Oro' : 'Plata'} puro requerido para la joya
-              </p>
-              <p className="text-gold-400 font-mono text-sm font-medium">{requiredPureMetalGr} gr 24k</p>
-            </div>
-          </div>
-
-          {/* ── 2. PIEDRAS (read-only desde cotización) ── */}
-          {hasStones && stones.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-cream-100 mb-3 flex items-center gap-2">
-                <Gem size={16} className="text-gold-500" />
-                Piedras
-                <span className="text-[10px] text-charcoal-500 font-normal ml-1">(datos de la cotización)</span>
-              </h3>
-              <div className="bg-charcoal-900/60 border border-white/5 rounded-lg divide-y divide-white/5">
-                {stones.map((stone, i) => (
-                  <div key={i} className="px-4 py-3 grid grid-cols-3 sm:grid-cols-4 gap-3 text-sm">
-                    <div>
-                      <p className="text-[11px] uppercase tracking-widest text-charcoal-500 mb-0.5">Tipo</p>
-                      <p className="text-cream-200">{stone.stone_type}</p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-widest text-charcoal-500 mb-0.5">Corte</p>
-                      <p className="text-cream-200">{stone.cut}</p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-widest text-charcoal-500 mb-0.5">Cantidad</p>
-                      <p className="text-cream-200">{stone.quantity}</p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-widest text-charcoal-500 mb-0.5">Peso (ct)</p>
-                      <p className="text-cream-200">{stone.weight_ct} ct</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── 3. MATERIAL ENTREGADO AL JOYERO ── */}
-          <div>
-            <h3 className="text-sm font-medium text-cream-100 mb-3 flex items-center gap-2">
-              <Package size={16} className="text-gold-500" />
-              Material Entregado
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  % Ley del material entregado *
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    max="100"
-                    value={deliveredPurityPct}
-                    onChange={e => setDeliveredPurityPct(e.target.value)}
-                    placeholder="Ej: 75 para 18K"
-                    className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-600 focus:outline-none focus:border-gold-500/30 pr-8"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-charcoal-500">%</span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  Peso metal entregado (gr) *
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={deliveredWeightGr}
-                    onChange={e => setDeliveredWeightGr(e.target.value)}
-                    placeholder="Ej: 12.50"
-                    className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-600 focus:outline-none focus:border-gold-500/30 pr-8"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-charcoal-500">gr</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Cálculo del excedente */}
-            <div className="bg-charcoal-900/60 border border-white/5 rounded-lg p-4 grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="text-[11px] uppercase tracking-widest text-charcoal-500 mb-1">Oro puro entregado</p>
-                <p className="text-cream-200 font-mono">
-                  {weightGrNum > 0 && purityPctNum > 0
-                    ? `${deliveredPureMetalGr} gr`
-                    : <span className="text-charcoal-600">—</span>}
-                </p>
-                <p className="text-[10px] text-charcoal-600 mt-0.5">
-                  {weightGrNum > 0 && purityPctNum > 0
-                    ? `(${weightGrNum} × ${purityPctNum}%) / 100`
-                    : 'Ingresa peso y ley'}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-widest text-charcoal-500 mb-1">Requerido joya</p>
-                <p className="text-cream-200 font-mono">{requiredPureMetalGr} gr</p>
-                <p className="text-[10px] text-charcoal-600 mt-0.5">desde cotización</p>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-widest text-charcoal-500 mb-1">
-                  Excedente (oro puro 24k)
-                </p>
-                {weightGrNum > 0 && purityPctNum > 0 ? (
-                  <p className={`font-mono font-medium ${
-                    surplusPureMetalGr > 0
-                      ? 'text-emerald-400'
-                      : surplusPureMetalGr < 0
-                      ? 'text-orange-400'
-                      : 'text-cream-200'
-                  }`}>
-                    {surplusPureMetalGr > 0 ? '+' : ''}{surplusPureMetalGr} gr
-                  </p>
-                ) : (
-                  <p className="text-charcoal-600 font-mono">—</p>
-                )}
-                <p className="text-[10px] text-charcoal-600 mt-0.5">requerido − entregado</p>
-              </div>
-            </div>
-          </div>
-
-          {/* ── 4. RESPONSABLES Y FECHA ── */}
-          <div>
-            <h3 className="text-sm font-medium text-cream-100 mb-3 flex items-center gap-2">
-              <User size={16} className="text-gold-500" />
-              Responsables y Fecha
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  Entregado por *
-                </label>
-                <select
-                  value={deliveredByUserId}
-                  onChange={e => setDeliveredByUserId(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+              {referenceFiles.length < 5 && (
+                <button type="button" onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs transition-all"
+                  style={{ border: '1.5px dashed rgba(255,255,255,0.1)', color: 'rgba(242,240,237,0.3)', background: 'transparent' }}
                 >
-                  <option value="">Seleccionar...</option>
-                  {users.map(u => (
-                    <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  Recibido por (joyero) *
-                </label>
-                <select
-                  value={receivedByUserId}
-                  onChange={e => setReceivedByUserId(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
-                >
-                  <option value="">Seleccionar...</option>
-                  {joyeros.map(u => (
-                    <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  Fecha entrega *
-                </label>
-                <input
-                  type="date"
-                  value={materialDeliveryDate}
-                  onChange={e => setMaterialDeliveryDate(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
-                />
-              </div>
+                  <ImagePlus size={14} />
+                  {referenceFiles.length === 0 ? 'Agregar fotos de referencia' : `Agregar más (${referenceFiles.length}/5)`}
+                </button>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileChange} />
             </div>
+
           </div>
 
-          {/* ── 5. MANO DE OBRA — asignados y orden ── */}
-          {laborAssignments.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-cream-100 mb-1 flex items-center gap-2">
-                <Wrench size={16} className="text-gold-500" />
-                Mano de Obra
-                <span className="text-[10px] text-charcoal-500 font-normal ml-1">(desde cotización — asigna encargado y reordena)</span>
-              </h3>
-              <p className="text-[11px] text-charcoal-500 mb-3">
-                Arrastra <GripVertical size={10} className="inline" /> o usa las flechas para reorganizar el orden de ejecución.
-              </p>
-              <div className="space-y-2">
-                {laborAssignments.map((item, idx) => (
-                  <div
-                    key={item.service_code}
-                    draggable
-                    onDragStart={() => handleDragStart(idx)}
-                    onDragOver={e => handleDragOver(e, idx)}
-                    onDragEnd={handleDragEnd}
-                    className="flex items-center gap-3 bg-charcoal-900/60 border border-white/5 rounded-lg px-3 py-2.5 cursor-grab active:cursor-grabbing"
-                  >
-                    {/* Grip */}
-                    <GripVertical size={16} className="text-charcoal-600 shrink-0" />
-
-                    {/* Número de orden */}
-                    <span className="text-[11px] font-mono text-charcoal-500 w-5 shrink-0">{idx + 1}</span>
-
-                    {/* Nombre del servicio */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-cream-200 truncate">{item.service_name}</p>
-                      <p className="text-[10px] text-charcoal-500">
-                        {CATEGORY_LABEL[item.service_category] ?? item.service_category}
-                      </p>
-                    </div>
-
-                    {/* Selector de encargado */}
-                    <select
-                      value={item.worker_id}
-                      onChange={e => updateAssignee(item.service_code, e.target.value)}
-                      onClick={e => e.stopPropagation()}
-                      className="w-40 shrink-0 px-2 py-1.5 bg-charcoal-800 border border-white/5 rounded text-xs text-cream-200 focus:outline-none focus:border-gold-500/30"
-                    >
-                      <option value="">Sin asignar</option>
-                      {assignableUsers.map(u => (
-                        <option key={u.id} value={u.id}>
-                          {u.firstName} ({ROLE_LABEL[u.role ?? ''] ?? u.role})
-                        </option>
-                      ))}
-                    </select>
-
-                    {/* Flechas */}
-                    <div className="flex flex-col gap-0.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => moveItem(idx, idx - 1)}
-                        disabled={idx === 0}
-                        className="p-0.5 text-charcoal-500 hover:text-cream-200 disabled:opacity-20 transition-colors"
-                      >
-                        <ChevronUp size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveItem(idx, idx + 1)}
-                        disabled={idx === laborAssignments.length - 1}
-                        className="p-0.5 text-charcoal-500 hover:text-cream-200 disabled:opacity-20 transition-colors"
-                      >
-                        <ChevronDown size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── 6. FOTO DE REFERENCIA ── */}
-          <div>
-            <h3 className="text-sm font-medium text-cream-100 mb-3 flex items-center gap-2">
-              <Camera size={16} className="text-gold-500" />
-              Foto de Referencia
-              <span className="text-[10px] text-charcoal-500 font-normal ml-1">(opcional — máx. 5 archivos)</span>
-            </h3>
-
-            {/* Grid de previews */}
-            {referenceFiles.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-3">
-                {referenceFiles.map((file, idx) => (
-                  <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden bg-charcoal-900 border border-white/5">
-                    {previews[idx] ? (
-                      <img src={previews[idx]} alt={file.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Camera size={20} className="text-charcoal-500" />
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => removeFile(idx)}
-                      className="absolute top-1 right-1 p-1 bg-charcoal-900/80 rounded-full text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                    <p className="absolute bottom-0 left-0 right-0 px-1 py-0.5 bg-charcoal-900/80 text-[9px] text-charcoal-400 truncate">
-                      {file.name}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {referenceFiles.length < 5 && (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-white/10 rounded-lg text-sm text-charcoal-400 hover:border-gold-500/30 hover:text-cream-200 transition-colors"
-              >
-                <ImagePlus size={16} />
-                {referenceFiles.length === 0 ? 'Agregar fotos de referencia' : `Agregar más (${referenceFiles.length}/5)`}
-              </button>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={handleFileChange}
-            />
-          </div>
-
-          {/* Acciones */}
-          <div className="flex items-center gap-3 pt-4 border-t border-white/5">
+          {/* Footer */}
+          <div className="px-5 py-4 flex items-center gap-3 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors disabled:opacity-50"
+              className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-6 rounded-xl text-xs font-semibold uppercase tracking-[0.08em] transition-all disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400' }}
             >
               {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-charcoal-900 border-t-transparent rounded-full animate-spin" />
-                  Procesando...
-                </>
+                <><div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> Procesando...</>
               ) : (
-                <>
-                  <Calendar size={16} />
-                  Iniciar Trabajo
-                </>
+                <><Calendar size={13} /> Iniciar Trabajo</>
               )}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2.5 text-sm text-charcoal-400 hover:text-cream-200 transition-colors"
-            >
+            <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl text-xs font-semibold transition-all" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.5)', border: '1px solid rgba(255,255,255,0.07)' }}>
               Cancelar
             </button>
           </div>

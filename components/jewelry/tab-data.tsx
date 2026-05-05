@@ -87,22 +87,25 @@ const QUOTE_TYPE_LABEL: Record<string, string> = { client: 'Cliente Final', jewe
 function DataRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <p className="text-xs text-charcoal-500 mb-1">{label}</p>
-      <p className="text-sm text-cream-200">{value ?? '—'}</p>
+      <p className="text-[10px] uppercase tracking-[0.12em] font-semibold font-sans-custom mb-1" style={{ color: 'rgba(242,240,237,0.3)' }}>{label}</p>
+      <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.82)' }}>{value ?? '—'}</p>
     </div>
   );
 }
 
-function SectionCard({ title, icon: Icon, children, accent }: {
+function SectionCard({ title, icon: Icon, children, accentStyle }: {
   title: string;
   icon: React.ElementType;
   children: React.ReactNode;
-  accent?: string;
+  accentStyle?: React.CSSProperties;
 }) {
   return (
-    <div className={`border rounded-lg p-5 ${accent ?? 'bg-charcoal-800/50 border-white/5'}`}>
-      <h3 className="text-sm font-medium text-cream-100 mb-4 flex items-center gap-2">
-        <Icon size={16} className="text-gold-500" />
+    <div
+      className="rounded-2xl p-5"
+      style={accentStyle ?? { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+    >
+      <h3 className="text-sm font-semibold font-sans-custom mb-4 flex items-center gap-2" style={{ color: 'rgba(242,240,237,0.75)' }}>
+        <Icon size={15} style={{ color: 'rgba(212,175,55,0.7)' }} />
         {title}
       </h3>
       {children}
@@ -146,7 +149,7 @@ export default function TabDatos({ jewelryData, order, quotation, payments = [],
             label="Fecha entrega estimada"
             value={
               order.estimatedDeliveryDate
-                ? <span className="text-gold-400">{formatDate(order.estimatedDeliveryDate)}</span>
+                ? <span style={{ color: 'rgba(212,175,55,0.85)' }}>{formatDate(order.estimatedDeliveryDate)}</span>
                 : 'No definida'
             }
           />
@@ -156,11 +159,11 @@ export default function TabDatos({ jewelryData, order, quotation, payments = [],
               order.totalAmountCop
                 ? (
                   <span>
-                    <span className="text-gold-400 font-semibold">{formatCOP(Number(order.totalAmountCop))}</span>
+                    <span className="font-semibold" style={{ color: 'rgba(212,175,55,0.9)' }}>{formatCOP(Number(order.totalAmountCop))}</span>
                     {totalPaidCop > 0 && (
-                      <span className="ml-2 text-xs text-charcoal-400">
-                        — Pagado: <span className="text-emerald-400">{formatCOP(totalPaidCop)}</span>
-                        {' '}&nbsp;·&nbsp; Saldo: <span className={remainingCop <= 0 ? 'text-emerald-400' : 'text-cream-300'}>{remainingCop <= 0 ? '✓ Saldado' : formatCOP(remainingCop)}</span>
+                      <span className="ml-2 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
+                        — Pagado: <span style={{ color: 'rgba(110,231,183,0.9)' }}>{formatCOP(totalPaidCop)}</span>
+                        {' '}&nbsp;·&nbsp; Saldo: <span style={{ color: remainingCop <= 0 ? 'rgba(110,231,183,0.9)' : 'rgba(242,240,237,0.75)' }}>{remainingCop <= 0 ? '✓ Saldado' : formatCOP(remainingCop)}</span>
                       </span>
                     )}
                   </span>
@@ -175,9 +178,9 @@ export default function TabDatos({ jewelryData, order, quotation, payments = [],
           } />
         </div>
         {order.notes && (
-          <div className="mt-4 pt-4 border-t border-white/5">
-            <p className="text-xs text-charcoal-500 mb-1">Descripción</p>
-            <p className="text-sm text-charcoal-300">{order.notes}</p>
+          <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <p className="text-[10px] uppercase tracking-[0.12em] font-semibold font-sans-custom mb-1" style={{ color: 'rgba(242,240,237,0.3)' }}>Descripción</p>
+            <p className="text-sm font-sans-custom leading-relaxed" style={{ color: 'rgba(242,240,237,0.55)' }}>{order.notes}</p>
           </div>
         )}
       </SectionCard>
@@ -214,24 +217,24 @@ export default function TabDatos({ jewelryData, order, quotation, payments = [],
             {isGold && quotation.alloy_breakdown && (() => {
               const ab = quotation.alloy_breakdown as AlloyBreakdown;
               return (
-                <div className="mt-4 pt-4 border-t border-white/5">
-                  <p className="text-xs text-charcoal-500 mb-2">Desglose de liga</p>
+                <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <p className="text-[10px] uppercase tracking-[0.12em] font-semibold font-sans-custom mb-2" style={{ color: 'rgba(242,240,237,0.3)' }}>Desglose de liga</p>
                   <div className="flex flex-wrap gap-4">
                     {ab.silver_gr > 0 && (
-                      <span className="text-xs text-charcoal-400">
-                        Plata: <strong className="text-cream-300">{ab.silver_gr.toFixed(3)} gr</strong>
+                      <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.45)' }}>
+                        Plata: <strong style={{ color: 'rgba(242,240,237,0.75)' }}>{ab.silver_gr.toFixed(3)} gr</strong>
                         {' · '}{formatCOP(ab.silver_price_cop)}
                       </span>
                     )}
                     {ab.copper_gr > 0 && (
-                      <span className="text-xs text-charcoal-400">
-                        Cobre: <strong className="text-cream-300">{ab.copper_gr.toFixed(3)} gr</strong>
+                      <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.45)' }}>
+                        Cobre: <strong style={{ color: 'rgba(242,240,237,0.75)' }}>{ab.copper_gr.toFixed(3)} gr</strong>
                         {' · '}{formatCOP(ab.copper_price_cop)}
                       </span>
                     )}
                     {ab.palladium_gr > 0 && (
-                      <span className="text-xs text-charcoal-400">
-                        Paladio: <strong className="text-cream-300">{ab.palladium_gr.toFixed(3)} gr</strong>
+                      <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.45)' }}>
+                        Paladio: <strong style={{ color: 'rgba(242,240,237,0.75)' }}>{ab.palladium_gr.toFixed(3)} gr</strong>
                         {' · '}{formatCOP(ab.palladium_price_cop)}
                       </span>
                     )}
@@ -246,11 +249,11 @@ export default function TabDatos({ jewelryData, order, quotation, payments = [],
             {quotation.client_provides_metal ? (
               <>
                 {quotation.metal_excess_gr != null && Number(quotation.metal_excess_gr) > 0 && (
-                  <div className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-md p-3 mb-4">
-                    <AlertTriangle size={14} className="text-yellow-400 shrink-0 mt-0.5" />
-                    <p className="text-xs text-yellow-300">
+                  <div className="flex items-start gap-2 rounded-xl p-3 mb-4" style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)' }}>
+                    <AlertTriangle size={13} className="shrink-0 mt-0.5" style={{ color: 'rgba(250,204,21,0.8)' }} />
+                    <p className="text-xs font-sans-custom" style={{ color: 'rgba(250,204,21,0.75)' }}>
                       El cliente entregó más metal del requerido — exceso de{' '}
-                      <strong>{Number(quotation.metal_excess_gr).toFixed(3)} gr</strong>
+                      <strong style={{ color: 'rgba(250,204,21,0.95)' }}>{Number(quotation.metal_excess_gr).toFixed(3)} gr</strong>
                     </p>
                   </div>
                 )}
@@ -272,12 +275,12 @@ export default function TabDatos({ jewelryData, order, quotation, payments = [],
                     value={
                       requiredPureGr > 0 ? (
                         <span>
-                          <span className={remainingPureGr <= 0 ? 'text-emerald-400' : 'text-cream-200'}>
+                          <span style={{ color: remainingPureGr <= 0 ? 'rgba(110,231,183,0.9)' : 'rgba(242,240,237,0.82)' }}>
                             {remainingPureGr.toFixed(4)} gr
                             {remainingPureGr <= 0 ? ' ✓' : ''}
                           </span>
                           {materialPaidPureGr > 0 && (
-                            <span className="ml-2 text-xs text-charcoal-400">
+                            <span className="ml-2 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
                               (abonado: {materialPaidPureGr.toFixed(4)} gr)
                             </span>
                           )}
@@ -296,11 +299,11 @@ export default function TabDatos({ jewelryData, order, quotation, payments = [],
                         if (basePendingValue <= 0) return '—';
                         return (
                           <span>
-                            <span className={adjustedValue <= 0 ? 'text-emerald-400 font-semibold' : 'text-gold-400 font-semibold'}>
+                            <span className="font-semibold" style={{ color: adjustedValue <= 0 ? 'rgba(110,231,183,0.9)' : 'rgba(212,175,55,0.9)' }}>
                               {adjustedValue <= 0 ? '✓ Saldado' : formatCOP(adjustedValue)}
                             </span>
                             {materialPaidCop > 0 && adjustedValue > 0 && (
-                              <span className="ml-2 text-xs text-charcoal-400">
+                              <span className="ml-2 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
                                 (abonado: {formatCOP(materialPaidCop)})
                               </span>
                             )}
@@ -312,7 +315,7 @@ export default function TabDatos({ jewelryData, order, quotation, payments = [],
                 </div>
               </>
             ) : (
-              <p className="text-sm text-charcoal-400">El cliente no entrega metal.</p>
+              <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>El cliente no entrega metal.</p>
             )}
           </SectionCard>
 
@@ -322,32 +325,33 @@ export default function TabDatos({ jewelryData, order, quotation, payments = [],
               <div className="overflow-x-auto -mx-1">
                 <table className="w-full text-xs min-w-[550px]">
                   <thead>
-                    <tr className="border-b border-white/5">
-                      <th className="text-left py-2 px-2 text-charcoal-400 font-normal uppercase tracking-widest">Tipo</th>
-                      <th className="text-left py-2 px-2 text-charcoal-400 font-normal uppercase tracking-widest">Talla</th>
-                      <th className="text-right py-2 px-2 text-charcoal-400 font-normal uppercase tracking-widest">Peso (ct)</th>
-                      <th className="text-right py-2 px-2 text-charcoal-400 font-normal uppercase tracking-widest">Cant.</th>
-                      <th className="text-left py-2 px-2 text-charcoal-400 font-normal uppercase tracking-widest">Entrega cliente</th>
-                      <th className="text-right py-2 px-2 text-charcoal-400 font-normal uppercase tracking-widest">Total</th>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <th className="text-left py-2 px-2 text-[10px] uppercase tracking-widest font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Tipo</th>
+                      <th className="text-left py-2 px-2 text-[10px] uppercase tracking-widest font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Talla</th>
+                      <th className="text-right py-2 px-2 text-[10px] uppercase tracking-widest font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Peso (ct)</th>
+                      <th className="text-right py-2 px-2 text-[10px] uppercase tracking-widest font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Cant.</th>
+                      <th className="text-left py-2 px-2 text-[10px] uppercase tracking-widest font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Entrega cliente</th>
+                      <th className="text-right py-2 px-2 text-[10px] uppercase tracking-widest font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody>
                     {(quotation.stones as StoneRow[]).map((stone, i) => (
-                      <tr key={i}>
-                        <td className="py-2 px-2 text-cream-200">{stone.stone_type || '—'}</td>
-                        <td className="py-2 px-2 text-charcoal-300">{stone.cut || '—'}</td>
-                        <td className="py-2 px-2 text-charcoal-300 text-right">{Number(stone.weight_ct).toFixed(3)}</td>
-                        <td className="py-2 px-2 text-charcoal-300 text-right">{stone.quantity}</td>
+                      <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        <td className="py-2 px-2 font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{stone.stone_type || '—'}</td>
+                        <td className="py-2 px-2 font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{stone.cut || '—'}</td>
+                        <td className="py-2 px-2 text-right font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{Number(stone.weight_ct).toFixed(3)}</td>
+                        <td className="py-2 px-2 text-right font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{stone.quantity}</td>
                         <td className="py-2 px-2">
-                          <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                            stone.client_delivers
-                              ? 'bg-emerald-500/10 text-emerald-400'
-                              : 'bg-charcoal-700 text-charcoal-400'
-                          }`}>
+                          <span
+                            className="inline-block px-1.5 py-0.5 rounded-full text-[10px] font-medium font-sans-custom"
+                            style={stone.client_delivers
+                              ? { background: 'rgba(16,185,129,0.1)', color: 'rgba(110,231,183,0.85)' }
+                              : { background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.35)' }}
+                          >
                             {stone.client_delivers ? 'Sí' : 'No'}
                           </span>
                         </td>
-                        <td className="py-2 px-2 text-right font-medium text-cream-200">
+                        <td className="py-2 px-2 text-right font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>
                           {stone.client_delivers ? '—' : formatCOP(stone.total_cop)}
                         </td>
                       </tr>
@@ -355,9 +359,9 @@ export default function TabDatos({ jewelryData, order, quotation, payments = [],
                   </tbody>
                   {quotation.stones_total_cop != null && Number(quotation.stones_total_cop) > 0 && (
                     <tfoot>
-                      <tr className="border-t border-white/5">
-                        <td colSpan={5} className="py-2 px-2 text-xs text-charcoal-400 uppercase tracking-widest">Total piedras</td>
-                        <td className="py-2 px-2 text-right font-semibold text-gold-400">
+                      <tr style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        <td colSpan={5} className="py-2 px-2 text-[10px] uppercase tracking-widest font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Total piedras</td>
+                        <td className="py-2 px-2 text-right font-semibold font-sans-custom" style={{ color: 'rgba(212,175,55,0.9)' }}>
                           {formatCOP(Number(quotation.stones_total_cop))}
                         </td>
                       </tr>
@@ -373,24 +377,24 @@ export default function TabDatos({ jewelryData, order, quotation, payments = [],
             <SectionCard title="Mano de Obra" icon={Wrench}>
               <div className="space-y-2">
                 {(quotation.labor_items as LaborItem[]).map((item, i) => (
-                  <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                  <div key={i} className="flex items-center justify-between py-1.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <div>
-                      <p className="text-sm text-cream-200">{item.service_name || '—'}</p>
+                      <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{item.service_name || '—'}</p>
                       {item.difficulty_level && (
-                        <p className="text-[11px] text-charcoal-400">
+                        <p className="text-[11px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
                           Dificultad: {item.difficulty_level === 'easy' ? 'Fácil' : item.difficulty_level === 'medium' ? 'Medio' : 'Difícil'}
                           {item.other_value ? ' · Valor personalizado' : ''}
                         </p>
                       )}
                     </div>
-                    <span className="text-sm font-medium text-cream-200">{formatCOP(item.effective_price)}</span>
+                    <span className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{formatCOP(item.effective_price)}</span>
                   </div>
                 ))}
               </div>
               {quotation.labor_total_cop != null && Number(quotation.labor_total_cop) > 0 && (
-                <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/5">
-                  <span className="text-xs text-charcoal-400 uppercase tracking-widest">Total mano de obra</span>
-                  <span className="text-sm font-semibold text-gold-400">{formatCOP(Number(quotation.labor_total_cop))}</span>
+                <div className="flex justify-between items-center mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span className="text-[10px] uppercase tracking-widest font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Total mano de obra</span>
+                  <span className="text-sm font-semibold font-sans-custom" style={{ color: 'rgba(212,175,55,0.9)' }}>{formatCOP(Number(quotation.labor_total_cop))}</span>
                 </div>
               )}
             </SectionCard>
@@ -432,7 +436,7 @@ export default function TabDatos({ jewelryData, order, quotation, payments = [],
             value={
               order.client.email ? (
                 <span className="flex items-center gap-2">
-                  <Mail size={13} className="text-charcoal-500" />
+                  <Mail size={13} style={{ color: 'rgba(242,240,237,0.25)' }} />
                   {order.client.email}
                 </span>
               ) : '—'
@@ -442,7 +446,7 @@ export default function TabDatos({ jewelryData, order, quotation, payments = [],
             label="Teléfono"
             value={
               <span className="flex items-center gap-2">
-                <Phone size={13} className="text-charcoal-500" />
+                <Phone size={13} style={{ color: 'rgba(242,240,237,0.25)' }} />
                 {order.client.phone || order.clientPhone || 'No registrado'}
               </span>
             }
@@ -452,23 +456,23 @@ export default function TabDatos({ jewelryData, order, quotation, payments = [],
 
       {/* ── Entrega (si está entregado) ── */}
       {jewelryData.isDelivered && (
-        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-5">
-          <h3 className="text-sm font-medium text-emerald-400 mb-4 flex items-center gap-2">
-            <Calendar size={16} />
+        <div className="rounded-2xl p-5" style={{ background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.2)' }}>
+          <h3 className="text-sm font-semibold font-sans-custom mb-4 flex items-center gap-2" style={{ color: 'rgba(110,231,183,0.85)' }}>
+            <Calendar size={15} />
             Información de Entrega
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <p className="text-xs text-emerald-300 mb-1">Fecha de entrega</p>
-              <p className="text-sm text-emerald-200">{formatDate(jewelryData.deliveryDate)}</p>
+              <p className="text-[10px] uppercase tracking-[0.12em] font-semibold font-sans-custom mb-1" style={{ color: 'rgba(110,231,183,0.5)' }}>Fecha de entrega</p>
+              <p className="text-sm font-sans-custom" style={{ color: 'rgba(110,231,183,0.85)' }}>{formatDate(jewelryData.deliveryDate)}</p>
             </div>
             <div>
-              <p className="text-xs text-emerald-300 mb-1">Recibido por</p>
-              <p className="text-sm text-emerald-200">{jewelryData.receiverName || '—'}</p>
+              <p className="text-[10px] uppercase tracking-[0.12em] font-semibold font-sans-custom mb-1" style={{ color: 'rgba(110,231,183,0.5)' }}>Recibido por</p>
+              <p className="text-sm font-sans-custom" style={{ color: 'rgba(110,231,183,0.85)' }}>{jewelryData.receiverName || '—'}</p>
             </div>
             <div>
-              <p className="text-xs text-emerald-300 mb-1">Entregado por</p>
-              <p className="text-sm text-emerald-200">
+              <p className="text-[10px] uppercase tracking-[0.12em] font-semibold font-sans-custom mb-1" style={{ color: 'rgba(110,231,183,0.5)' }}>Entregado por</p>
+              <p className="text-sm font-sans-custom" style={{ color: 'rgba(110,231,183,0.85)' }}>
                 {order.assignedTo ? `${order.assignedTo.firstName} ${order.assignedTo.lastName}` : 'No asignado'}
               </p>
             </div>

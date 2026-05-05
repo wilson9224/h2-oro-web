@@ -220,19 +220,22 @@ export default function OrderDetailPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 bg-charcoal-800 rounded w-48 animate-pulse" />
-        <div className="h-64 bg-charcoal-800 rounded-lg animate-pulse" />
+        <div className="h-5 rounded-xl animate-pulse w-48" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="h-20 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        <div className="h-64 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
       </div>
     );
   }
 
   if (error || !order) {
     return (
-      <div className="space-y-6">
-        <Link href="/admin/pedidos" className="inline-flex items-center gap-2 text-sm text-charcoal-400 hover:text-cream-200">
-          <ArrowLeft size={16} /> Volver a pedidos
+      <div className="space-y-4">
+        <Link href="/admin/pedidos" className="inline-flex items-center gap-2 text-sm font-sans-custom transition-colors" style={{ color: 'rgba(242,240,237,0.4)' }}>
+          <ArrowLeft size={15} /> Pedidos
         </Link>
-        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6 text-red-400 text-sm">{error || 'Pedido no encontrado'}</div>
+        <div className="rounded-2xl p-5 text-sm font-sans-custom" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'rgba(252,165,165,0.9)' }}>
+          {error || 'Pedido no encontrado'}
+        </div>
       </div>
     );
   }
@@ -242,8 +245,9 @@ export default function OrderDetailPage() {
     const JewelryDetailPage = dynamic(() => import('./jewelry-detail'), {
       loading: () => (
         <div className="space-y-6">
-          <div className="h-8 bg-charcoal-800 rounded w-48 animate-pulse" />
-          <div className="h-64 bg-charcoal-800 rounded-lg animate-pulse" />
+          <div className="h-5 rounded-xl animate-pulse w-48" style={{ background: 'rgba(255,255,255,0.06)' }} />
+          <div className="h-20 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+          <div className="h-64 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
         </div>
       ),
       ssr: false,
@@ -251,22 +255,44 @@ export default function OrderDetailPage() {
     return <JewelryDetailPage />;
   }
 
-  const st = statusLabels[order.status] || { label: order.status, color: 'bg-charcoal-700 text-charcoal-300' };
+  const statusBadge: Record<string, { label: string; bg: string; color: string; border: string }> = {
+    pending:     { label: 'Pendiente',   bg: 'rgba(234,179,8,0.1)',   color: 'rgba(250,204,21,0.9)',  border: 'rgba(234,179,8,0.25)' },
+    in_progress: { label: 'En progreso', bg: 'rgba(59,130,246,0.1)',  color: 'rgba(147,197,253,0.9)', border: 'rgba(59,130,246,0.25)' },
+    completed:   { label: 'Completado',  bg: 'rgba(16,185,129,0.1)',  color: 'rgba(110,231,183,0.9)', border: 'rgba(16,185,129,0.25)' },
+    delivered:   { label: 'Entregado',   bg: 'rgba(34,197,94,0.1)',   color: 'rgba(134,239,172,0.9)', border: 'rgba(34,197,94,0.25)' },
+    cancelled:   { label: 'Cancelado',   bg: 'rgba(239,68,68,0.1)',   color: 'rgba(252,165,165,0.9)', border: 'rgba(239,68,68,0.25)' },
+  };
+  const st = statusBadge[order.status] ?? { label: order.status, bg: 'rgba(255,255,255,0.06)', color: 'rgba(242,240,237,0.5)', border: 'rgba(255,255,255,0.1)' };
 
   return (
-    <div className="space-y-6 max-w-5xl">
-      {/* Back + Header */}
-      <Link href="/admin/pedidos" className="inline-flex items-center gap-2 text-sm text-charcoal-400 hover:text-cream-200 transition-colors">
-        <ArrowLeft size={16} /> Pedidos
+    <div className="space-y-5 max-w-5xl">
+
+      {/* Back */}
+      <Link
+        href="/admin/pedidos"
+        className="inline-flex items-center gap-2 text-sm font-sans-custom transition-colors"
+        style={{ color: 'rgba(242,240,237,0.35)' }}
+        onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.7)'}
+        onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.35)'}
+      >
+        <ArrowLeft size={15} /> Pedidos
       </Link>
 
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-serif text-cream-100">{order.orderNumber}</h1>
-            <span className={`text-xs px-2 py-0.5 rounded ${st.color}`}>{st.label}</span>
+            <h1 className="text-2xl font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.95)' }}>
+              {order.orderNumber}
+            </h1>
+            <span
+              className="text-[11px] px-2.5 py-0.5 rounded-full font-sans-custom font-medium"
+              style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}` }}
+            >
+              {st.label}
+            </span>
           </div>
-          <p className="text-sm text-charcoal-400 mt-1">
+          <p className="text-sm mt-0.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
             {typeLabels[order.type] || order.type} · Creado {new Date(order.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}
           </p>
         </div>
@@ -275,56 +301,68 @@ export default function OrderDetailPage() {
       {/* Info cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Client */}
-        <div className="bg-charcoal-800 rounded-lg border border-white/5 p-4">
-          <h3 className="text-xs text-charcoal-400 uppercase tracking-wider mb-3">Cliente</h3>
+        <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <p className="text-[10px] uppercase tracking-[0.14em] font-semibold font-sans-custom mb-3" style={{ color: 'rgba(242,240,237,0.3)' }}>Cliente</p>
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-cream-200">
-              <User size={14} className="text-charcoal-500" />
-              {order.client ? `${order.client.firstName} ${order.client.lastName}` : 'Cliente no especificado'}
+            <div className="flex items-center gap-2">
+              <User size={13} style={{ color: 'rgba(212,175,55,0.5)' }} />
+              <span className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.85)' }}>
+                {order.client ? `${order.client.firstName} ${order.client.lastName}` : 'No especificado'}
+              </span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-charcoal-400">
-              <Mail size={13} className="text-charcoal-500" />
-              {order.client?.email || 'Email no disponible'}
+            <div className="flex items-center gap-2">
+              <Mail size={12} style={{ color: 'rgba(242,240,237,0.2)' }} />
+              <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
+                {order.client?.email || '—'}
+              </span>
             </div>
             {order.clientPhone && (
-              <div className="flex items-center gap-2 text-xs text-charcoal-400">
-                <Phone size={13} className="text-charcoal-500" />
-                {order.clientPhone}
+              <div className="flex items-center gap-2">
+                <Phone size={12} style={{ color: 'rgba(242,240,237,0.2)' }} />
+                <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>{order.clientPhone}</span>
               </div>
             )}
           </div>
         </div>
 
         {/* Dates */}
-        <div className="bg-charcoal-800 rounded-lg border border-white/5 p-4">
-          <h3 className="text-xs text-charcoal-400 uppercase tracking-wider mb-3">Fechas</h3>
+        <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <p className="text-[10px] uppercase tracking-[0.14em] font-semibold font-sans-custom mb-3" style={{ color: 'rgba(242,240,237,0.3)' }}>Fechas</p>
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-cream-200">
-              <Clock size={14} className="text-charcoal-500" />
-              Creado: {new Date(order.createdAt).toLocaleDateString('es-CO')}
+            <div className="flex items-center gap-2">
+              <Clock size={13} style={{ color: 'rgba(212,175,55,0.5)' }} />
+              <span className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>
+                Creado: {new Date(order.createdAt).toLocaleDateString('es-CO')}
+              </span>
             </div>
             {order.estimatedDeliveryDate && (
-              <div className="flex items-center gap-2 text-sm text-cream-200">
-                <Clock size={14} className="text-charcoal-500" />
-                Entrega est.: {new Date(order.estimatedDeliveryDate).toLocaleDateString('es-CO')}
+              <div className="flex items-center gap-2">
+                <Calendar size={13} style={{ color: 'rgba(212,175,55,0.5)' }} />
+                <span className="text-sm font-sans-custom" style={{ color: 'rgba(212,175,55,0.8)' }}>
+                  Entrega est.: {new Date(order.estimatedDeliveryDate).toLocaleDateString('es-CO')}
+                </span>
               </div>
             )}
           </div>
         </div>
 
         {/* Payments */}
-        <div className="bg-charcoal-800 rounded-lg border border-white/5 p-4">
-          <h3 className="text-xs text-charcoal-400 uppercase tracking-wider mb-3">Pagos</h3>
+        <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <p className="text-[10px] uppercase tracking-[0.14em] font-semibold font-sans-custom mb-3" style={{ color: 'rgba(242,240,237,0.3)' }}>Pagos</p>
           {order.totalAmountCop && (
-            <p className="text-lg font-semibold text-gold-400 mb-1">{formatCOP(Number(order.totalAmountCop))}</p>
+            <p className="text-lg font-semibold font-sans-custom mb-1" style={{ color: 'rgba(212,175,55,0.9)' }}>
+              {formatCOP(Number(order.totalAmountCop))}
+            </p>
           )}
-          <p className="text-xs text-charcoal-400">{(order.payments || []).length} pago(s) registrados</p>
+          <p className="text-xs font-sans-custom mb-2" style={{ color: 'rgba(242,240,237,0.35)' }}>
+            {(order.payments || []).length} pago(s) registrado(s)
+          </p>
           {(order.payments || []).length > 0 && (
-            <div className="mt-2 space-y-1">
+            <div className="space-y-1.5">
               {(order.payments || []).slice(0, 3).map((p) => (
-                <div key={p.id} className="flex justify-between text-xs">
-                  <span className="text-charcoal-300">{p.method}</span>
-                  <span className={p.status === 'completed' ? 'text-emerald-400' : 'text-charcoal-500'}>
+                <div key={p.id} className="flex justify-between text-xs font-sans-custom">
+                  <span style={{ color: 'rgba(242,240,237,0.5)' }}>{p.method}</span>
+                  <span style={{ color: p.status === 'completed' ? 'rgba(110,231,183,0.9)' : 'rgba(242,240,237,0.3)' }}>
                     {formatCOP(Number(p.amountCop))}
                   </span>
                 </div>
@@ -336,58 +374,58 @@ export default function OrderDetailPage() {
 
       {/* Notes */}
       {order.notes && (
-        <div className="bg-charcoal-800 rounded-lg border border-white/5 p-4">
-          <h3 className="text-xs text-charcoal-400 uppercase tracking-wider mb-2">Notas</h3>
-          <p className="text-sm text-charcoal-300">{order.notes}</p>
+        <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <p className="text-[10px] uppercase tracking-[0.14em] font-semibold font-sans-custom mb-2" style={{ color: 'rgba(242,240,237,0.3)' }}>Notas</p>
+          <p className="text-sm font-sans-custom leading-relaxed" style={{ color: 'rgba(242,240,237,0.6)' }}>{order.notes}</p>
         </div>
       )}
 
       {/* Pieces */}
       <div>
-        <h2 className="text-lg font-serif text-cream-100 mb-4">Piezas ({order.pieces.length})</h2>
-        <div className="space-y-4">
+        <p className="text-sm font-semibold font-sans-custom mb-3" style={{ color: 'rgba(242,240,237,0.7)' }}>
+          Piezas ({order.pieces.length})
+        </p>
+        <div className="space-y-3">
           {order.pieces.map((piece) => {
-            const sc = piece.currentState ? (stateColors[piece.currentState.code] || 'bg-charcoal-700 text-charcoal-300') : 'bg-charcoal-700 text-charcoal-400';
             const pieceTransitions = transitions[piece.id] || [];
-
             return (
-              <div key={piece.id} className="bg-charcoal-800 rounded-lg border border-white/5 p-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <Package size={16} className="text-gold-500" />
-                      <h3 className="text-sm font-medium text-cream-200">{piece.name}</h3>
-                      {piece.currentState && (
-                        <span className={`text-[11px] px-2 py-0.5 rounded ${sc}`}>
-                          {piece.currentState.name}
-                        </span>
-                      )}
-                    </div>
-                    {piece.description && (
-                      <p className="text-xs text-charcoal-400 mt-1 ml-7">{piece.description}</p>
-                    )}
-                  </div>
+              <div key={piece.id} className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="flex items-center gap-3 mb-3">
+                  <Package size={14} style={{ color: 'rgba(212,175,55,0.7)' }} />
+                  <span className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.85)' }}>{piece.name}</span>
+                  {piece.currentState && (
+                    <span
+                      className="text-[10px] px-2 py-0.5 rounded-full font-sans-custom"
+                      style={{ background: 'rgba(212,175,55,0.1)', color: 'rgba(212,175,55,0.8)', border: '1px solid rgba(212,175,55,0.2)' }}
+                    >
+                      {piece.currentState.name}
+                    </span>
+                  )}
                 </div>
+                {piece.description && (
+                  <p className="text-xs font-sans-custom ml-[22px] mb-3" style={{ color: 'rgba(242,240,237,0.4)' }}>{piece.description}</p>
+                )}
 
                 {/* Transitions */}
                 {pieceTransitions.length > 0 && (
-                  <div className="ml-7 mb-4">
-                    <p className="text-[11px] text-charcoal-500 mb-2">Transiciones disponibles:</p>
+                  <div className="ml-[22px] mb-3">
+                    <p className="text-[10px] uppercase tracking-wider font-sans-custom mb-2" style={{ color: 'rgba(242,240,237,0.25)' }}>Transiciones</p>
                     <div className="flex flex-wrap gap-2">
                       {pieceTransitions.map((t) => (
                         <button
                           key={t.transitionId}
                           onClick={() => handleTransition(piece.id, t.toStateId)}
                           disabled={transitionLoading === piece.id}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-gold-500/10 text-gold-400 hover:bg-gold-500/20 transition-colors disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-sans-custom transition-all disabled:opacity-50"
+                          style={{ background: 'rgba(212,175,55,0.1)', color: 'rgba(212,175,55,0.85)', border: '1px solid rgba(212,175,55,0.2)' }}
                         >
                           {transitionLoading === piece.id ? (
-                            <Loader2 size={12} className="animate-spin" />
+                            <Loader2 size={11} className="animate-spin" />
                           ) : (
-                            <ChevronRight size={12} />
+                            <ChevronRight size={11} />
                           )}
                           {t.toStateName}
-                          {t.requiresApproval && <AlertTriangle size={10} className="text-orange-400" />}
+                          {t.requiresApproval && <AlertTriangle size={10} style={{ color: 'rgba(251,191,36,0.8)' }} />}
                         </button>
                       ))}
                     </div>
@@ -396,45 +434,43 @@ export default function OrderDetailPage() {
 
                 {/* Assignments */}
                 {piece.assignments && piece.assignments.length > 0 && (
-                  <div className="ml-7 mb-3">
-                    <p className="text-[11px] text-charcoal-500 mb-2">Asignaciones:</p>
-                    <div className="space-y-1">
-                      {piece.assignments.map((a) => (
-                        <div key={a.id} className="flex items-center gap-3 text-xs">
-                          <span className="text-charcoal-300">{a.worker.firstName} {a.worker.lastName}</span>
-                          <span className="text-charcoal-500">{a.stageCode}</span>
-                          <div className="flex-1 max-w-24 h-1.5 bg-charcoal-700 rounded-full overflow-hidden">
-                            <div className="h-full bg-gold-500/50 rounded-full" style={{ width: `${a.progressPct}%` }} />
-                          </div>
-                          <span className="text-charcoal-500">{a.progressPct}%</span>
+                  <div className="ml-[22px] mb-3 space-y-1.5">
+                    <p className="text-[10px] uppercase tracking-wider font-sans-custom mb-2" style={{ color: 'rgba(242,240,237,0.25)' }}>Asignaciones</p>
+                    {piece.assignments.map((a) => (
+                      <div key={a.id} className="flex items-center gap-3 text-xs font-sans-custom">
+                        <span style={{ color: 'rgba(242,240,237,0.6)' }}>{a.worker.firstName} {a.worker.lastName}</span>
+                        <span style={{ color: 'rgba(242,240,237,0.3)' }}>{a.stageCode}</span>
+                        <div className="flex-1 max-w-24 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                          <div className="h-full rounded-full" style={{ width: `${a.progressPct}%`, background: 'rgba(212,175,55,0.6)' }} />
                         </div>
-                      ))}
-                    </div>
+                        <span style={{ color: 'rgba(242,240,237,0.35)' }}>{a.progressPct}%</span>
+                      </div>
+                    ))}
                   </div>
                 )}
 
                 {/* State History */}
                 {piece.stateHistory && piece.stateHistory.length > 0 ? (
-                  <details className="ml-7">
-                    <summary className="text-[11px] text-charcoal-500 cursor-pointer hover:text-charcoal-300 transition-colors">
+                  <details className="ml-[22px]">
+                    <summary className="text-[10px] uppercase tracking-wider font-sans-custom cursor-pointer transition-colors" style={{ color: 'rgba(242,240,237,0.3)' }}>
                       Historial ({piece.stateHistory.length} cambios)
                     </summary>
-                    <div className="mt-2 space-y-1.5 border-l border-white/5 pl-3">
+                    <div className="mt-2 space-y-1.5 pl-3" style={{ borderLeft: '1px solid rgba(255,255,255,0.06)' }}>
                       {piece.stateHistory.map((h) => (
-                        <div key={h.id} className="text-xs">
-                          <span className="text-charcoal-300">{h.state.name}</span>
-                          <span className="text-charcoal-600 ml-2">
+                        <div key={h.id} className="text-xs font-sans-custom">
+                          <span style={{ color: 'rgba(242,240,237,0.6)' }}>{h.state.name}</span>
+                          <span className="ml-2" style={{ color: 'rgba(242,240,237,0.25)' }}>
                             {new Date(h.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                           </span>
-                          {h.notes && <p className="text-charcoal-500 mt-0.5">{h.notes}</p>}
+                          {h.notes && <p className="mt-0.5" style={{ color: 'rgba(242,240,237,0.35)' }}>{h.notes}</p>}
                         </div>
                       ))}
                     </div>
                   </details>
                 ) : (
-                  <div className="ml-7 text-[11px] text-charcoal-600">
-                    No hay historial de estados disponible
-                  </div>
+                  <p className="ml-[22px] text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.2)' }}>
+                    Sin historial de estados
+                  </p>
                 )}
               </div>
             );

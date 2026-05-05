@@ -111,312 +111,214 @@ export default function ModalFinishWork({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const inputStyle: React.CSSProperties = {
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    color: 'rgba(242,240,237,0.85)',
+    borderRadius: 12,
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: 13,
+    outline: 'none',
+    fontFamily: 'inherit',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    color: 'rgba(242,240,237,0.3)',
+    marginBottom: 6,
+  };
+
   if (!isOpen) return null;
 
-  const qualityControllers = users.filter(u => 
-    ['manager', 'admin'].some(role => 
-      u.firstName.toLowerCase().includes(role) || u.lastName.toLowerCase().includes(role)
-    )
-  );
-
-  const materialDifference = currentCycle.totalMetalWeightGr 
-    ? formData.finalWeightGr - currentCycle.totalMetalWeightGr 
+  const qualityControllers = users;
+  const materialDifference = currentCycle.totalMetalWeightGr
+    ? formData.finalWeightGr - currentCycle.totalMetalWeightGr
     : 0;
+  const isApproved = formData.qcResult === 'approved';
 
   return (
-    <div className="fixed inset-0 bg-charcoal-900/95 flex items-center justify-center z-50 p-4">
-      <div className="bg-charcoal-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      style={{ background: 'rgba(10,10,10,0.88)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-2xl my-auto rounded-2xl font-sans-custom flex flex-col"
+        style={{
+          background: 'rgba(18,16,14,0.98)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+          maxHeight: 'calc(100vh - 2rem)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/5">
-          <div>
-            <h2 className="text-lg font-medium text-cream-100">Finalizar Trabajo</h2>
-            <p className="text-sm text-charcoal-400">Fase 3: Control de Calidad y Entrega</p>
+        <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.2)' }}>
+              <CheckCircle size={15} style={{ color: 'rgba(212,175,55,0.8)' }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'rgba(242,240,237,0.88)' }}>Finalizar Trabajo</p>
+              <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: 'rgba(242,240,237,0.3)' }}>Fase 3 — Control de Calidad y Entrega</p>
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-charcoal-400 hover:text-cream-200 transition-colors"
-          >
-            <X size={20} />
+          <button onClick={onClose} className="p-2 rounded-xl transition-all" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.5)' }}>
+            <X size={16} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle size={16} className="text-red-500 mt-0.5" />
-                <p className="text-sm text-red-400">{error}</p>
-              </div>
-            </div>
-          )}
+        {/* Body — scrollable */}
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1">
+          <div className="px-5 py-4 space-y-5">
 
-          {/* Resultado del Trabajo */}
-          <div>
-            <h3 className="text-sm font-medium text-cream-100 mb-4 flex items-center gap-2">
-              <Scale size={16} className="text-gold-500" />
-              Resultado del Trabajo
-            </h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  Peso final (gr) *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  value={formData.finalWeightGr}
-                  onChange={(e) => updateField('finalWeightGr', parseFloat(e.target.value))}
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-600 focus:outline-none focus:border-gold-500/30"
-                />
-                {currentCycle.totalMetalWeightGr && (
-                  <p className="text-[11px] text-charcoal-500 mt-1">
-                    Entregado: {currentCycle.totalMetalWeightGr} gr
-                    {materialDifference !== 0 && (
-                      <span className={`ml-2 ${materialDifference > 0 ? 'text-orange-400' : 'text-emerald-400'}`}>
-                        ({materialDifference > 0 ? '+' : ''}{materialDifference.toFixed(2)} gr)
-                      </span>
-                    )}
-                  </p>
+            {/* Error */}
+            {error && (
+              <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <AlertCircle size={14} className="shrink-0 mt-0.5" style={{ color: 'rgba(252,165,165,0.8)' }} />
+                <p className="text-xs" style={{ color: 'rgba(252,165,165,0.85)' }}>{error}</p>
+              </div>
+            )}
+
+            {/* Resultado del trabajo */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.12em] font-semibold mb-3 flex items-center gap-2" style={{ color: 'rgba(212,175,55,0.6)' }}>
+                <Scale size={11} /> Resultado del Trabajo
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label style={labelStyle}>Peso final (gr) *</label>
+                  <input type="number" step="0.01" min="0.01" value={formData.finalWeightGr} onChange={(e) => updateField('finalWeightGr', parseFloat(e.target.value))} style={inputStyle} />
+                  {currentCycle.totalMetalWeightGr && (
+                    <p className="text-[10px] mt-1" style={{ color: 'rgba(242,240,237,0.25)' }}>
+                      Entregado: {currentCycle.totalMetalWeightGr} gr
+                      {materialDifference !== 0 && (
+                        <span style={{ marginLeft: 6, color: materialDifference > 0 ? 'rgba(251,146,60,0.8)' : 'rgba(110,231,183,0.8)' }}>
+                          ({materialDifference > 0 ? '+' : ''}{materialDifference.toFixed(2)} gr)
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label style={labelStyle}>Material devuelto (gr) *</label>
+                  <input type="number" step="0.01" min="0" value={formData.returnedMaterialGr} onChange={(e) => updateField('returnedMaterialGr', parseFloat(e.target.value))} style={inputStyle} />
+                  <p className="text-[10px] mt-1" style={{ color: 'rgba(242,240,237,0.22)' }}>Material que sobra y se devuelve al cliente</p>
+                </div>
+                {currentCycle.includesStones && (
+                  <div>
+                    <label style={labelStyle}>Sobrantes piedras (gr)</label>
+                    <input type="number" step="0.01" min="0" value={formData.leftoverStonesGr || ''} onChange={(e) => updateField('leftoverStonesGr', parseFloat(e.target.value) || undefined)} style={inputStyle} />
+                    <p className="text-[10px] mt-1" style={{ color: 'rgba(242,240,237,0.22)' }}>Entregadas: {currentCycle.stoneWeightGr || 0} gr</p>
+                  </div>
                 )}
               </div>
-              
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  Material devuelto (gr) *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.returnedMaterialGr}
-                  onChange={(e) => updateField('returnedMaterialGr', parseFloat(e.target.value))}
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-600 focus:outline-none focus:border-gold-500/30"
-                />
-                <p className="text-[11px] text-charcoal-500 mt-1">
-                  Material que sobra y se devuelve al cliente
-                </p>
-              </div>
-              
-              {currentCycle.includesStones && (
-                <div>
-                  <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                    Sobrantes piedras (gr)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.leftoverStonesGr || ''}
-                    onChange={(e) => updateField('leftoverStonesGr', parseFloat(e.target.value) || undefined)}
-                    className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-600 focus:outline-none focus:border-gold-500/30"
-                  />
-                  <p className="text-[11px] text-charcoal-500 mt-1">
-                    Entregadas: {currentCycle.stoneWeightGr || 0} gr
-                  </p>
-                </div>
-              )}
             </div>
-          </div>
 
-          {/* Control de Calidad */}
-          <div>
-            <h3 className="text-sm font-medium text-cream-100 mb-4 flex items-center gap-2">
-              <CheckCircle size={16} className="text-gold-500" />
-              Control de Calidad
-            </h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  Resultado QC *
-                </label>
+            {/* Control de calidad */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.12em] font-semibold mb-3 flex items-center gap-2" style={{ color: 'rgba(212,175,55,0.6)' }}>
+                <CheckCircle size={11} /> Control de Calidad
+              </p>
+              <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => updateField('qcResult', 'approved')}
-                    className={`px-4 py-3 rounded-md border transition-all ${
-                      formData.qcResult === 'approved'
-                        ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
-                        : 'bg-charcoal-900 border-white/5 text-charcoal-300 hover:border-white/10'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      <CheckCircle size={16} />
-                      <span>Aprobado</span>
-                    </div>
-                  </button>
-                  
-                  <button
-                    type="button"
-                    onClick={() => updateField('qcResult', 'rejected')}
-                    className={`px-4 py-3 rounded-md border transition-all ${
-                      formData.qcResult === 'rejected'
-                        ? 'bg-red-500/20 border-red-500/30 text-red-400'
-                        : 'bg-charcoal-900 border-white/5 text-charcoal-300 hover:border-white/10'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      <XCircle size={16} />
-                      <span>Rechazado</span>
-                    </div>
-                  </button>
+                  {([
+                    { value: 'approved', label: 'Aprobado', icon: <CheckCircle size={14} />, activeBg: 'rgba(16,185,129,0.1)', activeBorder: 'rgba(16,185,129,0.3)', activeColor: 'rgba(110,231,183,0.9)' },
+                    { value: 'rejected', label: 'Rechazado', icon: <XCircle size={14} />, activeBg: 'rgba(239,68,68,0.1)', activeBorder: 'rgba(239,68,68,0.3)', activeColor: 'rgba(252,165,165,0.9)' },
+                  ] as const).map((opt) => {
+                    const active = formData.qcResult === opt.value;
+                    return (
+                      <button key={opt.value} type="button" onClick={() => updateField('qcResult', opt.value)}
+                        className="py-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all"
+                        style={{
+                          background: active ? opt.activeBg : 'rgba(255,255,255,0.04)',
+                          border: active ? `1px solid ${opt.activeBorder}` : '1px solid rgba(255,255,255,0.07)',
+                          color: active ? opt.activeColor : 'rgba(242,240,237,0.35)',
+                        }}
+                      >
+                        {opt.icon} {opt.label}
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
-              
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  Observaciones QC {formData.qcResult === 'rejected' && '*'}
-                </label>
-                <textarea
-                  value={formData.qcObservations}
-                  onChange={(e) => updateField('qcObservations', e.target.value)}
-                  rows={3}
-                  placeholder={formData.qcResult === 'rejected' 
-                    ? 'Describir detalladamente las razones del rechazo y qué se debe corregir...' 
-                    : 'Notas sobre el control de calidad (opcional)...'
-                  }
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-600 focus:outline-none focus:border-gold-500/30 resize-none"
-                />
-              </div>
-              
-              {formData.qcResult === 'rejected' && (
-                <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle size={16} className="text-orange-500 mt-0.5" />
+                <div>
+                  <label style={labelStyle}>Observaciones QC {formData.qcResult === 'rejected' && '*'}</label>
+                  <textarea
+                    value={formData.qcObservations}
+                    onChange={(e) => updateField('qcObservations', e.target.value)}
+                    rows={3}
+                    placeholder={formData.qcResult === 'rejected' ? 'Describir las razones del rechazo y qué se debe corregir...' : 'Notas sobre el control de calidad (opcional)...'}
+                    style={{ ...inputStyle, resize: 'none' }}
+                  />
+                </div>
+                {formData.qcResult === 'rejected' && (
+                  <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'rgba(249,115,22,0.07)', border: '1px solid rgba(249,115,22,0.2)' }}>
+                    <AlertTriangle size={13} className="shrink-0 mt-0.5" style={{ color: 'rgba(251,146,60,0.8)' }} />
                     <div>
-                      <p className="text-sm font-medium text-orange-400">Atención</p>
-                      <p className="text-xs text-orange-300 mt-1">
-                        Al rechazar el trabajo, se creará automáticamente un nuevo ciclo de retrabajo 
-                        y el pedido volverá a la fase de "Inicio Trabajo".
-                      </p>
+                      <p className="text-xs font-semibold mb-0.5" style={{ color: 'rgba(251,146,60,0.9)' }}>Atención</p>
+                      <p className="text-[11px]" style={{ color: 'rgba(251,146,60,0.65)' }}>Al rechazar el trabajo se creará un nuevo ciclo de retrabajo y el pedido volverá a "Inicio Trabajo".</p>
                     </div>
                   </div>
+                )}
+              </div>
+            </div>
+
+            {/* Responsables y fecha */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.12em] font-semibold mb-3 flex items-center gap-2" style={{ color: 'rgba(212,175,55,0.6)' }}>
+                <User size={11} /> Responsables y Fecha
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label style={labelStyle}>QC realizado por *</label>
+                  <select value={formData.qcByUserId} onChange={(e) => updateField('qcByUserId', e.target.value)} style={{ ...inputStyle, appearance: 'none' }}>
+                    <option value="">Seleccionar...</option>
+                    {qualityControllers.map((user) => <option key={user.id} value={user.id}>{user.firstName} {user.lastName}</option>)}
+                  </select>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Responsables y Fecha */}
-          <div>
-            <h3 className="text-sm font-medium text-cream-100 mb-4 flex items-center gap-2">
-              <User size={16} className="text-gold-500" />
-              Responsables y Fecha
-            </h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  QC realizado por *
-                </label>
-                <select
-                  value={formData.qcByUserId}
-                  onChange={(e) => updateField('qcByUserId', e.target.value)}
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
-                >
-                  <option value="">Seleccionar...</option>
-                  {qualityControllers.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.firstName} {user.lastName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  Trabajo recibido por *
-                </label>
-                <select
-                  value={formData.workReceivedByUserId}
-                  onChange={(e) => updateField('workReceivedByUserId', e.target.value)}
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
-                >
-                  <option value="">Seleccionar...</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.firstName} {user.lastName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
-                  Fecha entrega *
-                </label>
-                <input
-                  type="date"
-                  value={formData.workDeliveryDate}
-                  onChange={(e) => updateField('workDeliveryDate', e.target.value)}
-                  className="w-full px-3 py-2.5 bg-charcoal-900 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
-                />
+                <div>
+                  <label style={labelStyle}>Trabajo recibido por *</label>
+                  <select value={formData.workReceivedByUserId} onChange={(e) => updateField('workReceivedByUserId', e.target.value)} style={{ ...inputStyle, appearance: 'none' }}>
+                    <option value="">Seleccionar...</option>
+                    {users.map((user) => <option key={user.id} value={user.id}>{user.firstName} {user.lastName}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Fecha entrega *</label>
+                  <input type="date" value={formData.workDeliveryDate} onChange={(e) => updateField('workDeliveryDate', e.target.value)} style={inputStyle} />
+                </div>
               </div>
             </div>
+
           </div>
 
-          {/* Evidencia Fotográfica */}
-          <div>
-            <h3 className="text-sm font-medium text-cream-100 mb-4 flex items-center gap-2">
-              <Camera size={16} className="text-gold-500" />
-              Evidencia Fotográfica
-            </h3>
-            
-            <div className="border-2 border-dashed border-white/10 rounded-lg p-8 text-center">
-              <Camera size={32} className="mx-auto text-charcoal-600 mb-2" />
-              <p className="text-sm text-charcoal-400 mb-2">
-                Fotos del trabajo finalizado
-              </p>
-              <p className="text-xs text-charcoal-500">
-                Recomendado: fotos de múltiples ángulos y detalles
-              </p>
-              <button
-                type="button"
-                className="mt-4 px-4 py-2 bg-charcoal-700 text-cream-200 text-sm rounded-md hover:bg-charcoal-600 transition-colors"
-              >
-                Seleccionar Archivos
-              </button>
-            </div>
-          </div>
-
-          {/* Acciones */}
-          <div className="flex items-center gap-3 pt-4 border-t border-white/5">
+          {/* Footer */}
+          <div className="px-5 py-4 flex items-center gap-3 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
             <button
               type="submit"
               disabled={loading}
-              className={`flex-1 inline-flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-medium rounded-md transition-colors disabled:opacity-50 ${
-                formData.qcResult === 'approved'
-                  ? 'bg-emerald-500 text-white hover:bg-emerald-400'
-                  : 'bg-red-500 text-white hover:bg-red-400'
-              }`}
+              className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-6 rounded-xl text-xs font-semibold uppercase tracking-[0.08em] transition-all disabled:opacity-50"
+              style={{
+                background: isApproved
+                  ? 'linear-gradient(135deg, rgba(110,231,183,0.9), rgba(16,185,129,0.85))'
+                  : 'linear-gradient(135deg, rgba(252,165,165,0.85), rgba(239,68,68,0.8))',
+                color: isApproved ? '#0a1f17' : '#2a0a0a',
+              }}
             >
               {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Procesando...
-                </>
+                <><div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> Procesando...</>
+              ) : isApproved ? (
+                <><CheckCircle size={13} /> Aprobar y Finalizar</>
               ) : (
-                <>
-                  {formData.qcResult === 'approved' ? (
-                    <>
-                      <CheckCircle size={16} />
-                      Aprobar y Finalizar
-                    </>
-                  ) : (
-                    <>
-                      <XCircle size={16} />
-                      Rechazar y Crear Retrabajo
-                    </>
-                  )}
-                </>
+                <><XCircle size={13} /> Rechazar y Crear Retrabajo</>
               )}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2.5 text-sm text-charcoal-400 hover:text-cream-200 transition-colors"
-            >
+            <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl text-xs font-semibold transition-all" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.5)', border: '1px solid rgba(255,255,255,0.07)' }}>
               Cancelar
             </button>
           </div>
