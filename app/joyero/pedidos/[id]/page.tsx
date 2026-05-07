@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
-import { ArrowLeft, PlayCircle, Package, ImageIcon, FileText, Wrench, ArrowRight, PauseCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, PlayCircle, Package, ImageIcon, FileText, Wrench, ArrowRight, PauseCircle, CheckCircle2, Lock, RotateCcw } from 'lucide-react';
 import type { AssignmentStatus } from '@/lib/joyero/types';
 
 interface OrderDetail {
@@ -23,6 +23,7 @@ interface OrderDetail {
     startedAt: string | null;
     completedAt: string | null;
     progressPct: number;
+    priority: number;
   }>;
   images: Array<{
     id: string;
@@ -82,11 +83,13 @@ export default function JoyeroOrderDetailPage() {
             started_at,
             completed_at,
             progress_pct,
+            priority,
             workflow_states!inner(name),
             pieces!inner(id, name, description, order_id)
           `)
           .eq('worker_id', user.id)
-          .eq('pieces.order_id', params.id);
+          .eq('pieces.order_id', params.id)
+          .order('priority', { ascending: true });
 
         // Fetch file attachments (images)
         const { data: imageData } = await supabase
@@ -138,7 +141,7 @@ export default function JoyeroOrderDetailPage() {
           pieceName: (orderData.pieces as any).name,
           pieceDescription: (orderData.pieces as any).description,
           notes: orderData.notes,
-          assignments: (assignmentData || []).map((assignment: any) => ({
+          assignments: (assignmentData || []).sort((a: any, b: any) => (a.priority ?? 999) - (b.priority ?? 999)).map((assignment: any) => ({
             id: assignment.id,
             stageCode: assignment.stage_code,
             stageName: assignment.workflow_states.name,
@@ -146,6 +149,7 @@ export default function JoyeroOrderDetailPage() {
             startedAt: assignment.started_at,
             completedAt: assignment.completed_at,
             progressPct: assignment.progress_pct,
+            priority: assignment.priority ?? 999,
           })),
           images: (imageData || []).map((image: any) => ({
             id: image.id,
@@ -224,60 +228,137 @@ export default function JoyeroOrderDetailPage() {
 
       {/* Your Work Assignments */}
       {orderDetail.assignments.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center space-x-2">
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2 mb-1">
             <Wrench className="w-5 h-5" style={{ color: 'rgba(212,175,55,0.9)' }} />
             <h2 className="text-lg font-semibold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>Tu trabajo asignado</h2>
           </div>
-          {orderDetail.assignments.map((assignment) => (
-            <div key={assignment.id} className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h3 className="font-medium font-sans-custom" style={{ color: 'rgba(212,175,55,0.8)' }}>{assignment.stageName}</h3>
-                  <span className={`inline-flex items-center space-x-1 text-xs mt-1 font-sans-custom ${
-                    assignment.status === 'completed' ? 'text-green-400' :
-                    assignment.status === 'in_progress' ? 'text-blue-400' :
-                    assignment.status === 'paused' ? 'text-yellow-400' :
-                    ''
-                  }`}
-                  style={{
-                    color: assignment.status === 'completed' ? 'rgba(52,211,153,0.9)' :
-                           assignment.status === 'in_progress' ? 'rgba(96,165,250,0.9)' :
-                           assignment.status === 'paused' ? 'rgba(250,204,21,0.9)' :
-                           'rgba(242,240,237,0.3)'
-                  }}>
-                    {assignment.status === 'completed' && <CheckCircle2 className="w-3 h-3" />}
-                    {assignment.status === 'in_progress' && <PlayCircle className="w-3 h-3" />}
-                    {assignment.status === 'paused' && <PauseCircle className="w-3 h-3" />}
-                    <span>
-                      {assignment.status === 'completed' ? 'Finalizado' :
-                       assignment.status === 'in_progress' ? 'En progreso' :
-                       assignment.status === 'paused' ? 'Pausado' : 'No iniciado'}
+          {orderDetail.assignments.map((assignment, idx) => {
+            // Una tarea está bloqueada si hay alguna anterior (menor priority) no completada
+            const isBlocked = orderDetail.assignments
+              .slice(0, idx)
+              .some(prev => prev.status !== 'completed');
+
+            const isActive = assignment.status === 'in_progress' || assignment.status === 'paused';
+            const isDone = assignment.status === 'completed';
+
+            return (
+              <div
+                key={assignment.id}
+                className="rounded-2xl p-4"
+                style={{
+                  background: isDone
+                    ? 'rgba(34,197,94,0.04)'
+                    : isActive
+                    ? 'rgba(96,165,250,0.05)'
+                    : isBlocked
+                    ? 'rgba(255,255,255,0.02)'
+                    : 'rgba(212,175,55,0.04)',
+                  border: isDone
+                    ? '1px solid rgba(34,197,94,0.12)'
+                    : isActive
+                    ? '1px solid rgba(96,165,250,0.15)'
+                    : isBlocked
+                    ? '1px solid rgba(255,255,255,0.04)'
+                    : '1px solid rgba(212,175,55,0.12)',
+                  opacity: isBlocked ? 0.55 : 1,
+                }}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  {/* Step number + name */}
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div
+                      className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold font-mono"
+                      style={{
+                        background: isDone
+                          ? 'rgba(34,197,94,0.15)'
+                          : isActive
+                          ? 'rgba(96,165,250,0.15)'
+                          : isBlocked
+                          ? 'rgba(255,255,255,0.05)'
+                          : 'rgba(212,175,55,0.12)',
+                        color: isDone
+                          ? 'rgba(34,197,94,0.9)'
+                          : isActive
+                          ? 'rgba(96,165,250,0.9)'
+                          : isBlocked
+                          ? 'rgba(242,240,237,0.2)'
+                          : 'rgba(212,175,55,0.8)',
+                      }}
+                    >
+                      {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : idx + 1}
+                    </div>
+                    <div className="min-w-0">
+                      <h3
+                        className="font-medium font-sans-custom text-sm truncate"
+                        style={{
+                          color: isDone
+                            ? 'rgba(34,197,94,0.7)'
+                            : isBlocked
+                            ? 'rgba(242,240,237,0.3)'
+                            : 'rgba(242,240,237,0.85)',
+                        }}
+                      >
+                        {assignment.stageName}
+                      </h3>
+                      <span
+                        className="inline-flex items-center gap-1 text-[10px] mt-0.5 font-sans-custom"
+                        style={{
+                          color: isDone
+                            ? 'rgba(34,197,94,0.6)'
+                            : isActive
+                            ? 'rgba(96,165,250,0.7)'
+                            : assignment.status === 'paused'
+                            ? 'rgba(250,204,21,0.7)'
+                            : isBlocked
+                            ? 'rgba(242,240,237,0.2)'
+                            : 'rgba(242,240,237,0.35)',
+                        }}
+                      >
+                        {isDone && <CheckCircle2 className="w-2.5 h-2.5" />}
+                        {isActive && assignment.status !== 'paused' && <PlayCircle className="w-2.5 h-2.5" />}
+                        {assignment.status === 'paused' && <PauseCircle className="w-2.5 h-2.5" />}
+                        {isBlocked && !isDone && !isActive && <Lock className="w-2.5 h-2.5" />}
+                        <span>
+                          {isDone ? 'Completado' :
+                           assignment.status === 'in_progress' ? 'En progreso' :
+                           assignment.status === 'paused' ? 'Pausado' :
+                           isBlocked ? 'Bloqueado' : 'Pendiente'}
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action */}
+                  {isDone ? (
+                    <span className="text-[10px] font-sans-custom shrink-0" style={{ color: 'rgba(34,197,94,0.4)' }}>
+                      {assignment.completedAt && new Date(assignment.completedAt).toLocaleDateString('es-CO')}
                     </span>
-                  </span>
+                  ) : isBlocked ? (
+                    <Lock className="w-4 h-4 shrink-0" style={{ color: 'rgba(242,240,237,0.15)' }} />
+                  ) : (
+                    <Link
+                      href={`/joyero/trabajo/${assignment.id}`}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 font-sans-custom shrink-0"
+                      style={{
+                        background: isActive
+                          ? 'rgba(96,165,250,0.15)'
+                          : 'linear-gradient(135deg, #E8C547, #D4AF37)',
+                        color: isActive ? 'rgba(96,165,250,0.9)' : '#1A1400',
+                        border: isActive ? '1px solid rgba(96,165,250,0.2)' : 'none',
+                      }}
+                    >
+                      {assignment.status === 'paused'
+                        ? <><RotateCcw className="w-3 h-3" /><span>Reanudar</span></>
+                        : isActive
+                        ? <><ArrowRight className="w-3 h-3" /><span>Continuar</span></>
+                        : <><PlayCircle className="w-3 h-3" /><span>Iniciar</span></>}
+                    </Link>
+                  )}
                 </div>
-                {assignment.status === 'completed' ? (
-                  <span className="font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>
-                    {assignment.completedAt && new Date(assignment.completedAt).toLocaleDateString('es-CO')}
-                  </span>
-                ) : (
-                  <Link
-                    href={`/joyero/trabajo/${assignment.id}`}
-                    className="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200 font-sans-custom"
-                    style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400', borderRadius: '0.75rem' }}
-                  >
-                    {assignment.status === 'assigned' && <PlayCircle className="w-4 h-4" />}
-                    {assignment.status === 'in_progress' && <ArrowRight className="w-4 h-4" />}
-                    {assignment.status === 'paused' && <ArrowRight className="w-4 h-4" />}
-                    <span>
-                      {assignment.status === 'assigned' ? 'Ir al trabajo' :
-                       assignment.status === 'paused' ? 'Reanudar' : 'Continuar'}
-                    </span>
-                  </Link>
-                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

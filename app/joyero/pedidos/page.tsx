@@ -5,9 +5,8 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import {
-  ChevronRight, ChevronDown, ChevronUp,
-  PlayCircle, Clock, CheckCircle, PauseCircle,
-  Lock, ArrowRight, Sparkles,
+  PlayCircle, CheckCircle, CheckCircle2, PauseCircle,
+  Lock, ArrowRight, Sparkles, RotateCcw,
 } from 'lucide-react';
 
 type AssignmentStatus = 'assigned' | 'pending' | 'in_progress' | 'paused' | 'completed' | 'blocked';
@@ -178,13 +177,8 @@ export default function JoyeroPedidosPage() {
     fetchAssignments();
   }, [user, supabase]);
 
-  const toggleExpand = (orderId: string) => {
-    setExpandedOrders(prev => {
-      const next = new Set(prev);
-      next.has(orderId) ? next.delete(orderId) : next.add(orderId);
-      return next;
-    });
-  };
+  // kept for compatibility but unused — stages always visible now
+  const toggleExpand = (_orderId: string) => {};
 
   const activeGroups = orderGroups.filter(g => g.completedCount < g.totalCount);
   const completedGroups = orderGroups.filter(g => g.completedCount === g.totalCount);
@@ -297,196 +291,187 @@ export default function JoyeroPedidosPage() {
   );
 }
 
-/* ─── OrderRow — compact native-app style ─── */
-function OrderRow({
-  group,
-  expanded,
-  onToggle,
-}: {
-  group: OrderGroup;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
+/* ─── OrderRow ─── */
+function OrderRow({ group }: { group: OrderGroup; expanded: boolean; onToggle: () => void }) {
   const isFullyCompleted = group.completedCount === group.totalCount;
   const progressPct = group.totalCount > 0 ? Math.round((group.completedCount / group.totalCount) * 100) : 0;
 
-  // Status color dot
-  const dotColor = isFullyCompleted
-    ? 'rgba(52,211,153,1)'
-    : group.blockedByName
-    ? 'rgba(248,113,113,1)'
-    : group.hasInProgress
-    ? 'rgba(96,165,250,1)'
-    : 'rgba(212,175,55,0.8)';
-
   const borderAccent = isFullyCompleted
-    ? 'rgba(52,211,153,0.15)'
+    ? 'rgba(52,211,153,0.12)'
     : group.hasInProgress
-    ? 'rgba(96,165,250,0.15)'
-    : group.blockedByName
-    ? 'rgba(248,113,113,0.12)'
+    ? 'rgba(96,165,250,0.12)'
     : 'rgba(255,255,255,0.06)';
-
-  const ctaHref = group.nextStage ? `/joyero/trabajo/${group.nextStage.assignmentId}` : '#';
 
   return (
     <div
       className="rounded-2xl overflow-hidden"
-      style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${borderAccent}` }}
+      style={{ background: 'rgba(255,255,255,0.025)', border: `1px solid ${borderAccent}` }}
     >
-      {/* Main row — tappable */}
-      <div className="flex items-center gap-3 px-4 py-3.5">
-        {/* Status dot */}
-        <div
-          className="w-2 h-2 rounded-full flex-shrink-0"
-          style={{ background: dotColor, boxShadow: `0 0 6px ${dotColor}` }}
-        />
-
-        {/* Info */}
+      {/* Order header */}
+      <div className="px-4 pt-3.5 pb-3 flex items-center justify-between gap-3"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1.5">
             <span className="font-display text-sm font-semibold" style={{ color: 'rgba(212,175,55,0.9)' }}>
               {group.orderNumber}
             </span>
-            <span className="text-xs truncate font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>
+            <span className="text-xs truncate font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
               {group.pieceName}
             </span>
           </div>
-
           {/* Progress bar */}
-          <div className="mt-1.5 flex items-center gap-2">
+          <div className="mt-2 flex items-center gap-2">
             <div className="flex-1 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
               <div
                 className="h-1 rounded-full transition-all duration-500"
                 style={{
                   width: `${progressPct}%`,
                   background: isFullyCompleted
-                    ? 'rgba(52,211,153,0.8)'
+                    ? 'rgba(52,211,153,0.7)'
                     : group.hasInProgress
-                    ? 'rgba(96,165,250,0.8)'
+                    ? 'rgba(96,165,250,0.7)'
                     : 'linear-gradient(90deg, #B8960F, #D4AF37)',
                 }}
               />
             </div>
-            <span className="text-[10px] flex-shrink-0" style={{ color: 'rgba(242,240,237,0.3)' }}>
+            <span className="text-[10px] flex-shrink-0 font-mono" style={{ color: 'rgba(242,240,237,0.25)' }}>
               {group.completedCount}/{group.totalCount}
             </span>
           </div>
         </div>
-
-        {/* Right action */}
-        {isFullyCompleted ? (
-          <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(52,211,153,0.7)' }} />
-        ) : group.blockedByName ? (
-          <Lock className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(248,113,113,0.7)' }} />
-        ) : group.nextStage ? (
-          <Link
-            href={ctaHref}
-            className="flex items-center gap-1 rounded-xl px-3 py-1.5 flex-shrink-0 transition-all duration-200"
-            style={{
-              background: group.hasInProgress ? 'rgba(96,165,250,0.12)' : 'rgba(212,175,55,0.12)',
-              border: group.hasInProgress ? '1px solid rgba(96,165,250,0.2)' : '1px solid rgba(212,175,55,0.2)',
-              color: group.hasInProgress ? 'rgba(96,165,250,1)' : 'rgba(212,175,55,1)',
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            {group.nextStage.status === 'in_progress'
-              ? <PlayCircle className="w-3.5 h-3.5" />
-              : group.nextStage.status === 'paused'
-              ? <PauseCircle className="w-3.5 h-3.5" />
-              : <ArrowRight className="w-3.5 h-3.5" />}
-            <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">
-              {group.nextStage.status === 'in_progress' ? 'Activo' : group.nextStage.status === 'paused' ? 'Pausado' : 'Iniciar'}
-            </span>
-          </Link>
-        ) : null}
+        {isFullyCompleted && (
+          <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(52,211,153,0.6)' }} />
+        )}
       </div>
 
-      {/* Blocked notice */}
-      {group.blockedByName && !isFullyCompleted && (
-        <div
-          className="px-4 py-2 flex items-center gap-2"
-          style={{ borderTop: '1px solid rgba(248,113,113,0.1)', background: 'rgba(248,113,113,0.05)' }}
-        >
-          <Lock className="w-3 h-3 flex-shrink-0" style={{ color: 'rgba(248,113,113,0.7)' }} />
-          <p className="text-[10px]" style={{ color: 'rgba(248,113,113,0.7)' }}>
-            Esperando: <span style={{ color: 'rgba(248,113,113,0.9)' }}>{group.blockedByStageName}</span>
-            {' '}· {group.blockedByName}
-          </p>
-        </div>
-      )}
+      {/* Stages — always visible */}
+      <div className="px-3 py-2 space-y-1.5">
+        {group.stages.map((stage, idx) => {
+          // bloqueada por etapa propia anterior (mismo worker) no completada
+          const ownBlocker = group.stages
+            .slice(0, idx)
+            .find(prev => prev.status !== 'completed');
+          const blockedByOwn = !!ownBlocker;
 
-      {/* Expandable stages */}
-      {group.stages.length > 1 && (
-        <>
-          <button
-            onClick={onToggle}
-            className="w-full flex items-center justify-between px-4 py-2.5 text-[10px] uppercase tracking-[0.12em] transition-colors font-sans-custom"
-            style={{
-              borderTop: '1px solid rgba(255,255,255,0.05)',
-              color: 'rgba(242,240,237,0.3)',
-            }}
-          >
-            <span>{expanded ? 'Ocultar etapas' : `Ver etapas (${group.stages.length})`}</span>
-            {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
+          const isBlockedBySibling = !!stage.blockedByName;
+          const isBlocked = blockedByOwn || isBlockedBySibling;
+          const isDone = stage.status === 'completed';
+          const isActive = stage.status === 'in_progress' || stage.status === 'paused';
 
-          {expanded && (
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              {group.stages.map((stage, idx) => (
-                <StageRowCompact key={stage.assignmentId} stage={stage} index={idx} />
-              ))}
+          return (
+            <div
+              key={stage.assignmentId}
+              className="rounded-xl px-3 py-2.5 flex items-center gap-3"
+              style={{
+                background: isDone
+                  ? 'rgba(34,197,94,0.04)'
+                  : isActive
+                  ? 'rgba(96,165,250,0.05)'
+                  : isBlocked
+                  ? 'rgba(255,255,255,0.02)'
+                  : 'rgba(212,175,55,0.04)',
+                border: isDone
+                  ? '1px solid rgba(34,197,94,0.1)'
+                  : isActive
+                  ? '1px solid rgba(96,165,250,0.12)'
+                  : isBlocked
+                  ? '1px solid rgba(255,255,255,0.04)'
+                  : '1px solid rgba(212,175,55,0.1)',
+                opacity: isBlocked && !isActive ? 0.55 : 1,
+              }}
+            >
+              {/* Step bubble */}
+              <div
+                className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold font-mono"
+                style={{
+                  background: isDone
+                    ? 'rgba(34,197,94,0.15)'
+                    : isActive
+                    ? 'rgba(96,165,250,0.15)'
+                    : isBlocked
+                    ? 'rgba(255,255,255,0.05)'
+                    : 'rgba(212,175,55,0.12)',
+                  color: isDone
+                    ? 'rgba(34,197,94,0.9)'
+                    : isActive
+                    ? 'rgba(96,165,250,0.9)'
+                    : isBlocked
+                    ? 'rgba(242,240,237,0.2)'
+                    : 'rgba(212,175,55,0.8)',
+                }}
+              >
+                {isDone ? <CheckCircle2 className="w-3 h-3" /> : idx + 1}
+              </div>
+
+              {/* Name + sub-status */}
+              <div className="flex-1 min-w-0">
+                <p
+                  className="text-xs font-sans-custom truncate"
+                  style={{
+                    color: isDone
+                      ? 'rgba(34,197,94,0.6)'
+                      : isBlocked
+                      ? 'rgba(242,240,237,0.28)'
+                      : 'rgba(242,240,237,0.82)',
+                  }}
+                >
+                  {stage.stageName}
+                </p>
+                {/* Bloqueada por otro worker */}
+                {isBlockedBySibling && (stage.blockedByStageName || stage.blockedByName) && (
+                  <p className="text-[9px] mt-0.5 font-sans-custom truncate" style={{ color: 'rgba(248,113,113,0.55)' }}>
+                    Espera a{' '}
+                    {stage.blockedByName && (
+                      <span style={{ color: 'rgba(248,113,113,0.85)', fontWeight: 600 }}>
+                        {stage.blockedByName}
+                      </span>
+                    )}
+                    {stage.blockedByStageName && (
+                      <span style={{ color: 'rgba(248,113,113,0.55)' }}>
+                        {stage.blockedByName ? ` · ${stage.blockedByStageName}` : stage.blockedByStageName}
+                      </span>
+                    )}
+                  </p>
+                )}
+                {/* Bloqueada por etapa propia anterior */}
+                {!isBlockedBySibling && blockedByOwn && ownBlocker && (
+                  <p className="text-[9px] mt-0.5 font-sans-custom truncate" style={{ color: 'rgba(242,240,237,0.2)' }}>
+                    Primero: <span style={{ color: 'rgba(242,240,237,0.35)' }}>{ownBlocker.stageName}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Right action */}
+              {isDone ? (
+                stage.completedAt && (
+                  <span className="text-[9px] font-sans-custom shrink-0" style={{ color: 'rgba(34,197,94,0.35)' }}>
+                    {new Date(stage.completedAt).toLocaleDateString('es-CO')}
+                  </span>
+                )
+              ) : isBlocked ? (
+                <Lock className="w-3.5 h-3.5 shrink-0" style={{ color: 'rgba(242,240,237,0.15)' }} />
+              ) : (
+                <Link
+                  href={`/joyero/trabajo/${stage.assignmentId}`}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold font-sans-custom shrink-0 transition-all duration-200"
+                  style={{
+                    background: isActive ? 'rgba(96,165,250,0.12)' : 'linear-gradient(135deg, #E8C547, #D4AF37)',
+                    color: isActive ? 'rgba(96,165,250,0.9)' : '#1A1400',
+                    border: isActive ? '1px solid rgba(96,165,250,0.2)' : 'none',
+                  }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  {stage.status === 'paused'
+                    ? <><RotateCcw className="w-2.5 h-2.5" /><span>Reanudar</span></>
+                    : isActive
+                    ? <><ArrowRight className="w-2.5 h-2.5" /><span>Continuar</span></>
+                    : <><PlayCircle className="w-2.5 h-2.5" /><span>Iniciar</span></>}
+                </Link>
+              )}
             </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function StageRowCompact({ stage, index }: { stage: StageItem; index: number }) {
-  const isCompleted = stage.status === 'completed';
-  const isInProgress = stage.status === 'in_progress' || stage.status === 'paused';
-  const isBlocked = !!stage.blockedByName;
-
-  const numColor = isCompleted ? 'rgba(52,211,153,0.8)' : isInProgress ? 'rgba(96,165,250,0.8)' : isBlocked ? 'rgba(248,113,113,0.7)' : 'rgba(242,240,237,0.2)';
-  const textColor = isCompleted ? 'rgba(242,240,237,0.3)' : isInProgress ? 'rgba(96,165,250,0.9)' : 'rgba(242,240,237,0.7)';
-
-  return (
-    <div
-      className="flex items-center gap-3 px-4 py-2.5"
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-    >
-      <span
-        className="text-[10px] font-bold w-4 text-center flex-shrink-0 font-sans-custom"
-        style={{ color: numColor }}
-      >
-        {isCompleted ? '✓' : index + 1}
-      </span>
-
-      <p
-        className="flex-1 text-xs truncate font-sans-custom"
-        style={{
-          color: textColor,
-          textDecoration: isCompleted ? 'line-through' : 'none',
-        }}
-      >
-        {stage.stageName}
-      </p>
-
-      {isBlocked && (
-        <Lock className="w-3 h-3 flex-shrink-0" style={{ color: 'rgba(248,113,113,0.6)' }} />
-      )}
-
-      {!isCompleted && !isBlocked && (
-        <Link
-          href={`/joyero/trabajo/${stage.assignmentId}`}
-          className="flex-shrink-0"
-          onClick={e => e.stopPropagation()}
-        >
-          <ChevronRight className="w-3.5 h-3.5" style={{ color: 'rgba(242,240,237,0.25)' }} />
-        </Link>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }

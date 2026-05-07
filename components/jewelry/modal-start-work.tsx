@@ -76,7 +76,11 @@ export default function ModalStartWork({
   const totalWeightGr = Number(quotation?.total_weight_gr ?? 0);
   const mermaGr = Number((totalWeightGr - estimatedWeightGr).toFixed(3));
   const goldColor = quotation?.gold_color ?? null;
-  const requiredPureMetalGr = Number(quotation?.required_pure_metal_gr ?? 0);
+  // required_pure_metal_gr may be null when client_provides_metal=false — recalculate from total_weight_gr × purity_pct
+  const requiredPureMetalGr = Number(
+    quotation?.required_pure_metal_gr ??
+    (totalWeightGr > 0 && metalPurityPct > 0 ? (totalWeightGr * metalPurityPct) / 100 : 0)
+  );
   const hasStones = quotation?.has_stones ?? false;
   const stones: StoneRow[] = quotation?.stones ?? [];
   const laborItems: LaborItem[] = quotation?.labor_items ?? [];
@@ -84,7 +88,7 @@ export default function ModalStartWork({
   const joyeros = users.filter(u => u.role === 'jeweler');
   const assignableUsers = users.filter(u => u.role === 'jeweler' || u.role === 'designer');
 
-  const [deliveredPurityPct, setDeliveredPurityPct] = useState<string>('');
+  const [deliveredPurityK, setDeliveredPurityK] = useState<string>(''); // in karats e.g. 18
   const [deliveredWeightGr, setDeliveredWeightGr] = useState<string>('');
   const [deliveredByUserId, setDeliveredByUserId] = useState('');
   const [receivedByUserId, setReceivedByUserId] = useState('');
@@ -136,10 +140,12 @@ export default function ModalStartWork({
   };
 
   // Cálculos en tiempo real
-  const purityPctNum = parseFloat(deliveredPurityPct) || 0;
+  const kNum = parseFloat(deliveredPurityK) || 0;
+  // Convert karats to % for gold (18K = 75%), for silver keep as ratio
+  const purityPctNum = metalType === 'gold' ? Number(((kNum / 24) * 100).toFixed(4)) : kNum;
   const weightGrNum = parseFloat(deliveredWeightGr) || 0;
   const deliveredPureMetalGr = Number(((weightGrNum * purityPctNum) / 100).toFixed(4));
-  const surplusPureMetalGr = Number((requiredPureMetalGr - deliveredPureMetalGr).toFixed(4));
+  const surplusPureMetalGr = Number((deliveredPureMetalGr - requiredPureMetalGr).toFixed(4));
 
   const updateAssignee = (serviceCode: string, workerId: string) => {
     setLaborAssignments(prev =>
@@ -171,8 +177,8 @@ export default function ModalStartWork({
     e.preventDefault();
     setError('');
 
-    if (!deliveredPurityPct || purityPctNum <= 0 || purityPctNum > 100) {
-      setError('El % de ley del material entregado debe estar entre 0.1 y 100');
+    if (!deliveredPurityK || kNum <= 0 || (metalType === 'gold' && kNum > 24)) {
+      setError(metalType === 'gold' ? 'La ley del material debe estar entre 1K y 24K' : 'La pureza del material es requerida');
       return;
     }
     if (!deliveredWeightGr || weightGrNum <= 0) {
@@ -195,7 +201,7 @@ export default function ModalStartWork({
     setLoading(true);
     try {
       await onSubmit({
-        deliveredMetalPurityPct: purityPctNum,
+        deliveredMetalPurityPct: purityPctNum, // stored as %
         deliveredMetalWeightGr: weightGrNum,
         deliveredPureMetalGr,
         surplusePureMetalGr: surplusPureMetalGr,
@@ -340,11 +346,27 @@ export default function ModalStartWork({
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                 <div>
-                  <label style={labelStyle}>% Ley del material *</label>
+                  <label style={labelStyle}>{metalType === 'gold' ? 'Ley del material (K) *' : 'Pureza del material *'}</label>
                   <div className="relative">
-                    <input type="number" step="0.01" min="0.01" max="100" value={deliveredPurityPct} onChange={e => setDeliveredPurityPct(e.target.value)} placeholder="Ej: 75 para 18K" style={{ ...inputStyle, paddingRight: 32 }} />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px]" style={{ color: 'rgba(242,240,237,0.25)' }}>%</span>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="1"
+                      max={metalType === 'gold' ? '24' : '1'}
+                      value={deliveredPurityK}
+                      onChange={e => setDeliveredPurityK(e.target.value)}
+                      placeholder={metalType === 'gold' ? 'Ej: 18 (para 18K)' : 'Ej: 0.925'}
+                      style={{ ...inputStyle, paddingRight: 42 }}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px]" style={{ color: 'rgba(242,240,237,0.25)' }}>
+                      {metalType === 'gold' ? 'K' : 'ley'}
+                    </span>
                   </div>
+                  {metalType === 'gold' && kNum > 0 && (
+                    <p className="mt-1 text-[10px]" style={{ color: 'rgba(242,240,237,0.25)' }}>
+                      {kNum}K = {((kNum / 24) * 100).toFixed(2)}% de pureza
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label style={labelStyle}>Peso metal entregado (gr) *</label>
@@ -358,9 +380,9 @@ export default function ModalStartWork({
               <div className="rounded-xl p-4 grid grid-cols-3 gap-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                 {[
                   {
-                    label: 'Oro puro entregado',
+                    label: metalType === 'gold' ? 'Oro puro entregado' : 'Plata pura entregada',
                     value: weightGrNum > 0 && purityPctNum > 0 ? `${deliveredPureMetalGr} gr` : '—',
-                    sub: weightGrNum > 0 && purityPctNum > 0 ? `(${weightGrNum} × ${purityPctNum}%) / 100` : 'Ingresa peso y ley',
+                    sub: weightGrNum > 0 && purityPctNum > 0 ? `(${weightGrNum}gr × ${purityPctNum.toFixed(2)}%) / 100` : 'Ingresa peso y ley',
                   },
                   { label: 'Requerido joya', value: `${requiredPureMetalGr} gr`, sub: 'desde cotización' },
                   {

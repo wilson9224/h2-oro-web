@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Home, ClipboardList, User, Bell, Wallet } from 'lucide-react';
+import { Home, ClipboardList, User, Bell, Wallet, X, Wrench, CreditCard, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRealtimeNotifications } from '@/hooks/use-realtime-notifications';
 import Link from 'next/link';
@@ -20,10 +20,14 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const bellRef = useRef<HTMLButtonElement>(null);
   const {
     notificationCount,
+    newNotifications,
     resetNotifications,
     paymentNotificationCount,
+    paymentNotifications,
     resetPaymentNotifications,
   } = useRealtimeNotifications(user?.id || '');
 
@@ -100,19 +104,119 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
         </div>
 
         {/* Bell */}
-        <button className="relative p-2 -mr-1.5 rounded-xl transition-colors font-sans-custom"
-          style={{ color: 'rgba(242,240,237,0.5)' }}>
-          <Bell className="w-[18px] h-[18px]" />
-          {totalNotifications > 0 && (
-            <span
-              className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
+        <div className="relative">
+          <button
+            ref={bellRef}
+            onClick={() => setShowNotifications(v => !v)}
+            className="relative p-2 -mr-1.5 rounded-xl transition-colors font-sans-custom"
+            style={{ color: showNotifications ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.5)' }}
+          >
+            <Bell className="w-[18px] h-[18px]" />
+            {totalNotifications > 0 && (
+              <span
+                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
+                style={{ background: '#D4AF37', boxShadow: '0 0 6px rgba(212,175,55,0.6)' }}
+              />
+            )}
+          </button>
+
+          {/* Notification panel */}
+          {showNotifications && (
+            <div
+              className="absolute right-0 top-full mt-2 w-72 rounded-2xl overflow-hidden z-50"
               style={{
-                background: '#D4AF37',
-                boxShadow: '0 0 6px rgba(212,175,55,0.6)',
+                background: 'rgba(14,13,12,0.98)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow: '0 16px 48px rgba(0,0,0,0.7)',
               }}
-            />
+            >
+              {/* Panel header */}
+              <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <span className="text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>Notificaciones</span>
+                <button
+                  onClick={() => setShowNotifications(false)}
+                  className="p-1 rounded-lg"
+                  style={{ color: 'rgba(242,240,237,0.3)' }}
+                >
+                  <X size={13} />
+                </button>
+              </div>
+
+              <div className="max-h-80 overflow-y-auto">
+                {/* Work assignment notifications */}
+                {newNotifications.length > 0 && newNotifications.map((n) => (
+                  <Link
+                    key={n.id}
+                    href={`/joyero/pedidos`}
+                    onClick={() => { resetNotifications(); setShowNotifications(false); }}
+                    className="flex items-start gap-3 px-4 py-3 transition-colors"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                  >
+                    <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                      style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.18)' }}>
+                      <Wrench size={12} style={{ color: 'rgba(212,175,55,0.8)' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold font-sans-custom truncate" style={{ color: 'rgba(242,240,237,0.8)' }}>
+                        Nueva tarea asignada
+                      </p>
+                      <p className="text-[10px] mt-0.5 font-sans-custom truncate" style={{ color: 'rgba(242,240,237,0.35)' }}>
+                        {n.orderNumber ? `#${n.orderNumber} · ` : ''}{n.stageName}
+                      </p>
+                    </div>
+                    <ChevronRight size={12} className="shrink-0 mt-1" style={{ color: 'rgba(242,240,237,0.2)' }} />
+                  </Link>
+                ))}
+
+                {/* Payment notifications */}
+                {paymentNotifications.length > 0 && paymentNotifications.map((p) => (
+                  <Link
+                    key={p.id}
+                    href="/joyero/pagos"
+                    onClick={() => { resetPaymentNotifications(); setShowNotifications(false); }}
+                    className="flex items-start gap-3 px-4 py-3 transition-colors"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                  >
+                    <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                      style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.15)' }}>
+                      <CreditCard size={12} style={{ color: 'rgba(52,211,153,0.8)' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>
+                        Pago registrado
+                      </p>
+                      <p className="text-[10px] mt-0.5 font-sans-custom" style={{ color: 'rgba(52,211,153,0.6)' }}>
+                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.amountCop)}
+                      </p>
+                    </div>
+                    <ChevronRight size={12} className="shrink-0 mt-1" style={{ color: 'rgba(242,240,237,0.2)' }} />
+                  </Link>
+                ))}
+
+                {/* Empty state */}
+                {newNotifications.length === 0 && paymentNotifications.length === 0 && (
+                  <div className="px-4 py-8 text-center">
+                    <Bell size={20} className="mx-auto mb-2" style={{ color: 'rgba(242,240,237,0.1)' }} />
+                    <p className="text-[11px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>Sin notificaciones nuevas</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer with mark all read */}
+              {totalNotifications > 0 && (
+                <div className="px-4 py-2.5" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <button
+                    onClick={() => { resetNotifications(); resetPaymentNotifications(); setShowNotifications(false); }}
+                    className="w-full text-[10px] uppercase tracking-widest font-sans-custom transition-colors"
+                    style={{ color: 'rgba(212,175,55,0.5)' }}
+                  >
+                    Marcar todo como leído
+                  </button>
+                </div>
+              )}
+            </div>
           )}
-        </button>
+        </div>
       </header>
 
       {/* Main Content */}
