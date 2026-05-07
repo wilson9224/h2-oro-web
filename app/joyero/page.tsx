@@ -447,30 +447,29 @@ export default function JoyeroDashboard() {
             className="rounded-2xl p-4"
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
           >
-            <h2 className="font-display text-xs font-semibold uppercase tracking-[0.12em] mb-4"
-              style={{ color: 'rgba(242,240,237,0.5)' }}>Distribución por estado</h2>
-            <div className="space-y-3">
-              {stateDistribution.map((state) => {
-                const maxCount = Math.max(...stateDistribution.map(d => d.count));
-                const percentage = (state.count / maxCount) * 100;
-                return (
-                  <div key={state.stageCode}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.6)' }}>{state.stageName}</span>
-                      <span className="text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{state.count}</span>
-                    </div>
-                    <div className="w-full rounded-full h-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                      <div
-                        className="h-1.5 rounded-full transition-all duration-700"
-                        style={{
-                          width: `${percentage}%`,
-                          background: 'linear-gradient(90deg, #B8960F, #D4AF37, #E8C547)',
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+            <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] mb-3 font-sans-custom"
+              style={{ color: 'rgba(242,240,237,0.3)' }}>Tareas activas por tipo</h2>
+            <div className="flex flex-wrap gap-2">
+              {stateDistribution.map((state) => (
+                <div
+                  key={state.stageCode}
+                  className="flex items-center gap-2 rounded-xl px-3 py-2"
+                  style={{
+                    background: 'rgba(212,175,55,0.06)',
+                    border: '1px solid rgba(212,175,55,0.1)',
+                  }}
+                >
+                  <span className="text-[11px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.55)' }}>
+                    {state.stageName}
+                  </span>
+                  <span
+                    className="text-[11px] font-semibold font-mono"
+                    style={{ color: 'rgba(212,175,55,0.8)' }}
+                  >
+                    {state.count}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         )}

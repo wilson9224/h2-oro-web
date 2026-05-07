@@ -74,7 +74,7 @@ export async function saveQuotation(
     client_metal_purity: form.client_provides_metal ? parseFloat(form.client_metal_purity) || null : null,
     client_metal_purity_pct: form.client_provides_metal ? form.client_metal_purity_pct : null,
     client_pure_metal_gr: form.client_provides_metal ? form.client_pure_metal_gr : null,
-    required_pure_metal_gr: form.client_provides_metal ? form.required_pure_metal_gr : null,
+    required_pure_metal_gr: form.required_pure_metal_gr, // Guardar siempre, se usa en modal-start-work independientemente de client_provides_metal
     pending_metal_gr: form.client_provides_metal ? form.pending_metal_gr : null,
     pending_metal_value_cop: form.client_provides_metal ? form.pending_metal_value_cop : null,
     metal_excess_gr: form.client_provides_metal && form.pending_metal_gr < 0 ? form.metal_excess_gr : null,

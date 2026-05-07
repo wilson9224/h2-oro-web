@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Package, User, Calendar, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { convertToOrder } from '@/lib/quotation/queries';
 import { formatPriceCOP } from '@/lib/pricing/calculations';
@@ -23,6 +23,11 @@ interface Props {
   onClose: () => void;
   onSuccess: (orderId: string) => void;
 }
+
+const ROLE_LABEL: Record<string, string> = {
+  admin: 'Admin',
+  manager: 'Gerente',
+};
 
 export default function ConvertToOrderModal({
   form,
@@ -135,6 +140,10 @@ export default function ConvertToOrderModal({
       setError('Selecciona un responsable del pedido');
       return;
     }
+    if (!estimatedDeliveryDate) {
+      setError('La fecha estimada de entrega es obligatoria');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -154,84 +163,129 @@ export default function ConvertToOrderModal({
 
   const effectiveClientId = searchedClient?.id ?? form.client_id;
 
+  const inputStyle: React.CSSProperties = {
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    color: 'rgba(242,240,237,0.85)',
+    borderRadius: 12,
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: 13,
+    outline: 'none',
+    fontFamily: 'inherit',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    color: 'rgba(242,240,237,0.3)',
+    marginBottom: 6,
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative bg-charcoal-800 border border-white/10 rounded-xl w-full max-w-md shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      style={{ background: 'rgba(10,10,10,0.88)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-md my-auto rounded-2xl font-sans-custom flex flex-col"
+        style={{
+          background: 'rgba(18,16,14,0.98)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+          maxHeight: 'calc(100vh - 2rem)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
-          <h2 className="text-base font-semibold text-cream-200">Crear Pedido</h2>
-          <button onClick={onClose} className="text-charcoal-400 hover:text-cream-200 transition-colors">
-            <X size={18} />
+        <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.2)' }}>
+              <Package size={15} style={{ color: 'rgba(212,175,55,0.8)' }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'rgba(242,240,237,0.88)' }}>Crear Pedido</p>
+              <p className="text-[10px] uppercase tracking-[0.1em]" style={{ color: 'rgba(242,240,237,0.3)' }}>Confirmar datos de la cotización</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl transition-all" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.5)' }}>
+            <X size={16} />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="px-5 py-4 space-y-4">
+        {/* Body — scrollable */}
+        <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1">
           {error && (
-            <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-              {error}
+            <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+              <AlertCircle size={14} className="shrink-0 mt-0.5" style={{ color: 'rgba(252,165,165,0.8)' }} />
+              <p className="text-xs" style={{ color: 'rgba(252,165,165,0.85)' }}>{error}</p>
             </div>
           )}
 
           {/* Total summary */}
-          <div className="bg-charcoal-900/50 rounded-md px-4 py-3 flex justify-between items-center">
-            <span className="text-sm text-charcoal-400">Total cotización</span>
-            <span className="text-base font-semibold text-gold-400">
+          <div className="rounded-xl px-4 py-3 flex justify-between items-center" style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.12)' }}>
+            <span className="text-sm" style={{ color: 'rgba(242,240,237,0.35)' }}>Total cotización</span>
+            <span className="text-base font-semibold" style={{ color: 'rgba(212,175,55,0.9)' }}>
               {formatPriceCOP(form.total_cop)}
             </span>
           </div>
 
           {/* Cliente */}
           {effectiveClientId ? (
-            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-md p-3">
-              <p className="text-xs text-emerald-400 font-medium mb-1">Cliente</p>
-              <p className="text-sm text-cream-200">
-                {searchedClient
-                  ? `${searchedClient.first_name} ${searchedClient.last_name}`
-                  : form.client_name_temp || 'Cliente registrado'}
-              </p>
+            <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.12)' }}>
+              <CheckCircle2 size={16} className="shrink-0" style={{ color: 'rgba(52,211,153,0.8)' }} />
+              <div>
+                <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(52,211,153,0.6)' }}>Cliente</p>
+                <p className="text-sm" style={{ color: 'rgba(242,240,237,0.85)' }}>
+                  {searchedClient
+                    ? `${searchedClient.first_name} ${searchedClient.last_name}`
+                    : form.client_name_temp || 'Cliente registrado'}
+                </p>
+              </div>
             </div>
           ) : (
             <div>
-              <label className="block text-xs uppercase tracking-widest text-charcoal-400 mb-2">
-                Teléfono del cliente *
-              </label>
+              <label style={labelStyle}>Teléfono del cliente *</label>
               <input
                 type="tel"
                 value={clientPhone}
                 onChange={(e) => searchByPhone(e.target.value)}
                 placeholder="+57 300 000 0000"
-                className="w-full px-3 py-2.5 bg-charcoal-700 border border-white/5 rounded-md text-sm text-cream-200 placeholder:text-charcoal-500 focus:outline-none focus:border-gold-500/30"
+                style={inputStyle}
               />
-              {isSearching && <p className="text-xs text-charcoal-400 mt-1">Buscando...</p>}
+              {isSearching && <p className="text-[10px] mt-1" style={{ color: 'rgba(242,240,237,0.25)' }}>Buscando...</p>}
               {showNewClientForm && (
-                <div className="mt-2 space-y-2 bg-gold-500/10 border border-gold-500/20 rounded-md p-3">
-                  <p className="text-xs text-gold-400 font-medium">Registrar nuevo cliente</p>
+                <div className="mt-2 space-y-2 rounded-xl p-3" style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.12)' }}>
+                  <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(212,175,55,0.7)' }}>Registrar nuevo cliente</p>
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       placeholder="Nombre"
                       value={newClientData.firstName}
                       onChange={(e) => setNewClientData({ ...newClientData, firstName: e.target.value })}
-                      className="px-2 py-1.5 bg-charcoal-800 border border-white/5 rounded text-xs text-cream-200 placeholder:text-charcoal-500"
+                      style={{ ...inputStyle, padding: '8px 10px', fontSize: 12 }}
                     />
                     <input
                       placeholder="Apellido"
                       value={newClientData.lastName}
                       onChange={(e) => setNewClientData({ ...newClientData, lastName: e.target.value })}
-                      className="px-2 py-1.5 bg-charcoal-800 border border-white/5 rounded text-xs text-cream-200 placeholder:text-charcoal-500"
+                      style={{ ...inputStyle, padding: '8px 10px', fontSize: 12 }}
                     />
                   </div>
                   <input
                     placeholder="Email (opcional)"
                     value={newClientData.email}
                     onChange={(e) => setNewClientData({ ...newClientData, email: e.target.value })}
-                    className="w-full px-2 py-1.5 bg-charcoal-800 border border-white/5 rounded text-xs text-cream-200 placeholder:text-charcoal-500"
+                    style={{ ...inputStyle, padding: '8px 10px', fontSize: 12 }}
                   />
                   <button
                     type="button"
                     onClick={registerNewClient}
-                    className="w-full py-1.5 bg-gold-500 text-charcoal-900 rounded text-xs font-medium hover:bg-gold-400 transition-colors"
+                    className="w-full py-2 rounded-xl text-xs font-semibold transition-all"
+                    style={{ background: 'rgba(212,175,55,0.9)', color: 'rgba(8,8,8,0.9)' }}
                   >
                     Registrar
                   </button>
@@ -242,18 +296,16 @@ export default function ConvertToOrderModal({
 
           {/* Responsable */}
           <div>
-            <label className="block text-xs uppercase tracking-widest text-charcoal-400 mb-2">
-              Responsable del pedido *
-            </label>
+            <label style={labelStyle}>Responsable del pedido *</label>
             <select
               value={assignedToId}
               onChange={(e) => setAssignedToId(e.target.value)}
-              className="w-full px-3 py-2.5 bg-charcoal-700 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+              style={{ ...inputStyle, appearance: 'none' }}
             >
               <option value="">Seleccionar...</option>
               {staff.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.first_name} {u.last_name} ({u.role_name === 'admin' ? 'Admin' : 'Manager'})
+                  {u.first_name} {u.last_name} ({ROLE_LABEL[u.role_name] || u.role_name})
                   {u.id === userId ? ' — Yo' : ''}
                 </option>
               ))}
@@ -262,30 +314,30 @@ export default function ConvertToOrderModal({
 
           {/* Fecha estimada */}
           <div>
-            <label className="block text-xs uppercase tracking-widest text-charcoal-400 mb-2">
-              Fecha estimada de entrega
-            </label>
+            <label style={labelStyle}>Fecha estimada de entrega *</label>
             <input
               type="date"
               value={estimatedDeliveryDate}
               onChange={(e) => setEstimatedDeliveryDate(e.target.value)}
-              className="w-full px-3 py-2.5 bg-charcoal-700 border border-white/5 rounded-md text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+              style={inputStyle}
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-white/5 flex gap-3">
+        <div className="px-5 py-4 flex items-center gap-3 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-md text-sm border border-white/10 text-charcoal-300 hover:bg-white/5 transition-colors"
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
+            style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
           >
             Cancelar
           </button>
           <button
             onClick={handleConfirm}
-            disabled={loading || !effectiveClientId || !assignedToId}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium bg-gold-500 text-charcoal-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
+            disabled={loading || !effectiveClientId || !assignedToId || !estimatedDeliveryDate}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all"
+            style={{ background: 'rgba(212,175,55,0.9)', color: 'rgba(8,8,8,0.9)', opacity: loading || !effectiveClientId || !assignedToId || !estimatedDeliveryDate ? 0.5 : 1 }}
           >
             {loading ? (
               <>

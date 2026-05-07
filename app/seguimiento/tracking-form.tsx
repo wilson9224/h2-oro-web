@@ -287,9 +287,19 @@ export default function TrackingForm() {
         ? laborStages.map(s => s.completedAt).filter(Boolean).sort().reverse()[0] ?? null
         : null;
 
+      // workStartDate: prefer firstStartedAt (actual work start), fallback to material_delivery_date
+      // but ensure it's never before order creation date
+      const materialDeliveryDate = activeCycle?.material_delivery_date ?? null;
+      const validMaterialDelivery = materialDeliveryDate && new Date(materialDeliveryDate) >= new Date(order.created_at)
+        ? materialDeliveryDate
+        : null;
+      const validFirstStarted = firstStartedAt && new Date(firstStartedAt) >= new Date(order.created_at)
+        ? firstStartedAt
+        : null;
+
       const keyDates: KeyDates = {
         createdAt: order.created_at,
-        workStartDate: activeCycle?.material_delivery_date ?? firstStartedAt,
+        workStartDate: validFirstStarted ?? validMaterialDelivery ?? null,
         workDeliveryDate: activeCycle?.work_delivery_date ?? lastCompletedAt,
         deliveryDate: order.status === 'delivered'
           ? (timeline.find(t => t.stateName.toLowerCase().includes('entrega'))?.timestamp ?? null)

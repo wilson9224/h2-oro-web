@@ -637,14 +637,17 @@ export default function JewelryDetailPage() {
     if (!id) return;
     
     try {
-      // Obtener o crear el ciclo actual
-      const { data: currentCycle } = await supabase
+      // Obtener el ciclo activo (sin filtrar por work_delivery_date para evitar
+      // que ciclos ya completados bloqueen el flujo al volver a abrir el modal)
+      const { data: currentCycle, error: cycleSelectErr } = await supabase
         .from('order_work_cycles')
-        .select('*')
+        .select('id')
         .eq('order_id', id)
-        .eq('cycle_number', 1)
-        .is('work_delivery_date', null)
+        .order('cycle_number', { ascending: false })
+        .limit(1)
         .maybeSingle();
+
+      if (cycleSelectErr) throw new Error(cycleSelectErr.message);
 
       const cyclePayload = {
         delivered_metal_purity_pct: data.deliveredMetalPurityPct,
@@ -660,10 +663,11 @@ export default function JewelryDetailPage() {
       let cycleId: string | null = currentCycle?.id ?? null;
 
       if (currentCycle) {
-        await supabase
+        const { error: updateErr } = await supabase
           .from('order_work_cycles')
           .update(cyclePayload)
           .eq('id', currentCycle.id);
+        if (updateErr) throw new Error(updateErr.message);
       } else {
         const { data: newCycle, error: cycleErr } = await supabase
           .from('order_work_cycles')
@@ -674,10 +678,10 @@ export default function JewelryDetailPage() {
         cycleId = newCycle.id;
       }
 
-      // Upsert work_assignments para cada ítem de mano de obra con encargado asignado
+      // Guardar work_assignments para los ítems de mano de obra con encargado asignado
       if (data.laborAssignments?.length) {
-        // Fetch piece_id directamente (evitar stale closure del estado pieces)
-        const { data: pieceRow } = await supabase
+        // Obtener o crear la pieza principal del pedido
+        const { data: pieceRow, error: pieceSelectErr } = await supabase
           .from('pieces')
           .select('id')
           .eq('order_id', id)
@@ -685,40 +689,44 @@ export default function JewelryDetailPage() {
           .limit(1)
           .maybeSingle();
 
+        if (pieceSelectErr) throw new Error(pieceSelectErr.message);
+
         let pieceId = pieceRow?.id;
 
-        // Si no existe pieza, crearla automáticamente
         if (!pieceId) {
           const { data: newPiece, error: pieceErr } = await supabase
             .from('pieces')
             .insert({ order_id: id, name: 'Pieza principal', sort_order: 1 })
             .select('id')
             .single();
-          if (!pieceErr && newPiece) pieceId = newPiece.id;
+          if (pieceErr) throw new Error(pieceErr.message);
+          pieceId = newPiece.id;
         }
 
-        if (pieceId) {
-          const assignmentsToUpsert = (data.laborAssignments as any[])
-            .filter((a: any) => a.worker_id)
-            .map((a: any) => ({
-              piece_id: pieceId,
-              worker_id: a.worker_id,
-              stage_code: a.service_code,
-              status: 'pending',
-              priority: a.sort_order,
-              progress_pct: 0,
-            }));
+        // Borrar assignments anteriores de esta pieza
+        const { error: deleteErr } = await supabase
+          .from('work_assignments')
+          .delete()
+          .eq('piece_id', pieceId);
+        if (deleteErr) throw new Error(deleteErr.message);
 
-          if (assignmentsToUpsert.length > 0) {
-            await supabase
-              .from('work_assignments')
-              .delete()
-              .eq('piece_id', pieceId);
+        // Insertar solo los que tienen worker asignado
+        const assignmentsToInsert = (data.laborAssignments as any[])
+          .filter((a: any) => a.worker_id)
+          .map((a: any) => ({
+            piece_id: pieceId,
+            worker_id: a.worker_id,
+            stage_code: a.service_code,
+            status: 'pending',
+            priority: a.sort_order,
+            progress_pct: 0,
+          }));
 
-            await supabase
-              .from('work_assignments')
-              .insert(assignmentsToUpsert);
-          }
+        if (assignmentsToInsert.length > 0) {
+          const { error: insertErr } = await supabase
+            .from('work_assignments')
+            .insert(assignmentsToInsert);
+          if (insertErr) throw new Error(insertErr.message);
         }
       }
 
@@ -747,10 +755,11 @@ export default function JewelryDetailPage() {
       }
 
       // Actualizar fase del pedido
-      await supabase
+      const { error: phaseErr } = await supabase
         .from('order_jewelry_data')
         .update({ current_phase: 'start_work' })
         .eq('order_id', id);
+      if (phaseErr) throw new Error(phaseErr.message);
 
       // Log de fase
       await supabase
