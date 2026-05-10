@@ -11,6 +11,7 @@ interface ModalFinishWorkProps {
   currentCycle: {
     id: string;
     totalMetalWeightGr?: number;
+    metalDeliveredGr?: number;
     includesStones?: boolean;
     stoneWeightGr?: number;
   };
@@ -136,9 +137,9 @@ export default function ModalFinishWork({
   if (!isOpen) return null;
 
   const qualityControllers = users;
-  const materialDifference = currentCycle.totalMetalWeightGr
-    ? formData.finalWeightGr - currentCycle.totalMetalWeightGr
-    : 0;
+  const deliveredGr = currentCycle.metalDeliveredGr ?? currentCycle.totalMetalWeightGr ?? 0;
+  const materialDifference = deliveredGr > 0 ? formData.finalWeightGr - deliveredGr : 0;
+  const surplusGr = deliveredGr > 0 ? deliveredGr - formData.finalWeightGr - (formData.returnedMaterialGr || 0) : 0;
   const isApproved = formData.qcResult === 'approved';
 
   return (
@@ -192,23 +193,28 @@ export default function ModalFinishWork({
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label style={labelStyle}>Peso final (gr) *</label>
+                  <label style={labelStyle}>Peso final de la joya (gr) *</label>
                   <input type="number" step="0.01" min="0.01" value={formData.finalWeightGr} onChange={(e) => updateField('finalWeightGr', parseFloat(e.target.value))} style={inputStyle} />
-                  {currentCycle.totalMetalWeightGr && (
+                  {deliveredGr > 0 && (
                     <p className="text-[10px] mt-1" style={{ color: 'rgba(242,240,237,0.25)' }}>
-                      Entregado: {currentCycle.totalMetalWeightGr} gr
+                      Metal entregado: {deliveredGr.toFixed(3)} gr
                       {materialDifference !== 0 && (
                         <span style={{ marginLeft: 6, color: materialDifference > 0 ? 'rgba(251,146,60,0.8)' : 'rgba(110,231,183,0.8)' }}>
-                          ({materialDifference > 0 ? '+' : ''}{materialDifference.toFixed(2)} gr)
+                          ({materialDifference > 0 ? '+' : ''}{materialDifference.toFixed(3)} gr vs entregado)
                         </span>
                       )}
                     </p>
                   )}
                 </div>
                 <div>
-                  <label style={labelStyle}>Material devuelto (gr) *</label>
+                  <label style={labelStyle}>Material devuelto / excedente (gr) *</label>
                   <input type="number" step="0.01" min="0" value={formData.returnedMaterialGr} onChange={(e) => updateField('returnedMaterialGr', parseFloat(e.target.value))} style={inputStyle} />
-                  <p className="text-[10px] mt-1" style={{ color: 'rgba(242,240,237,0.22)' }}>Material que sobra y se devuelve al cliente</p>
+                  <p className="text-[10px] mt-1" style={{ color: 'rgba(242,240,237,0.22)' }}>Metal sobrante que regresa al inventario</p>
+                  {deliveredGr > 0 && formData.returnedMaterialGr > 0 && surplusGr !== 0 && (
+                    <p className="text-[10px] mt-0.5" style={{ color: surplusGr > 0.01 ? 'rgba(251,146,60,0.7)' : 'rgba(110,231,183,0.7)' }}>
+                      {surplusGr > 0.01 ? `⚠ Diferencia no contabilizada: ${surplusGr.toFixed(3)} gr` : `✓ Metal cuadra correctamente`}
+                    </p>
+                  )}
                 </div>
                 {currentCycle.includesStones && (
                   <div>

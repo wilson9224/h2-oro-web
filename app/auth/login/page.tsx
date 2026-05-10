@@ -13,9 +13,8 @@ function redirectByRole(role: string): string {
     case 'manager':
       return '/admin';
     case 'jeweler':
-      return '/joyero';
     case 'designer':
-      return '/admin';
+      return '/joyero';
     case 'client':
       return '/mi-cuenta';
     default:

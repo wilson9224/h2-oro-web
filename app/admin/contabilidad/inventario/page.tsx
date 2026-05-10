@@ -22,6 +22,9 @@ import {
 import type { InventoryItem, InventoryMovement, MovementType } from '@/lib/accounting/types';
 import { MOVEMENT_TYPE_LABELS } from '@/lib/accounting/types';
 import { STONE_CUTS } from '@/lib/quotation/types';
+import { createClient } from '@/lib/supabase/client';
+
+const supabase = createClient();
 
 function formatCOP(n: number) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n);
@@ -95,6 +98,7 @@ interface EntryForm {
   ley: string;            // oro y plata: ley
   weight_ct: string;      // piedras: peso en quilates
   quantity: string;       // piedras: cantidad de unidades
+  unit_cost: string;      // precio por gramo/quilate
   reference: string;
   notes: string;
 }
@@ -109,6 +113,7 @@ const EMPTY_ENTRY_FORM: EntryForm = {
   ley: '',
   weight_ct: '',
   quantity: '',
+  unit_cost: '',
   reference: '',
   notes: '',
 };
@@ -132,6 +137,13 @@ const EMPTY_FORM: MovementForm = {
   notes: '',
 };
 
+const METAL_CODE_MAP: Record<string, string> = {
+  oro: 'gold',
+  plata: 'silver',
+  paladio: 'palladium',
+  cobre: 'copper',
+};
+
 export default function InventarioPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<ActiveTab>('stock');
@@ -147,6 +159,7 @@ export default function InventarioPage() {
   const [form, setForm] = useState<EntryForm>(EMPTY_ENTRY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [pricingMetals, setPricingMetals] = useState<Record<string, number>>({});
   const [editingMinStock, setEditingMinStock] = useState<{ id: string; value: string } | null>(null);
   const [expandedStone, setExpandedStone] = useState<string | null>(null);
   const [stoneMovements, setStoneMovements] = useState<Record<string, InventoryMovement[]>>({});
@@ -207,6 +220,23 @@ export default function InventarioPage() {
 
   useEffect(() => { loadItems(); }, [loadItems]);
   useEffect(() => { if (tab === 'movimientos') loadMovements(); }, [tab, loadMovements, filterType]);
+
+  useEffect(() => {
+    supabase.from('pricing_metals').select('metal_code, purchase_base_price').then(({ data }) => {
+      if (!data) return;
+      const map: Record<string, number> = {};
+      data.forEach((r: any) => { if (r.purchase_base_price) map[r.metal_code] = Number(r.purchase_base_price); });
+      setPricingMetals(map);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (form.category === 'metal' && form.metal_type) {
+      const metalCode = METAL_CODE_MAP[form.metal_type];
+      const price = pricingMetals[metalCode];
+      if (price) setForm(f => ({ ...f, unit_cost: String(price) }));
+    }
+  }, [form.metal_type, form.category, pricingMetals]);
 
   /** Extrae la talla de las notas del movimiento */
   function parseTallaFromNotes(notes: string | null): string {
@@ -316,12 +346,15 @@ export default function InventarioPage() {
       }
       if (form.notes) noteParts.push(form.notes);
 
+      const unitCostNum = form.unit_cost ? parseFloat(form.unit_cost) : null;
+      const totalCostNum = unitCostNum != null ? Number((unitCostNum * registeredQty).toFixed(0)) : null;
+
       await createInventoryMovement({
         item_id: item.id,
         movement_type: 'purchase',
         quantity: registeredQty,
-        unit_cost: null,
-        total_cost: null,
+        unit_cost: unitCostNum,
+        total_cost: totalCostNum,
         reference: form.reference || null,
         notes: noteParts.join(' · '),
         registered_by: user.id,
@@ -854,6 +887,41 @@ export default function InventarioPage() {
                     </>
                   )}
                 </>
+              )}
+
+              {/* Purchase price */}
+              {form.category && (
+                <div>
+                  <label className="text-xs mb-1.5 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
+                    Precio de compra ({form.category === 'metal' ? 'COP/g' : 'COP/ct'})
+                    {form.category === 'metal' && form.metal_type && pricingMetals[METAL_CODE_MAP[form.metal_type]] && (
+                      <span className="ml-2" style={{ color: 'rgba(212,175,55,0.5)' }}>· Pre-cargado desde tarifas</span>
+                    )}
+                  </label>
+                  <input
+                    type="number"
+                    step="100"
+                    min="0"
+                    value={form.unit_cost}
+                    onChange={(e) => setForm((f) => ({ ...f, unit_cost: e.target.value }))}
+                    placeholder="0"
+                    className="w-full rounded-lg px-3 py-2.5 text-sm font-sans-custom focus:outline-none"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(242,240,237,0.7)' }}
+                  />
+                  {form.unit_cost && (
+                    (() => {
+                      const qty = form.category === 'metal'
+                        ? (form.weight_g ? (form.metal_type === 'oro' || form.metal_type === 'plata' ? toPureGrams(parseFloat(form.weight_g), form.metal_type, form.ley) : parseFloat(form.weight_g)) : 0)
+                        : (form.weight_ct ? parseFloat(form.weight_ct) : 0);
+                      const total = parseFloat(form.unit_cost) * qty;
+                      return qty > 0 ? (
+                        <p className="text-xs mt-1 font-sans-custom" style={{ color: 'rgba(212,175,55,0.6)' }}>
+                          Total: {formatCOP(total)}
+                        </p>
+                      ) : null;
+                    })()
+                  )}
+                </div>
               )}
 
               {/* Reference */}

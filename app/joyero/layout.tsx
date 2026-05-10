@@ -2,12 +2,56 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Home, ClipboardList, User, Bell, Wallet, X, Wrench, CreditCard, ChevronRight } from 'lucide-react';
+import { Home, ClipboardList, User, Bell, Wallet, X, Wrench, CreditCard, ChevronRight, CheckCircle2, Banknote } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRealtimeNotifications } from '@/hooks/use-realtime-notifications';
+import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 
 const ALLOWED_ROLES = ['jeweler', 'designer'];
+
+interface PendingConfirmation {
+  id: string;
+  concept: string;
+  serviceCode: string | null;
+  amountCop: number;
+  paidAt: string;
+  paymentMethod: string | null;
+  confirming: boolean;
+  confirmed: boolean;
+}
+
+const SERVICE_CODE_LABELS: Record<string, string> = {
+  casting: 'Fundición',
+  design_easy: 'Diseño Fácil',
+  design_medium: 'Diseño Medio',
+  design_hard: 'Diseño Difícil',
+  finishing_easy: 'Acabados Fácil',
+  finishing_medium: 'Acabados Medio',
+  finishing_hard: 'Acabados Difícil',
+  assembly_easy: 'Armado Fácil',
+  assembly_medium: 'Armado Medio',
+  assembly_hard: 'Armado Difícil',
+  setting_simple: 'Engaste Simple',
+  setting_bezel: 'Engaste en Bisel',
+  setting_pave: 'Engaste Pavé',
+  laser_cutting_easy: 'Corte Láser Fácil',
+  laser_cutting_medium: 'Corte Láser Medio',
+  laser_cutting_hard: 'Corte Láser Difícil',
+  laser_engraving_easy: 'Grabado Láser Fácil',
+  laser_engraving_medium: 'Grabado Láser Medio',
+  laser_engraving_hard: 'Grabado Láser Difícil',
+  vulcanization_easy: 'Vulcanización Fácil',
+  vulcanization_medium: 'Vulcanización Medio',
+  vulcanization_hard: 'Vulcanización Difícil',
+  '3d_printing': 'Impresión 3D',
+};
+
+const CONCEPT_LABELS: Record<string, string> = {
+  assignment_payment: 'Pago por trabajo',
+  bonus: 'Bonificación',
+  adjustment: 'Ajuste',
+};
 
 const navItems = [
   { label: 'Inicio', href: '/joyero', icon: Home },
@@ -20,6 +64,7 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const supabase = createClient();
   const [showNotifications, setShowNotifications] = useState(false);
   const bellRef = useRef<HTMLButtonElement>(null);
   const {
@@ -31,11 +76,97 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
     resetPaymentNotifications,
   } = useRealtimeNotifications(user?.id || '');
 
+  const [pendingConfirmations, setPendingConfirmations] = useState<PendingConfirmation[]>([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
   useEffect(() => {
     if (!loading && (!user || !ALLOWED_ROLES.includes(user.role))) {
       router.push('/auth/login');
     }
   }, [user, loading, router]);
+
+  // Load unconfirmed payments on mount
+  useEffect(() => {
+    if (!user) return;
+    const fetchUnconfirmed = async () => {
+      const { data } = await supabase
+        .from('worker_payments')
+        .select('id, concept, service_code, amount_cop, paid_at, payment_method')
+        .eq('worker_id', user.id)
+        .eq('status', 'paid')
+        .is('confirmed_at', null)
+        .order('paid_at', { ascending: false });
+
+      if (data && data.length > 0) {
+        setPendingConfirmations(
+          data.map((p: any) => ({
+            id: p.id,
+            concept: p.concept,
+            serviceCode: p.service_code ?? null,
+            amountCop: Number(p.amount_cop),
+            paidAt: p.paid_at,
+            paymentMethod: p.payment_method ?? null,
+            confirming: false,
+            confirmed: false,
+          }))
+        );
+        setShowConfirmModal(true);
+      }
+    };
+    fetchUnconfirmed();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Also trigger modal when a new payment notification arrives via Realtime
+  useEffect(() => {
+    if (paymentNotifications.length === 0) return;
+    setPendingConfirmations(prev => {
+      const existingIds = new Set(prev.map(p => p.id));
+      const incoming = paymentNotifications
+        .filter(n => !existingIds.has(n.id))
+        .map(n => ({
+          id: n.id,
+          concept: n.concept,
+          serviceCode: null,
+          amountCop: n.amountCop,
+          paidAt: n.paidAt,
+          paymentMethod: null,
+          confirming: false,
+          confirmed: false,
+        }));
+      return incoming.length > 0 ? [...prev, ...incoming] : prev;
+    });
+    setShowConfirmModal(true);
+  }, [paymentNotifications]);
+
+  const handleConfirmPayment = async (paymentId: string) => {
+    if (!user) return;
+    setPendingConfirmations(prev =>
+      prev.map(p => p.id === paymentId ? { ...p, confirming: true } : p)
+    );
+    const { error } = await supabase
+      .from('worker_payments')
+      .update({ confirmed_at: new Date().toISOString() })
+      .eq('id', paymentId)
+      .eq('worker_id', user.id)
+      .eq('status', 'paid');
+
+    setPendingConfirmations(prev =>
+      prev.map(p =>
+        p.id === paymentId
+          ? { ...p, confirming: false, confirmed: !error }
+          : p
+      )
+    );
+  };
+
+  const allConfirmed = pendingConfirmations.length > 0 && pendingConfirmations.every(p => p.confirmed);
+
+  const handleCloseModal = () => {
+    setShowConfirmModal(false);
+    setPendingConfirmations(prev => prev.filter(p => !p.confirmed));
+    resetPaymentNotifications();
+  };
 
   useEffect(() => {
     if (pathname === '/joyero/pedidos') {
@@ -281,6 +412,128 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
           })}
         </div>
       </nav>
+
+      {/* Payment Confirmation Modal */}
+      {showConfirmModal && pendingConfirmations.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl overflow-hidden"
+            style={{
+              background: 'rgba(14,13,12,0.98)',
+              border: '1px solid rgba(212,175,55,0.15)',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.8)',
+            }}
+          >
+            {/* Modal header */}
+            <div
+              className="px-5 pt-5 pb-4 flex items-center justify-between"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)' }}
+                >
+                  <Banknote className="w-4 h-4" style={{ color: 'rgba(212,175,55,0.9)' }} />
+                </div>
+                <div>
+                  <p className="font-display text-sm font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>
+                    Pago{pendingConfirmations.length > 1 ? 's' : ''} recibido{pendingConfirmations.length > 1 ? 's' : ''}
+                  </p>
+                  <p className="text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
+                    Confirma que recibiste el dinero
+                  </p>
+                </div>
+              </div>
+              {allConfirmed && (
+                <button
+                  onClick={handleCloseModal}
+                  className="p-2 rounded-xl transition-colors"
+                  style={{ color: 'rgba(242,240,237,0.4)' }}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Payment list */}
+            <div className="px-5 py-4 space-y-3 max-h-72 overflow-y-auto">
+              {pendingConfirmations.map((p) => (
+                <div
+                  key={p.id}
+                  className="rounded-2xl p-4"
+                  style={{
+                    background: p.confirmed
+                      ? 'rgba(52,211,153,0.06)'
+                      : 'rgba(255,255,255,0.04)',
+                    border: p.confirmed
+                      ? '1px solid rgba(52,211,153,0.15)'
+                      : '1px solid rgba(255,255,255,0.07)',
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium font-display truncate" style={{ color: 'rgba(242,240,237,0.85)' }}>
+                        {(p.serviceCode ? SERVICE_CODE_LABELS[p.serviceCode] : null) ?? CONCEPT_LABELS[p.concept] ?? p.concept}
+                      </p>
+                      {p.paymentMethod && (
+                        <p className="text-[10px] font-sans-custom mt-0.5" style={{ color: 'rgba(212,175,55,0.6)' }}>
+                          {p.paymentMethod}
+                        </p>
+                      )}
+                      <p className="text-[10px] font-sans-custom mt-0.5" style={{ color: 'rgba(242,240,237,0.25)' }}>
+                        {p.paidAt ? new Date(p.paidAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }) : ''}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-display font-bold text-base" style={{ color: 'rgba(212,175,55,0.95)' }}>
+                        {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.amountCop)}
+                      </p>
+                      {p.confirmed ? (
+                        <span className="text-[10px] flex items-center justify-end gap-1 mt-1 font-sans-custom" style={{ color: 'rgba(52,211,153,0.8)' }}>
+                          <CheckCircle2 className="w-2.5 h-2.5" /> Confirmado
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleConfirmPayment(p.id)}
+                          disabled={p.confirming}
+                          className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] px-2.5 py-1.5 rounded-xl transition-all disabled:opacity-50 font-sans-custom"
+                          style={{
+                            background: 'rgba(212,175,55,0.12)',
+                            border: '1px solid rgba(212,175,55,0.25)',
+                            color: '#D4AF37',
+                          }}
+                        >
+                          {p.confirming ? '...' : 'Confirmar'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 pb-5 pt-1">
+              {allConfirmed ? (
+                <button
+                  onClick={handleCloseModal}
+                  className="w-full py-3 rounded-2xl font-semibold text-sm font-sans-custom transition-colors"
+                  style={{ background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.2)', color: 'rgba(52,211,153,0.9)' }}
+                >
+                  ¡Listo! Cerrar
+                </button>
+              ) : (
+                <p className="text-center text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.2)' }}>
+                  Confirma cada pago cuando hayas recibido el dinero
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

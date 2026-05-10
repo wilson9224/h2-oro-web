@@ -18,7 +18,7 @@ export default function Home() {
         <Hero />
         <Marquee items={['Oro 18K', 'Artesanal', 'Hecho en Colombia', 'Diseño único', 'Joyería de autor']} />
         <FeaturedCollection />
-        <Marquee items={['Anillos', 'Collares', 'Pulseras', 'Aretes', 'Personalizado']} reverse />
+        <Marquee items={['Anillos', 'Collares', 'Pulseras', 'Aretes', 'Dijes', 'Personalizado']} reverse />
         <ProcessSection />
         <Testimonials />
         <CtaSection />

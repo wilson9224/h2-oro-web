@@ -553,14 +553,61 @@ export async function fetchAssignmentPauseLogs(assignmentId: string): Promise<Pa
   }));
 }
 
-// Fetch the worker rate for a given service_code
-export async function fetchWorkerRateForService(serviceCode: string): Promise<number> {
+// Fetch the worker rate for a given stage_code.
+// Lookup order:
+//   1. category + difficulty_level  (e.g. 'finishing_easy' → category='finishing', difficulty='easy')
+//   2. category + subcategory       (e.g. 'setting_simple' → category='setting', subcategory='simple')
+//   3. category alone, no difficulty, no subcategory (e.g. 'casting')
+export async function fetchWorkerRateForService(stageCode: string): Promise<number> {
+  const DIFFICULTY_SUFFIXES: Record<string, string> = {
+    easy: 'easy',
+    complex: 'hard',
+    hard: 'hard',
+    medium: 'medium',
+  };
+
+  const parts = stageCode.split('_');
+  const lastPart = parts[parts.length - 1];
+  const difficulty = DIFFICULTY_SUFFIXES[lastPart] ?? null;
+
+  if (difficulty) {
+    // Pattern: <category>_<difficulty>  e.g. finishing_easy, laser_cutting_easy
+    const category = parts.slice(0, -1).join('_');
+    const { data } = await supabase
+      .from('pricing_worker_rates')
+      .select('rate_cop')
+      .eq('category', category)
+      .eq('difficulty_level', difficulty)
+      .limit(1)
+      .maybeSingle();
+    if (data) return Number(data.rate_cop);
+    return 0;
+  }
+
+  // No difficulty suffix — try category + subcategory first (e.g. setting_simple)
+  if (parts.length >= 2) {
+    const possibleCategory = parts.slice(0, -1).join('_');
+    const possibleSubcategory = parts[parts.length - 1];
+    const { data: subData } = await supabase
+      .from('pricing_worker_rates')
+      .select('rate_cop')
+      .eq('category', possibleCategory)
+      .eq('subcategory', possibleSubcategory)
+      .is('difficulty_level', null)
+      .limit(1)
+      .maybeSingle();
+    if (subData) return Number(subData.rate_cop);
+  }
+
+  // Fallback: full stage_code as category, no difficulty, no subcategory (e.g. casting, 3d_printing)
   const { data } = await supabase
     .from('pricing_worker_rates')
     .select('rate_cop')
-    .eq('service_code', serviceCode)
-    .single();
-
+    .eq('category', stageCode)
+    .is('difficulty_level', null)
+    .is('subcategory', null)
+    .limit(1)
+    .maybeSingle();
   return data ? Number(data.rate_cop) : 0;
 }
 
@@ -607,12 +654,24 @@ export async function completeWorkWithPayment(
     // Fetch the worker rate for this service
     const rateCop = await fetchWorkerRateForService(stageCode);
 
+    // Fetch order_id from the assignment's piece
+    let orderId: string | null = null;
+    const { data: assignmentData } = await supabase
+      .from('work_assignments')
+      .select('pieces!inner(orders!inner(id))')
+      .eq('id', assignmentId)
+      .single();
+    if (assignmentData) {
+      orderId = (assignmentData as any).pieces?.orders?.id ?? null;
+    }
+
     // Auto-create worker payment if rate > 0
     if (rateCop > 0) {
       await supabase.from('worker_payments').insert({
         worker_id: userId,
         assignment_id: assignmentId,
-        concept: stageName,
+        order_id: orderId,
+        concept: 'assignment_payment',
         service_code: stageCode,
         piece_name: pieceName,
         amount_cop: rateCop,

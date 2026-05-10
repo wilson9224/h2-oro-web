@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertTriangle, RefreshCw, Coins, ChevronUp, ChevronDown, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { QuotationRecord } from '@/lib/quotation/types';
 import PhaseBar from '@/components/jewelry/phase-bar';
@@ -153,6 +153,8 @@ interface WorkCycle {
   deliveredByUserId: string | null;
   receivedByUserId: string | null;
   materialDeliveryDate: string | null;
+  metalDeliveredGr: number | null;
+  metalItemId: string | null;
   finalWeightGr: number | null;
   leftoverStonesGr: number | null;
   returnedMaterialGr: number | null;
@@ -242,6 +244,17 @@ export default function JewelryDetailPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [materialPayments, setMaterialPayments] = useState<MaterialPayment[]>([]);
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const [assignmentLog, setAssignmentLog] = useState<any[]>([]);
+  const [pendingMaterial, setPendingMaterial] = useState<{ flag: boolean; note: string | null }>({ flag: false, note: null });
+  const [clientMetalDeliveries, setClientMetalDeliveries] = useState<any[]>([]);
+  const [showClientMetalSection, setShowClientMetalSection] = useState(false);
+  const [clientMetalForm, setClientMetalForm] = useState({
+    metal_code: 'gold',
+    karat: '24',
+    weight_gr: '',
+    destination: 'order' as 'order' | 'inventory',
+  });
+  const [registeringMetal, setRegisteringMetal] = useState(false);
 
   // Estados para modales
   const [showStartWorkModal, setShowStartWorkModal] = useState(false);
@@ -330,6 +343,11 @@ export default function JewelryDetailPage() {
 
       if (orderErr) throw new Error(orderErr.message);
       if (!orderData) throw new Error('Pedido no encontrado');
+
+      setPendingMaterial({
+        flag: orderData.pending_material ?? false,
+        note: orderData.pending_material_note ?? null,
+      });
 
       // Transformar de snake_case a camelCase
       const transformedOrder = {
@@ -610,6 +628,17 @@ export default function JewelryDetailPage() {
         amount_cop: mp.amount_cop != null ? Number(mp.amount_cop) : undefined,
       })));
 
+      // Fetch client_metal_deliveries
+      const { data: clientMetalData, error: clientMetalErr } = await supabase
+        .from('client_metal_deliveries')
+        .select('*')
+        .eq('order_id', id)
+        .order('created_at', { ascending: false });
+
+      if (!clientMetalErr) {
+        setClientMetalDeliveries(clientMetalData || []);
+      }
+
       // Fetch attachments generales del pedido sin relaciones complejas
       const { data: attachmentsData, error: attachmentsErr } = await supabase
         .from('file_attachments')
@@ -620,6 +649,23 @@ export default function JewelryDetailPage() {
 
       if (attachmentsErr) throw new Error(attachmentsErr.message);
       setAttachments(attachmentsData || []);
+
+      // Fetch assignment change log
+      const { data: logData } = await supabase
+        .from('assignment_change_log')
+        .select(`
+          id,
+          previous_status,
+          reason,
+          created_at,
+          previous_worker:users!assignment_change_log_previous_worker_id_fkey(id, first_name, last_name),
+          new_worker:users!assignment_change_log_new_worker_id_fkey(id, first_name, last_name),
+          changed_by:users!assignment_change_log_changed_by_id_fkey(id, first_name, last_name),
+          assignment:work_assignments!assignment_change_log_assignment_id_fkey(stage_code)
+        `)
+        .eq('order_id', id)
+        .order('created_at', { ascending: false });
+      setAssignmentLog(logData || []);
 
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error cargando el pedido');
@@ -637,6 +683,34 @@ export default function JewelryDetailPage() {
     if (!id) return;
     
     try {
+      // ── STOCK CHECK ───────────────────────────────────────────────
+      const metalType = quotation?.metal_type ?? 'gold';
+      const metalCode = metalType === 'gold' ? 'gold_pure' : 'silver_pure';
+      const requiredGr = data.deliveredPureMetalGr as number;
+
+      const { data: stockItem } = await supabase
+        .from('inventory_items')
+        .select('id, current_stock, name')
+        .eq('code', metalCode)
+        .maybeSingle();
+
+      const availableStock = Number(stockItem?.current_stock ?? 0);
+
+      if (availableStock < requiredGr) {
+        // Mark order as pending_material
+        await supabase
+          .from('orders')
+          .update({
+            pending_material: true,
+            pending_material_note: `Stock insuficiente: se necesitan ${requiredGr.toFixed(3)}g de ${stockItem?.name ?? metalCode}, disponible: ${availableStock.toFixed(3)}g`,
+          })
+          .eq('id', id);
+
+        throw new Error(
+          `⚠️ Stock insuficiente: necesitas ${requiredGr.toFixed(3)}g de ${stockItem?.name ?? metalCode} pero solo hay ${availableStock.toFixed(3)}g disponibles. El pedido quedó marcado como "Pendiente de material". Registra una entrada de inventario y vuelve a intentarlo.`
+        );
+      }
+
       // Obtener el ciclo activo (sin filtrar por work_delivery_date para evitar
       // que ciclos ya completados bloqueen el flujo al volver a abrir el modal)
       const { data: currentCycle, error: cycleSelectErr } = await supabase
@@ -658,6 +732,8 @@ export default function JewelryDetailPage() {
         received_by_user_id: data.receivedByUserId,
         material_delivery_date: data.materialDeliveryDate,
         labor_assignments: data.laborAssignments,
+        metal_delivered_gr: data.deliveredMetalWeightGr,
+        metal_item_id: stockItem?.id ?? null,
       };
 
       let cycleId: string | null = currentCycle?.id ?? null;
@@ -754,6 +830,22 @@ export default function JewelryDetailPage() {
         }
       }
 
+      // ── INVENTORY DELIVERY MOVEMENT ───────────────────────────────
+      if (stockItem?.id) {
+        const pureGr = data.deliveredPureMetalGr as number;
+        await supabase.from('inventory_movements').insert({
+          item_id: stockItem.id,
+          movement_type: 'delivery',
+          quantity: -Math.abs(pureGr),
+          order_id: id,
+          source_type: 'order_delivery',
+          registered_by: data.receivedByUserId,
+          notes: `Entrega a joyero · Pedido · ${pureGr.toFixed(4)}g equivalente puro`,
+        });
+        // Clear pending_material flag if it was set
+        await supabase.from('orders').update({ pending_material: false, pending_material_note: null }).eq('id', id);
+      }
+
       // Actualizar fase del pedido
       const { error: phaseErr } = await supabase
         .from('order_jewelry_data')
@@ -788,34 +880,51 @@ export default function JewelryDetailPage() {
         .from('order_work_cycles')
         .select('*')
         .eq('order_id', id)
-        .eq('cycle_number', 1)
         .is('work_delivery_date', null)
-        .single();
+        .order('cycle_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (currentCycle) {
-        // Update ciclo con datos de fin
+        // Update ciclo con datos de fin (snake_case)
         await supabase
           .from('order_work_cycles')
           .update({
-            finalWeightGr: data.finalWeightGr,
-            leftoverStonesGr: data.leftoverStonesGr,
-            returnedMaterialGr: data.returnedMaterialGr,
-            qcResult: data.qcResult,
-            qcObservations: data.qcObservations,
-            qcByUserId: data.qcByUserId,
-            workReceivedByUserId: data.workReceivedByUserId,
-            workDeliveryDate: data.workDeliveryDate,
+            final_piece_weight_gr: data.finalWeightGr,
+            leftover_stones_gr: data.leftoverStonesGr,
+            returned_material_gr: data.returnedMaterialGr,
+            metal_returned_gr: data.returnedMaterialGr,
+            metal_return_inventory_item_id: currentCycle.metal_item_id ?? null,
+            qc_result: data.qcResult,
+            qc_observations: data.qcObservations,
+            qc_by_user_id: data.qcByUserId,
+            work_received_by_user_id: data.workReceivedByUserId,
+            work_delivery_date: data.workDeliveryDate,
           })
           .eq('id', currentCycle.id);
+
+        // ── WORKSHOP RETURN MOVEMENT ─────────────────────────────────
+        if (data.returnedMaterialGr > 0 && currentCycle.metal_item_id) {
+          await supabase.from('inventory_movements').insert({
+            item_id: currentCycle.metal_item_id,
+            movement_type: 'workshop_return',
+            quantity: Math.abs(data.returnedMaterialGr),
+            order_id: id,
+            source_type: 'workshop_return',
+            registered_by: data.workReceivedByUserId,
+            notes: `Excedente devuelto por trabajador · Joya: ${data.finalWeightGr}g · Devuelto: ${data.returnedMaterialGr}g`,
+          });
+        }
       }
 
       // Si es rechazado, crear nuevo ciclo de retrabajo
       if (data.qcResult === 'rejected') {
+        const nextCycleNumber = (currentCycle?.cycle_number ?? 1) + 1;
         await supabase
           .from('order_work_cycles')
           .insert({
             order_id: id,
-            cycle_number: 2,
+            cycle_number: nextCycleNumber,
             is_rework: true,
             rework_reason: data.qcObservations,
           });
@@ -824,15 +933,15 @@ export default function JewelryDetailPage() {
         await supabase
           .from('order_jewelry_data')
           .update({ 
-            currentPhase: 'start_work',
-            reworkCount: (jewelryData?.reworkCount || 0) + 1
+            current_phase: 'start_work',
+            rework_count: (jewelryData?.reworkCount || 0) + 1
           })
           .eq('order_id', id);
       } else {
         // Update jewelry data
         await supabase
           .from('order_jewelry_data')
-          .update({ currentPhase: 'end_work' })
+          .update({ current_phase: 'end_work' })
           .eq('order_id', id);
       }
 
@@ -852,6 +961,115 @@ export default function JewelryDetailPage() {
     } catch (err: unknown) {
       console.error('Error finalizando trabajo:', err);
       throw err;
+    }
+  };
+
+  const handleRegisterClientMetal = async () => {
+    if (!id || !users || users.length === 0) return;
+    const weightGr = parseFloat(clientMetalForm.weight_gr);
+    if (!weightGr || weightGr <= 0) return;
+
+    setRegisteringMetal(true);
+    try {
+      // Calculate equivalent 24k weight
+      const karat = parseFloat(clientMetalForm.karat);
+      const equivalent24kGr = clientMetalForm.metal_code === 'gold' ? (weightGr * karat / 24) : weightGr;
+
+      // Fetch refinement service price
+      const { data: refinementService } = await supabase
+        .from('pricing_services')
+        .select('price_cop')
+        .eq('category', 'refinement')
+        .eq('service_name', 'Refinamiento de metal')
+        .maybeSingle();
+
+      const refinementPricePerGram = refinementService?.price_cop ?? 0;
+      const refinementCharge = refinementPricePerGram * equivalent24kGr;
+
+      // Insert into client_metal_deliveries
+      const { data: deliveryData, error: deliveryErr } = await supabase
+        .from('client_metal_deliveries')
+        .insert({
+          order_id: id,
+          client_id: order?.client?.id,
+          metal_code: clientMetalForm.metal_code,
+          karat: clientMetalForm.karat,
+          weight_gr: weightGr,
+          equivalent_24k_gr: equivalent24kGr,
+          destination: clientMetalForm.destination,
+          refinery_status: 'pending',
+          refined_weight_gr: null,
+          refinement_charge_cop: refinementCharge,
+          inventory_item_id: null,
+          inventory_movement_id: null,
+          notes: null,
+          registered_by: users[0]?.id,
+        })
+        .select('id')
+        .single();
+
+      if (deliveryErr) throw new Error(deliveryErr.message);
+
+      // If destination is inventory, create inventory_item and movement
+      if (clientMetalForm.destination === 'inventory' && deliveryData) {
+        const metalCode = clientMetalForm.metal_code === 'gold' ? 'gold_pure' : 'silver_pure';
+        const itemName = clientMetalForm.metal_code === 'gold' ? 'Oro 24k — Entregado por clientes' : 'Plata Pura — Entregada por clientes';
+
+        // Create or get inventory item
+        const { data: inventoryItem } = await supabase
+          .from('inventory_items')
+          .select('id')
+          .eq('code', metalCode)
+          .maybeSingle();
+
+        let itemId = inventoryItem?.id;
+        if (!itemId) {
+          const { data: newItem } = await supabase
+            .from('inventory_items')
+            .insert({ name: itemName, code: metalCode, type: 'metal', unit: 'g' })
+            .select('id')
+            .single();
+          itemId = newItem?.id;
+        }
+
+        if (itemId) {
+          // Create inventory movement
+          const { data: movementData } = await supabase
+            .from('inventory_movements')
+            .insert({
+              item_id: itemId,
+              movement_type: 'client_delivery',
+              quantity: equivalent24kGr,
+              order_id: id,
+              source_type: 'client_delivery',
+              client_id: order?.client?.id,
+              registered_by: users[0]?.id,
+              notes: `Metal entregado por cliente · ${clientMetalForm.metal_code} ${clientMetalForm.karat}k · ${weightGr}g bruto`,
+            })
+            .select('id')
+            .single();
+
+          // Update client_metal_deliveries with inventory references
+          await supabase
+            .from('client_metal_deliveries')
+            .update({
+              inventory_item_id: itemId,
+              inventory_movement_id: movementData?.id,
+              refinery_status: 'refined',
+              refined_weight_gr: equivalent24kGr,
+            })
+            .eq('id', deliveryData.id);
+        }
+      }
+
+      // Refresh data
+      await fetchData();
+      setClientMetalForm({ metal_code: 'gold', karat: '24', weight_gr: '', destination: 'order' });
+    } catch (err) {
+      console.error('Error registrando metal del cliente:', err);
+      alert('Error al registrar metal del cliente: ' + (err instanceof Error ? err.message : 'Error desconocido'));
+    } finally {
+      setRegisteringMetal(false);
     }
   };
 
@@ -1000,6 +1218,154 @@ export default function JewelryDetailPage() {
     }
   };
 
+  const handleReassignWorker = async ({
+    assignmentId,
+    pieceId,
+    newWorkerId,
+    reason,
+    changedById,
+  }: {
+    assignmentId: string;
+    pieceId: string;
+    newWorkerId: string;
+    reason: string;
+    changedById: string;
+  }) => {
+    if (!id) return;
+
+    // 1. Fetch current assignment to get previous worker + status
+    const { data: currentAssignment, error: fetchErr } = await supabase
+      .from('work_assignments')
+      .select('id, worker_id, stage_code, status')
+      .eq('id', assignmentId)
+      .single();
+    if (fetchErr || !currentAssignment) throw new Error('No se encontró la asignación');
+
+    const previousWorkerId: string = currentAssignment.worker_id;
+    const previousStatus: string = currentAssignment.status;
+
+    // 2. Find existing worker_payment for this assignment (pending or paid)
+    const { data: existingPayment } = await supabase
+      .from('worker_payments')
+      .select('id, status, amount_cop')
+      .eq('worker_id', previousWorkerId)
+      .eq('order_id', id)
+      .eq('concept', currentAssignment.stage_code)
+      .not('status', 'eq', 'voided')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let voidedPaymentId: string | null = null;
+    let debtPaymentId: string | null = null;
+
+    if (existingPayment) {
+      // 3a. Mark existing payment as voided
+      const { error: voidErr } = await supabase
+        .from('worker_payments')
+        .update({ status: 'voided' })
+        .eq('id', existingPayment.id);
+      if (voidErr) throw new Error(voidErr.message);
+      voidedPaymentId = existingPayment.id;
+
+      // 3b. If it was already paid, create a negative debt payment for the worker
+      if (existingPayment.status === 'paid' || existingPayment.status === 'confirmed') {
+        const { data: debtRow, error: debtErr } = await supabase
+          .from('worker_payments')
+          .insert({
+            worker_id: previousWorkerId,
+            order_id: id,
+            concept: 'adjustment',
+            service_code: currentAssignment.stage_code,
+            piece_name: `Descuento por reversión: ${currentAssignment.stage_code}`,
+            amount_cop: -Math.abs(Number(existingPayment.amount_cop)),
+            status: 'pending',
+          })
+          .select('id')
+          .single();
+        if (debtErr) throw new Error(debtErr.message);
+        debtPaymentId = debtRow.id;
+      }
+    }
+
+    // 4. Update work_assignment: new worker, reset to pending
+    const { error: updateErr } = await supabase
+      .from('work_assignments')
+      .update({
+        worker_id: newWorkerId,
+        status: 'pending',
+        progress_pct: 0,
+        started_at: null,
+        completed_at: null,
+      })
+      .eq('id', assignmentId);
+    if (updateErr) throw new Error(updateErr.message);
+
+    // 5. Insert assignment_change_log
+    await supabase.from('assignment_change_log').insert({
+      assignment_id: assignmentId,
+      piece_id: pieceId,
+      order_id: id,
+      previous_worker_id: previousWorkerId,
+      new_worker_id: newWorkerId,
+      previous_status: previousStatus,
+      reason,
+      voided_payment_id: voidedPaymentId,
+      debt_payment_id: debtPaymentId,
+      changed_by_id: changedById,
+    });
+
+    await fetchData();
+  };
+
+  const handleAssignWorker = async ({
+    serviceCode,
+    workerId,
+    sortOrder,
+  }: {
+    serviceCode: string;
+    workerId: string;
+    sortOrder: number;
+  }) => {
+    if (!id) return;
+
+    // Get or create the main piece for this order
+    const { data: pieceRow, error: pieceSelectErr } = await supabase
+      .from('pieces')
+      .select('id')
+      .eq('order_id', id)
+      .order('sort_order', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (pieceSelectErr) throw new Error(pieceSelectErr.message);
+
+    let pieceId = pieceRow?.id;
+    if (!pieceId) {
+      const { data: newPiece, error: pieceErr } = await supabase
+        .from('pieces')
+        .insert({ order_id: id, name: 'Pieza principal', sort_order: 1 })
+        .select('id')
+        .single();
+      if (pieceErr) throw new Error(pieceErr.message);
+      pieceId = newPiece.id;
+    }
+
+    // Insert the new work_assignment
+    const { error: insertErr } = await supabase
+      .from('work_assignments')
+      .insert({
+        piece_id: pieceId,
+        worker_id: workerId,
+        stage_code: serviceCode,
+        status: 'pending',
+        priority: sortOrder,
+        progress_pct: 0,
+      });
+    if (insertErr) throw new Error(insertErr.message);
+
+    await fetchData();
+  };
+
   const tabs = [
     { key: 'datos' as TabType, label: 'Datos Técnicos', icon: 'info' },
     { key: 'estados' as TabType, label: 'Estados', icon: 'workflow' },
@@ -1015,7 +1381,17 @@ export default function JewelryDetailPage() {
       case 'datos':
         return <TabDatos jewelryData={jewelryData} order={order} quotation={quotation} payments={payments} materialPayments={materialPayments} />;
       case 'estados':
-        return <TabEstados pieces={pieces} phaseLog={phaseLog} activeCycle={workCycles.find(c => !c.workDeliveryDate) ?? workCycles[0] ?? null} />;
+        return (
+          <TabEstados
+            pieces={pieces}
+            phaseLog={phaseLog}
+            activeCycle={workCycles.find(c => !c.workDeliveryDate) ?? workCycles[0] ?? null}
+            users={users}
+            assignmentLog={assignmentLog}
+            onReassign={handleReassignWorker}
+            onAssign={handleAssignWorker}
+          />
+        );
       case 'abonos':
         return (
           <TabAbonos
@@ -1236,6 +1612,105 @@ export default function JewelryDetailPage() {
         deliveredBy={jewelryData?.receiverName || undefined}
       />
 
+      {/* Pending material alert */}
+      {pendingMaterial.flag && (
+        <div className="flex items-start gap-3 p-4 rounded-2xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+          <AlertTriangle size={15} className="shrink-0 mt-0.5" style={{ color: 'rgba(252,165,165,0.85)' }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold font-sans-custom" style={{ color: 'rgba(252,165,165,0.95)' }}>Pendiente de material</p>
+            {pendingMaterial.note && (
+              <p className="text-xs mt-0.5 font-sans-custom" style={{ color: 'rgba(252,165,165,0.6)' }}>{pendingMaterial.note}</p>
+            )}
+            <p className="text-xs mt-1 font-sans-custom" style={{ color: 'rgba(252,165,165,0.5)' }}>
+              Registra una entrada en el inventario y luego intenta iniciar el trabajo nuevamente.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Metal del cliente section */}
+      <div style={{ background: 'rgba(18,16,14,0.98)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16 }}>
+        <button
+          onClick={() => setShowClientMetalSection(!showClientMetalSection)}
+          className="w-full flex items-center justify-between px-5 py-4 rounded-16 font-sans-custom"
+          style={{ borderBottom: showClientMetalSection ? '1px solid rgba(255,255,255,0.06)' : 'none' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)' }}>
+              <Coins size={15} style={{ color: 'rgba(212,175,55,0.8)' }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.85)' }}>Metal del Cliente</p>
+              <p className="text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
+                {clientMetalDeliveries.length > 0 ? `${clientMetalDeliveries.length} entrega${clientMetalDeliveries.length > 1 ? 's' : ''} registrada${clientMetalDeliveries.length > 1 ? 's' : ''}` : 'Sin entregas registradas'}
+              </p>
+            </div>
+          </div>
+          {showClientMetalSection ? <ChevronUp size={16} style={{ color: 'rgba(242,240,237,0.4)' }} /> : <ChevronDown size={16} style={{ color: 'rgba(242,240,237,0.4)' }} />}
+        </button>
+
+        {showClientMetalSection && (
+          <div className="px-5 py-4 space-y-4">
+            {/* Formulario simple para registrar entrega */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.1em] font-semibold mb-1.5 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Tipo de metal</label>
+                <select value={clientMetalForm.metal_code} onChange={(e) => setClientMetalForm(f => ({ ...f, metal_code: e.target.value as 'gold' | 'silver' }))} className="w-full rounded-lg px-3 py-2 text-sm font-sans-custom focus:outline-none" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(242,240,237,0.7)' }}>
+                  <option value="gold">Oro</option>
+                  <option value="silver">Plata</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.1em] font-semibold mb-1.5 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Karat / Ley</label>
+                <select value={clientMetalForm.karat} onChange={(e) => setClientMetalForm(f => ({ ...f, karat: e.target.value }))} className="w-full rounded-lg px-3 py-2 text-sm font-sans-custom focus:outline-none" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(242,240,237,0.7)' }}>
+                  <option value="24">24k (999)</option>
+                  <option value="18">18k (750)</option>
+                  <option value="14">14k (585)</option>
+                  <option value="10">10k (417)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.1em] font-semibold mb-1.5 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Peso (gr)</label>
+                <input type="number" step="0.01" min="0" placeholder="0.00" value={clientMetalForm.weight_gr} onChange={(e) => setClientMetalForm(f => ({ ...f, weight_gr: e.target.value }))} className="w-full rounded-lg px-3 py-2 text-sm font-sans-custom focus:outline-none" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(242,240,237,0.7)' }} />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.1em] font-semibold mb-1.5 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Destino</label>
+                <select value={clientMetalForm.destination} onChange={(e) => setClientMetalForm(f => ({ ...f, destination: e.target.value as 'order' | 'inventory' }))} className="w-full rounded-lg px-3 py-2 text-sm font-sans-custom focus:outline-none" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(242,240,237,0.7)' }}>
+                  <option value="order">Para este pedido</option>
+                  <option value="inventory">Inventario general</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <button onClick={handleRegisterClientMetal} disabled={registeringMetal || !clientMetalForm.weight_gr} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold font-sans-custom transition-all disabled:opacity-50" style={{ background: 'rgba(212,175,55,0.9)', color: 'rgba(8,8,8,0.9)' }}>
+                {registeringMetal ? <RefreshCw size={13} className="animate-spin" /> : <Plus size={13} />} {registeringMetal ? 'Registrando...' : 'Registrar entrega'}
+              </button>
+            </div>
+
+            {/* Lista de entregas */}
+            {clientMetalDeliveries.length > 0 && (
+              <div className="space-y-2">
+                {clientMetalDeliveries.map((delivery: any) => (
+                  <div key={delivery.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div>
+                      <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>
+                        {delivery.metal_code === 'gold' ? 'Oro' : 'Plata'} {delivery.karat}k · {delivery.weight_gr}g
+                      </p>
+                      <p className="text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
+                        Equiv. 24k: {delivery.equivalent_24k_gr?.toFixed(3)}g · {delivery.destination === 'order' ? 'Para este pedido' : 'Inventario general'}
+                      </p>
+                    </div>
+                    {delivery.refinery_status === 'refined' && (
+                      <span className="text-[10px] px-2 py-1 rounded font-sans-custom" style={{ background: 'rgba(16,185,129,0.1)', color: 'rgba(110,231,183,0.8)' }}>Refinado</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Alert banners */}
       {isJewelerQuote && (jewelryData?.currentPhase === 'creation' || !jewelryData?.currentPhase) && (
         <>
@@ -1335,6 +1810,7 @@ export default function JewelryDetailPage() {
         currentCycle={{
           id: workCycles[0]?.id || '',
           totalMetalWeightGr: workCycles[0]?.totalMetalWeightGr || undefined,
+          metalDeliveredGr: workCycles[0]?.metalDeliveredGr || undefined,
           includesStones: workCycles[0]?.includesStones || false,
           stoneWeightGr: workCycles[0]?.stoneWeightGr || undefined,
         }}

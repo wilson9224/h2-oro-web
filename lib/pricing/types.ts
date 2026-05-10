@@ -27,12 +27,12 @@ export interface PricingMetal {
 
 export interface PricingService {
   id: string;
-  category: 'setting' | 'casting' | 'design' | 'finishing' | 'laser_engraving' | '3d_printing' | 'assembly' | 'laser_cutting' | 'vulcanization';
+  category: 'setting' | 'casting' | 'design' | 'finishing' | 'laser_engraving' | '3d_printing' | 'assembly' | 'laser_cutting' | 'vulcanization' | 'refinement';
   subcategory: 'simple' | 'bezel' | 'pave' | null;
   difficulty_level: 'easy' | 'medium' | 'hard' | null;
   service_name: string;
   price_cop: number;
-  price_unit: 'per_stone' | 'per_service';
+  price_unit: 'per_stone' | 'per_service' | 'per_gram';
   allows_custom_value: boolean;
   updated_by_user_id: string | null;
   updated_at: string;
@@ -51,7 +51,7 @@ export interface PricingWorkerRate {
   difficulty_level: 'easy' | 'medium' | 'hard' | null;
   service_name: string;
   rate_cop: number;
-  rate_unit: 'per_stone' | 'per_service';
+  rate_unit: 'per_stone' | 'per_service' | 'per_gram';
   allows_custom_value: boolean;
   custom_value_percentage: number;
   updated_by_user_id: string | null;
@@ -105,6 +105,7 @@ export const SERVICE_CATEGORY_META: Record<string, { name: string; icon: string 
   assembly: { name: 'Armado', icon: 'wrench' },
   laser_cutting: { name: 'Corte Láser', icon: 'scissors' },
   vulcanization: { name: 'Vulcanización', icon: 'thermometer' },
+  refinement: { name: 'Refinamiento', icon: 'flask-conical' },
 };
 
 // Mapeo de subcategorías de engaste a nombres legibles
@@ -132,4 +133,5 @@ export const SERVICE_CATEGORY_ORDER = [
   'assembly',
   'laser_cutting',
   'vulcanization',
+  'refinement',
 ];
