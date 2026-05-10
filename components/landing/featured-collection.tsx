@@ -6,10 +6,11 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
 
 const collections = [
-  { title: 'Anillos', tagline: 'Tu historia, forjada en oro', num: '01' },
-  { title: 'Collares', tagline: 'Elegancia que enmarca', num: '02' },
-  { title: 'Pulseras', tagline: 'El complemento que faltaba', num: '03' },
-  { title: 'Aretes', tagline: 'Brillo que cautiva', num: '04' },
+  { title: 'Anillos', tagline: 'Tu historia, forjada en oro', num: '01', image: '/collections/home-anillos.png' },
+  { title: 'Collares', tagline: 'Elegancia que enmarca', num: '02', image: '/collections/home-collares.png' },
+  { title: 'Pulseras', tagline: 'El complemento que faltaba', num: '03', image: '/collections/home-pulseras.png' },
+  { title: 'Aretes', tagline: 'Brillo que cautiva', num: '04', image: '/collections/home-aretes.png' },
+  { title: 'Dijes', tagline: 'Detalles que cuentan', num: '05', image: '/collections/home-dijes.png' },
 ];
 
 const GRADIENTS = [
@@ -17,6 +18,7 @@ const GRADIENTS = [
   'from-charcoal-700 to-charcoal-800',
   'from-charcoal-800 to-charcoal-900',
   'from-charcoal-700 to-charcoal-800',
+  'from-charcoal-800 to-charcoal-900',
 ];
 
 const ACCENT_COLORS = [
@@ -24,6 +26,7 @@ const ACCENT_COLORS = [
   'rgba(212,175,55,0.05)',
   'rgba(212,175,55,0.10)',
   'rgba(212,175,55,0.06)',
+  'rgba(212,175,55,0.07)',
 ];
 
 function CollectionItem({
@@ -49,12 +52,19 @@ function CollectionItem({
       <Link href="/catalogo" className="group block">
         {/* Image card */}
         <div
-          className="relative aspect-[3/4] overflow-hidden mb-5"
+          className="relative aspect-[3/4] overflow-hidden mb-5 rounded-2xl group-hover:shadow-2xl group-hover:shadow-gold-500/20 transition-all duration-500"
           style={{
             background: `linear-gradient(145deg, #1A1A1A, #0D0D0D)`,
             boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.4) inset',
           }}
         >
+          {/* Image */}
+          <img
+            src={item.image}
+            alt={item.title}
+            className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-700"
+          />
+
           {/* Inner gradient accent */}
           <div
             className="absolute inset-0 transition-opacity duration-700 group-hover:opacity-150"
@@ -70,17 +80,18 @@ function CollectionItem({
           </span>
 
           {/* Top border accent */}
-          <div className="absolute top-0 left-0 right-0 h-px"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.2), transparent)' }} />
+          <div className="absolute top-0 left-0 right-0 h-[2px] group-hover:h-[3px] transition-all duration-500"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.6), transparent)' }} />
 
           {/* Hover reveal CTA */}
           <div className="absolute inset-0 flex items-end p-6">
             <div className="opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-500">
               <span
-                className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-gold-400 px-3 py-1.5 rounded-full font-sans-custom"
+                className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-gold-400 px-4 py-2 rounded-full font-sans-custom shadow-lg"
                 style={{
-                  background: 'rgba(212,175,55,0.1)',
-                  border: '1px solid rgba(212,175,55,0.25)',
+                  background: 'rgba(26,26,26,0.95)',
+                  border: '1px solid rgba(212,175,55,0.5)',
+                  boxShadow: '0 4px 20px rgba(212,175,55,0.3)',
                 }}
               >
                 Ver colección <ArrowUpRight size={10} />
@@ -141,7 +152,7 @@ export function FeaturedCollection() {
         </div>
 
         {/* Asymmetric grid with parallax */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
           {collections.map((item, i) => (
             <CollectionItem key={item.title} item={item} index={i} />
           ))}

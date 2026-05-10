@@ -34,7 +34,7 @@ const navItems = [
   { label: 'Configuración', href: '/admin/configuracion', icon: Settings },
 ];
 
-const ALLOWED_ROLES = ['admin', 'manager', 'designer'];
+const ALLOWED_ROLES = ['admin', 'manager'];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, signOut } = useAuth();

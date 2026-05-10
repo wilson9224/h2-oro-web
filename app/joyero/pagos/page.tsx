@@ -9,6 +9,51 @@ import { fetchWorkerPayments, confirmPaymentReceipt } from '@/lib/joyero/queries
 type StatusFilter = 'all' | 'pending' | 'paid_unconfirmed' | 'confirmed';
 type DateRange = '7d' | '30d' | '90d' | 'all';
 
+const SERVICE_CODE_LABELS: Record<string, string> = {
+  casting: 'Fundición',
+  design_easy: 'Diseño Fácil',
+  design_medium: 'Diseño Medio',
+  design_hard: 'Diseño Difícil',
+  design_complex: 'Diseño Complejo',
+  finishing_easy: 'Acabados Fácil',
+  finishing_medium: 'Acabados Medio',
+  finishing_hard: 'Acabados Difícil',
+  finishing_complex: 'Acabados Complejo',
+  assembly_easy: 'Armado Fácil',
+  assembly_medium: 'Armado Medio',
+  assembly_hard: 'Armado Difícil',
+  assembly_complex: 'Armado Complejo',
+  setting_simple: 'Engaste Simple',
+  setting_bezel: 'Engaste en Bisel',
+  setting_pave: 'Engaste Pavé',
+  laser_cutting_easy: 'Corte Láser Fácil',
+  laser_cutting_medium: 'Corte Láser Medio',
+  laser_cutting_hard: 'Corte Láser Difícil',
+  laser_engraving_easy: 'Grabado Láser Fácil',
+  laser_engraving_medium: 'Grabado Láser Medio',
+  laser_engraving_hard: 'Grabado Láser Difícil',
+  vulcanization_easy: 'Vulcanización Fácil',
+  vulcanization_medium: 'Vulcanización Medio',
+  vulcanization_hard: 'Vulcanización Difícil',
+  '3d_printing': 'Impresión 3D',
+};
+
+const CONCEPT_LABELS: Record<string, string> = {
+  assignment_payment: 'Pago por trabajo',
+  bonus: 'Bonificación',
+  adjustment: 'Ajuste',
+};
+
+function getPaymentTitle(payment: { concept: string; serviceCode?: string | null; pieceName?: string | null }): string {
+  if (payment.serviceCode && SERVICE_CODE_LABELS[payment.serviceCode]) {
+    return SERVICE_CODE_LABELS[payment.serviceCode];
+  }
+  if (payment.concept === 'adjustment' && payment.pieceName) {
+    return payment.pieceName;
+  }
+  return CONCEPT_LABELS[payment.concept] ?? payment.concept;
+}
+
 const STATUS_LABELS: Record<StatusFilter, string> = {
   all: 'Todos',
   pending: 'Pendiente de pago',
@@ -84,6 +129,7 @@ export default function JoyeroPagosPage() {
   // Summary calculations
   const totalPending = payments.filter(p => p.status === 'pending').reduce((s, p) => s + p.amountCop, 0);
   const totalPaid = payments.filter(p => p.status === 'paid').reduce((s, p) => s + p.amountCop, 0);
+  const totalEarned = totalPending + totalPaid;
   const pendingConfirm = payments.filter(p => p.status === 'paid' && !p.confirmedAt).length;
 
   return (
@@ -112,10 +158,24 @@ export default function JoyeroPagosPage() {
         </button>
       </div>
 
+      {/* Total acumulado del período */}
+      <div className="px-5 pt-4">
+        <div
+          className="rounded-2xl p-4"
+          style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.15)' }}
+        >
+          <p className="text-[9px] uppercase tracking-[0.16em] font-sans-custom mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>Total generado · {DATE_RANGE_LABELS[dateRange]}</p>
+          <p className="font-display text-2xl font-bold" style={{ color: 'rgba(212,175,55,0.95)' }}>{formatCOP(totalEarned)}</p>
+          <p className="text-[10px] font-sans-custom mt-1" style={{ color: 'rgba(242,240,237,0.3)' }}>
+            {payments.length} trabajo{payments.length !== 1 ? 's' : ''} completado{payments.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+      </div>
+
       {/* Summary Cards */}
-      <div className="px-5 pt-4 grid grid-cols-3 gap-2">
+      <div className="px-5 pt-3 grid grid-cols-3 gap-2">
         {[
-          { label: 'Pendiente', value: formatCOP(totalPending), color: 'rgba(251,191,36,1)' },
+          { label: 'Por cobrar', value: formatCOP(totalPending), color: 'rgba(251,191,36,1)' },
           { label: 'Pagado', value: formatCOP(totalPaid), color: 'rgba(52,211,153,1)' },
           { label: 'Confirmar', value: `${pendingConfirm}`, color: pendingConfirm > 0 ? 'rgba(96,165,250,1)' : 'rgba(242,240,237,0.3)' },
         ].map(({ label, value, color }) => (
@@ -231,7 +291,7 @@ function PaymentCard({
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium font-display truncate" style={{ color: 'rgba(242,240,237,0.85)' }}>
-              {payment.concept}
+              {getPaymentTitle(payment)}
             </p>
             {payment.pieceName && (
               <p className="text-xs mt-0.5 truncate font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>{payment.pieceName}</p>

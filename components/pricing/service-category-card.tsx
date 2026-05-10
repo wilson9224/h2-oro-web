@@ -73,9 +73,9 @@ export default function ServiceCategoryCard({
   };
 
   const unitBadge = (unit: string) => {
-    const label = unit === 'per_stone' ? 'por piedra' : 'por servicio';
-    const color = unit === 'per_stone' ? 'rgba(168,85,247,0.1)' : 'rgba(59,130,246,0.1)';
-    const textColor = unit === 'per_stone' ? 'rgba(168,85,247,0.9)' : 'rgba(59,130,246,0.9)';
+    const label = unit === 'per_stone' ? 'por piedra' : unit === 'per_gram' ? 'por gramo' : 'por servicio';
+    const color = unit === 'per_stone' ? 'rgba(168,85,247,0.1)' : unit === 'per_gram' ? 'rgba(212,175,55,0.1)' : 'rgba(59,130,246,0.1)';
+    const textColor = unit === 'per_stone' ? 'rgba(168,85,247,0.9)' : unit === 'per_gram' ? 'rgba(212,175,55,0.9)' : 'rgba(59,130,246,0.9)';
     return (
       <span className="text-[10px] px-1.5 py-0.5 rounded font-sans-custom" style={{ background: color, color: textColor }}>
         {label}
