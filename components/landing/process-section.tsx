@@ -1,74 +1,313 @@
 'use client';
 
-import { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { useRef, useState } from 'react';
+import Link from 'next/link';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { ArrowUpRight } from 'lucide-react';
 
-const steps = [
+const categories = [
   {
     num: '01',
-    title: 'Diseño',
-    desc: 'Trabajamos contigo para crear un diseño único. Bocetos, renders 3D, cada detalle pensado.',
+    title: 'Diseño y creación',
+    tagline: 'Lo que hacemos desde cero',
+    services: [
+      {
+        title: 'Joyas personalizadas',
+        desc: 'Si tienes una idea, la hacemos realidad. Nos describes lo que quieres y nosotros nos encargamos del diseño y la fabricación.',
+      },
+      {
+        title: 'Venta de joyas exclusivas',
+        desc: 'Tenemos piezas propias en oro, plata y piedras preciosas. Cada una hecha con cuidado, lista para llevar o regalar.',
+      },
+      {
+        title: 'Diseño e impresión 3D',
+        desc: 'Usamos modelado digital e impresión 3D para lograr formas que a mano serían muy difíciles. Ideal para piezas complejas o de alta precisión.',
+      },
+    ],
   },
   {
     num: '02',
-    title: 'Selección',
-    desc: 'Oro 18K certificado y gemas seleccionadas a mano. Solo lo mejor llega a tu pieza.',
+    title: 'Todo sobre el oro',
+    tagline: 'Todo lo que necesitas con tu oro en un solo lugar',
+    services: [
+      {
+        title: 'Compra y venta de oro',
+        desc: 'Compramos tu oro al precio del día y vendemos material de calidad. Sin rodeos, con precio justo y atención directa.',
+      },
+      {
+        title: 'Refinamiento de oro',
+        desc: 'Purificamos oro de cualquier ley hasta llevarlo a 24 quilates. Útil si tienes piezas viejas, chatarra o material mezclado.',
+      },
+      {
+        title: 'Valuación de joyas',
+        desc: 'Te decimos cuánto vale tu joya con un avalúo serio y documentado. Sirve para vender, asegurar o simplemente saber.',
+      },
+    ],
   },
   {
     num: '03',
-    title: 'Creación',
-    desc: 'Maestros orfebres colombianos dan vida a tu joya con técnicas artesanales de precisión.',
+    title: 'Piedras preciosas',
+    tagline: 'Compra, venta y certificación con respaldo técnico',
+    services: [
+      {
+        title: 'Compra y venta de piedras',
+        desc: 'Trabajamos con esmeraldas, rubíes, diamantes y otras piedras. Si quieres comprar o vender, te asesoramos en cada paso.',
+      },
+      {
+        title: 'Certificación de piedras',
+        desc: 'Emitimos certificados que confirman qué es la piedra, de dónde viene y qué características tiene. Necesario si vas a venderla o asegurarla.',
+      },
+      {
+        title: 'Engaste y desengaste',
+        desc: 'Ponemos o quitamos piedras de cualquier pieza con precisión. Sin dañar el metal ni la piedra.',
+      },
+    ],
   },
   {
     num: '04',
-    title: 'Entrega',
-    desc: 'Empaque de lujo, certificado de autenticidad, y una experiencia que recordarás siempre.',
+    title: 'En el taller',
+    tagline: 'Reparaciones, acabados y manufactura',
+    services: [
+      {
+        title: 'Reparación de joyas',
+        desc: 'Arreglamos cierres, soldamos, cambiamos piezas rotas o desgastadas. Si la joya tiene arreglo, aquí la recuperamos.',
+      },
+      {
+        title: 'Corte y grabado láser',
+        desc: 'Grabamos texto, fechas o diseños con láser sobre metales y piedras. Perfecto para personalizar una pieza con algo especial.',
+      },
+      {
+        title: 'Fundición de metales',
+        desc: 'Fundimos oro, plata y otros metales para crear piezas desde cero o reutilizar material que ya no usas.',
+      },
+    ],
+  },
+  {
+    num: '05',
+    title: 'También hacemos',
+    tagline: 'Servicios adicionales que complementan nuestra oferta',
+    services: [
+      {
+        title: 'Tejido de pulseras',
+        desc: 'Elaboramos pulseras tejidas en oro y plata a mano. Cada una sale distinta, con el carácter de lo hecho con paciencia.',
+      },
+      {
+        title: 'Entrega y recogida en Bogotá',
+        desc: 'Si no puedes venir al taller, nosotros vamos a ti. Recogemos y entregamos tus joyas en Bogotá con seguridad y discreción.',
+      },
+    ],
   },
 ];
 
-function StepRow({ step }: { step: (typeof steps)[number] }) {
+function ServiceCard({
+  service,
+  index,
+}: {
+  service: { title: string; desc: string };
+  index: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const isEven = index % 2 === 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ duration: 0.5, delay: index * 0.08 }}
+      className="group cursor-pointer"
+      onClick={() => setOpen(!open)}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <div
+        className="relative flex flex-col justify-between min-h-[88px] p-5 md:p-6 rounded-xl transition-all duration-500"
+        style={{
+          background: open
+            ? 'rgba(30,28,24,0.95)'
+            : isEven
+              ? 'rgba(20,19,17,0.85)'
+              : 'rgba(14,13,12,0.85)',
+          border: open
+            ? '1px solid rgba(212,175,55,0.4)'
+            : '1px solid rgba(255,255,255,0.07)',
+          borderLeft: open
+            ? '2px solid rgba(212,175,55,0.7)'
+            : isEven
+              ? '2px solid rgba(212,175,55,0.12)'
+              : '2px solid rgba(212,175,55,0.06)',
+          boxShadow: open ? '0 8px 32px rgba(212,175,55,0.08)' : 'none',
+        }}
+      >
+        {/* Service number — decorative top-right */}
+        <span
+          className="absolute top-4 right-4 font-mono text-[10px] transition-colors duration-500"
+          style={{ color: open ? 'rgba(212,175,55,0.5)' : 'rgba(242,240,237,0.12)' }}
+        >
+          {String(index + 1).padStart(2, '0')}
+        </span>
+
+        {/* Title row */}
+        <div className="flex items-start justify-between gap-4 pr-6">
+          <h4
+            className="font-sans font-semibold text-sm md:text-base leading-snug transition-colors duration-500"
+            style={{ color: open ? 'rgba(212,175,55,1)' : 'rgba(242,240,237,0.9)' }}
+          >
+            {service.title}
+          </h4>
+        </div>
+
+        {/* Divider — visible when open */}
+        <div
+          className="transition-all duration-300 overflow-hidden"
+          style={{ maxHeight: open ? '1px' : '0', marginTop: open ? 12 : 0, marginBottom: open ? 12 : 0 }}
+        >
+          <div className="h-px w-full" style={{ background: 'rgba(212,175,55,0.15)' }} />
+        </div>
+
+        {/* Description — expands on hover/tap */}
+        <AnimatePresence>
+          {open && (
+            <motion.p
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              className="text-xs text-cream-200/45 leading-relaxed font-sans overflow-hidden"
+            >
+              {service.desc}
+            </motion.p>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
+}
+
+function CategoryBlock({ cat }: { cat: (typeof categories)[number] }) {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ['start 0.9', 'start 0.3'],
   });
   const opacity = useTransform(scrollYProgress, [0, 1], [0.15, 1]);
-  const x = useTransform(scrollYProgress, [0, 1], [40, 0]);
+
+  return (
+    <motion.div ref={ref} style={{ opacity }} className="py-12 border-b border-cream-200/[0.06]">
+      {/* Category header */}
+      <div className="flex flex-col md:flex-row md:items-baseline gap-2 md:gap-8 mb-8">
+        <span className="font-mono text-label text-gold-500/50 shrink-0">{cat.num}</span>
+        <div className="flex-1">
+          <h3 className="font-display text-display-md text-cream-100 mb-1">
+            {cat.title}
+          </h3>
+          <p className="text-xs uppercase tracking-[0.15em] text-cream-200/25 font-sans">
+            {cat.tagline}
+          </p>
+        </div>
+      </div>
+
+      {/* Service cards grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {cat.services.map((service, i) => (
+          <ServiceCard key={service.title} service={service} index={i} />
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function HomeCategoryCard({ cat, index }: { cat: (typeof categories)[number]; index: number }) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start end', 'end start'],
+  });
+  const y = useTransform(scrollYProgress, [0, 1], [50, -50]);
 
   return (
     <motion.div
       ref={ref}
-      style={{ opacity, x }}
-      className="group relative grid grid-cols-12 gap-4 md:gap-8 items-baseline py-10 md:py-14 border-b border-cream-200/[0.06]"
+      style={{ y }}
+      className={index % 2 === 1 ? 'md:mt-28' : ''}
     >
-      {/* Number — oversized, overlapping */}
-      <div className="col-span-2 md:col-span-1">
-        <span className="font-mono text-label text-cream-200/20">
-          {step.num}
-        </span>
-      </div>
+      <Link href="/servicios" className="group block">
+        {/* Card — mismo aspect ratio que Colección */}
+        <div
+          className="relative aspect-[3/4] overflow-hidden mb-5 rounded-2xl group-hover:shadow-2xl group-hover:shadow-gold-500/20 transition-all duration-500"
+          style={{
+            background: 'linear-gradient(145deg, #1A1A1A, #0D0D0D)',
+            boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.4) inset',
+          }}
+        >
+          {/* Radial accent */}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'radial-gradient(ellipse 80% 80% at 50% 100%, rgba(212,175,55,0.07), transparent)' }}
+          />
 
-      {/* Title — large serif */}
-      <div className="col-span-10 md:col-span-4">
-        <h3 className="font-display text-display-md text-cream-100 group-hover:text-gold-400 transition-colors duration-700">
-          {step.title}
-        </h3>
-      </div>
+          {/* Número decorativo gigante */}
+          <span
+            className="absolute -bottom-4 -right-2 font-display text-[10rem] leading-none select-none pointer-events-none"
+            style={{ color: 'rgba(242,240,237,0.025)' }}
+          >
+            {cat.num}
+          </span>
 
-      {/* Description — pushed right */}
-      <div className="col-span-12 md:col-span-5 md:col-start-7">
-        <p className="text-sm md:text-base text-cream-200/40 leading-relaxed font-sans">
-          {step.desc}
-        </p>
-      </div>
+          {/* Título centrado */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+            <span className="font-mono text-[10px] text-gold-500/40 tracking-[0.2em] uppercase mb-4 block">
+              {cat.num}
+            </span>
+            <h3 className="font-display text-display-md text-cream-100 group-hover:text-gold-400 transition-colors duration-500 leading-tight">
+              {cat.title}
+            </h3>
+            <p className="mt-3 text-[11px] text-cream-200/30 font-sans tracking-wide leading-relaxed max-w-[140px]">
+              {cat.tagline}
+            </p>
+          </div>
 
-      {/* Oversized decorative number behind */}
-      <span
-        className="absolute -top-6 right-0 font-display text-[8rem] md:text-[12rem] leading-none text-cream-200/[0.02] select-none pointer-events-none hidden md:block"
-        aria-hidden
-      >
-        {step.num}
-      </span>
+          {/* Top border accent */}
+          <div
+            className="absolute top-0 left-0 right-0 h-[2px] group-hover:h-[3px] transition-all duration-500"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.6), transparent)' }}
+          />
+
+          {/* Hover CTA */}
+          <div className="absolute inset-0 flex items-end p-6">
+            <div className="opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-500">
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-gold-400 px-4 py-2 rounded-full font-sans"
+                style={{
+                  background: 'rgba(26,26,26,0.95)',
+                  border: '1px solid rgba(212,175,55,0.5)',
+                  boxShadow: '0 4px 20px rgba(212,175,55,0.3)',
+                }}
+              >
+                Ver servicios <ArrowUpRight size={10} />
+              </span>
+            </div>
+          </div>
+
+          {/* Gold corner accent */}
+          <div className="absolute top-4 right-4 w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+            <div className="w-full h-px bg-gold-500/40" />
+            <div className="w-px h-full bg-gold-500/40 ml-auto" />
+          </div>
+        </div>
+
+        {/* Services list below */}
+        <ul className="mt-1 space-y-1.5">
+          {cat.services.map((service) => (
+            <li key={service.title} className="flex items-baseline gap-2">
+              <span className="text-gold-500/30 text-[10px] shrink-0">—</span>
+              <span className="text-xs text-cream-200/35 font-sans leading-snug group-hover:text-cream-200/50 transition-colors duration-500">
+                {service.title}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Link>
     </motion.div>
   );
 }
@@ -77,23 +316,57 @@ export function ProcessSection() {
   return (
     <section className="py-24 md:py-34 section-padding relative overflow-hidden">
       <div className="max-w-[90rem] mx-auto">
-        {/* Header — left-aligned, asymmetric */}
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-end gap-6 mb-16 md:mb-24">
+          <div className="flex-1 max-w-2xl">
+            <span className="text-label uppercase text-cream-200/25 font-sans block mb-4">
+              Servicios
+            </span>
+            <h2 className="font-display text-display-xl text-cream-100">
+              Todo lo que <br />
+              <span className="italic text-outline-gold">podemos hacer</span>
+            </h2>
+          </div>
+          <Link
+            href="/servicios"
+            className="btn-pill-outline group self-start md:self-auto shrink-0"
+          >
+            Ver todos
+            <ArrowUpRight size={14} className="group-hover:rotate-45 transition-transform duration-500" />
+          </Link>
+        </div>
+
+        {/* Category cards grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {categories.map((cat, i) => (
+            <HomeCategoryCard key={cat.num} cat={cat} index={i} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function ServicesFullSection() {
+  return (
+    <section className="py-24 md:py-34 section-padding relative overflow-hidden">
+      <div className="max-w-[90rem] mx-auto">
+        {/* Header */}
         <div className="mb-16 md:mb-24 max-w-2xl">
           <span className="text-label uppercase text-cream-200/25 font-sans block mb-4">
-            Proceso
+            Servicios
           </span>
           <h2 className="font-display text-display-xl text-cream-100">
-            Del sueño <br />
-            <span className="italic text-outline">a la realidad</span>
+            Todo lo que <br />
+            <span className="italic text-outline-gold">podemos hacer</span>
           </h2>
         </div>
 
-        {/* Steps list — editorial rows */}
+        {/* Categories + services */}
         <div className="relative">
-          {/* Top border */}
           <div className="h-px bg-cream-200/[0.06]" />
-          {steps.map((step) => (
-            <StepRow key={step.num} step={step} />
+          {categories.map((cat) => (
+            <CategoryBlock key={cat.num} cat={cat} />
           ))}
         </div>
       </div>

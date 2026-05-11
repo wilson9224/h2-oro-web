@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 const navLinks = [
   { href: '/catalogo', label: 'Colección' },
-  { href: '/proceso', label: 'Proceso' },
+  { href: '/servicios', label: 'Servicios' },
   { href: '/seguimiento', label: 'Mi Pedido' },
   { href: '/auth/login', label: 'Mi Cuenta' },
 ];
