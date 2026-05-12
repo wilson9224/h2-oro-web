@@ -7,6 +7,7 @@ import {
   Plus,
   ArrowUpRight,
   ArrowDownRight,
+  ArrowDownLeft,
   SlidersHorizontal,
   X,
   RefreshCw,
@@ -23,6 +24,8 @@ import type { InventoryItem, InventoryMovement, MovementType } from '@/lib/accou
 import { MOVEMENT_TYPE_LABELS } from '@/lib/accounting/types';
 import { STONE_CUTS } from '@/lib/quotation/types';
 import { createClient } from '@/lib/supabase/client';
+import InventoryDetailPanel from './detail-panel';
+import { createStoneContainer, createContainerMovement, fetchStoneContainers } from '@/lib/accounting/stone-containers';
 
 const supabase = createClient();
 
@@ -58,34 +61,19 @@ const STONE_LABELS: Record<Exclude<StoneType, ''>, string> = {
   moissanita: 'Moissanita',
 };
 
-const LEY_OPTIONS_ORO = [
-  { value: '24', label: '24k — 999 (99.9% puro)' },
-  { value: '23', label: '23k — 958 (95.8%)' },
-  { value: '18', label: '18k — 750 (75.0%)' },
-  { value: '14', label: '14k — 585 (58.5%)' },
-  { value: '10', label: '10k — 417 (41.7%)' },
-  { value: '9',  label: '9k — 375 (37.5%)' },
-];
-
-const LEY_OPTIONS_PLATA = [
-  { value: '999', label: '999 — plata fina (99.9%)' },
-  { value: '950', label: '950 — (95.0%)' },
-  { value: '925', label: '925 — esterlina (92.5%)' },
-  { value: '900', label: '900 — moneda (90.0%)' },
-  { value: '800', label: '800 — (80.0%)' },
-];
+/** Convierte la ley ingresada a porcentaje de pureza (0–100) */
+function leyToPct(metalType: MetalType, ley: string): number {
+  const n = parseFloat(ley);
+  if (!n || n <= 0) return 0;
+  if (metalType === 'oro') return Number(((n / 24) * 100).toFixed(4));
+  if (metalType === 'plata') return Number((n / 10).toFixed(4));
+  return 100;
+}
 
 /** Convierte gramos de metal a gramos de metal puro equivalente */
 function toPureGrams(weightG: number, metalType: MetalType, ley: string): number {
-  if (metalType === 'oro') {
-    const k = parseFloat(ley);
-    return weightG * (k / 24);
-  }
-  if (metalType === 'plata') {
-    const m = parseFloat(ley);
-    return weightG * (m / 1000);
-  }
-  return weightG; // cobre y paladio: sin conversión
+  const pct = leyToPct(metalType, ley);
+  return weightG * (pct / 100);
 }
 
 interface EntryForm {
@@ -98,7 +86,8 @@ interface EntryForm {
   ley: string;            // oro y plata: ley
   weight_ct: string;      // piedras: peso en quilates
   quantity: string;       // piedras: cantidad de unidades
-  unit_cost: string;      // precio por gramo/quilate
+  unit_cost: string;      // precio de compra por gramo/quilate
+  stone_price_per_ct: string; // precio de venta del contenedor (piedras)
   reference: string;
   notes: string;
 }
@@ -114,6 +103,29 @@ const EMPTY_ENTRY_FORM: EntryForm = {
   weight_ct: '',
   quantity: '',
   unit_cost: '',
+  stone_price_per_ct: '',
+  reference: '',
+  notes: '',
+};
+
+type BuyerType = 'client' | 'jeweler';
+
+interface SaleForm {
+  metal_type: MetalType;
+  buyer_type: BuyerType;
+  ley: string;
+  weight_g: string;
+  unit_price: string;
+  reference: string;
+  notes: string;
+}
+
+const EMPTY_SALE_FORM: SaleForm = {
+  metal_type: '',
+  buyer_type: 'client',
+  ley: '',
+  weight_g: '',
+  unit_price: '',
   reference: '',
   notes: '',
 };
@@ -153,6 +165,8 @@ export default function InventarioPage() {
   const [loading, setLoading] = useState(true);
   const [movLoading, setMovLoading] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'metal' | 'stone'>('all');
+  const [allContainers, setAllContainers] = useState<import('@/lib/accounting/stone-containers').StoneContainer[]>([]);
+  const [containersLoading, setContainersLoading] = useState(true);
   const [movFilterItem, setMovFilterItem] = useState('all');
   const [movFilterType, setMovFilterType] = useState<MovementType | 'all'>('all');
   const [showModal, setShowModal] = useState(false);
@@ -160,7 +174,13 @@ export default function InventarioPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pricingMetals, setPricingMetals] = useState<Record<string, number>>({});
+  const [pricingMetalsFull, setPricingMetalsFull] = useState<Record<string, { client_sale_base_price: number | null; jeweler_sale_base_price: number | null }>>({});
+  const [showSaleModal, setShowSaleModal] = useState(false);
+  const [saleForm, setSaleForm] = useState<SaleForm>(EMPTY_SALE_FORM);
+  const [saleSubmitting, setSaleSubmitting] = useState(false);
+  const [saleError, setSaleError] = useState<string | null>(null);
   const [editingMinStock, setEditingMinStock] = useState<{ id: string; value: string } | null>(null);
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [expandedStone, setExpandedStone] = useState<string | null>(null);
   const [stoneMovements, setStoneMovements] = useState<Record<string, InventoryMovement[]>>({});
   const [stoneMovLoading, setStoneMovLoading] = useState<string | null>(null);
@@ -218,15 +238,33 @@ export default function InventarioPage() {
     }
   }, [expandedStone, stoneMovements]);
 
-  useEffect(() => { loadItems(); }, [loadItems]);
+  const loadContainers = useCallback(async () => {
+    setContainersLoading(true);
+    try {
+      const data = await fetchStoneContainers();
+      setAllContainers(data);
+    } finally {
+      setContainersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadItems(); loadContainers(); }, [loadItems, loadContainers]);
   useEffect(() => { if (tab === 'movimientos') loadMovements(); }, [tab, loadMovements, filterType]);
 
   useEffect(() => {
-    supabase.from('pricing_metals').select('metal_code, purchase_base_price').then(({ data }) => {
+    supabase.from('pricing_metals').select('metal_code, purchase_base_price, client_sale_base_price, jeweler_sale_base_price').then(({ data }) => {
       if (!data) return;
       const map: Record<string, number> = {};
-      data.forEach((r: any) => { if (r.purchase_base_price) map[r.metal_code] = Number(r.purchase_base_price); });
+      const fullMap: Record<string, { client_sale_base_price: number | null; jeweler_sale_base_price: number | null }> = {};
+      data.forEach((r: any) => {
+        if (r.purchase_base_price) map[r.metal_code] = Number(r.purchase_base_price);
+        fullMap[r.metal_code] = {
+          client_sale_base_price: r.client_sale_base_price != null ? Number(r.client_sale_base_price) : null,
+          jeweler_sale_base_price: r.jeweler_sale_base_price != null ? Number(r.jeweler_sale_base_price) : null,
+        };
+      });
       setPricingMetals(map);
+      setPricingMetalsFull(fullMap);
     });
   }, []);
 
@@ -237,6 +275,17 @@ export default function InventarioPage() {
       if (price) setForm(f => ({ ...f, unit_cost: String(price) }));
     }
   }, [form.metal_type, form.category, pricingMetals]);
+
+  useEffect(() => {
+    if (!saleForm.metal_type) return;
+    const metalCode = METAL_CODE_MAP[saleForm.metal_type];
+    const prices = pricingMetalsFull[metalCode];
+    if (!prices) return;
+    const price = saleForm.buyer_type === 'client'
+      ? prices.client_sale_base_price
+      : prices.jeweler_sale_base_price;
+    setSaleForm(f => ({ ...f, unit_price: price != null ? String(price) : '' }));
+  }, [saleForm.metal_type, saleForm.buyer_type, pricingMetalsFull]);
 
   /** Extrae la talla de las notas del movimiento */
   function parseTallaFromNotes(notes: string | null): string {
@@ -275,7 +324,6 @@ export default function InventarioPage() {
     }
     if (form.category === 'stone') {
       if (!form.stone_type || !form.weight_ct || parseFloat(form.weight_ct) <= 0) return false;
-      if (!form.quantity || parseInt(form.quantity) <= 0) return false;
     }
     return true;
   };
@@ -328,9 +376,10 @@ export default function InventarioPage() {
         const rawWeight = parseFloat(form.weight_g);
         if (form.metal_type === 'oro' || form.metal_type === 'plata') {
           registeredQty = toPureGrams(rawWeight, form.metal_type, form.ley);
+          const leyPct = leyToPct(form.metal_type, form.ley);
           const leyLabel = form.metal_type === 'oro'
-            ? `${form.ley}k (${(parseFloat(form.ley)/24*100).toFixed(1)}%)`
-            : `${form.ley} milésimas (${(parseFloat(form.ley)/10).toFixed(1)}%)`;
+            ? `${form.ley}k (${leyPct.toFixed(1)}%)`
+            : `${form.ley} mil (${leyPct.toFixed(1)}%)`;
           noteParts.push(`Peso bruto: ${rawWeight.toFixed(3)} g`);
           noteParts.push(`Ley: ${leyLabel}`);
           noteParts.push(`Equiv. puro: ${registeredQty.toFixed(4)} g`);
@@ -339,20 +388,55 @@ export default function InventarioPage() {
           noteParts.push(`Peso: ${rawWeight} g`);
         }
       } else {
-        registeredQty = parseFloat(form.weight_ct);
-        if (form.stone_cut) noteParts.push(`Talla: ${form.stone_cut}`);
-        noteParts.push(`Peso: ${form.weight_ct} ct`);
-        noteParts.push(`Cantidad: ${form.quantity} und`);
+        // ── STONE: use stone_containers ────────────────────────────────
+        const stoneName = STONE_LABELS[form.stone_type as Exclude<StoneType, ''>];
+        const qtyCt = parseFloat(form.weight_ct);
+        const qtyUnits = parseInt(form.quantity) || 0;
+        const pricePerCt = form.stone_price_per_ct ? parseFloat(form.stone_price_per_ct) : 0;
+        const unitCostNum = form.unit_cost ? parseFloat(form.unit_cost) : null;
+
+        // Find existing active container with same stone_type + cut + price
+        const existingContainers = await fetchStoneContainers(stoneName);
+        let container = existingContainers.find(
+          (c) => c.cut === form.stone_cut && c.price_per_ct === pricePerCt && c.is_active
+        ) ?? null;
+
+        if (!container) {
+          container = await createStoneContainer({
+            stone_type: stoneName,
+            cut: form.stone_cut,
+            price_per_ct: pricePerCt,
+            notes: form.notes || undefined,
+            created_by: user.id,
+          });
+        }
+
+        await createContainerMovement({
+          container_id: container.id,
+          movement_type: 'purchase',
+          quantity_ct: qtyCt,
+          quantity_units: qtyUnits,
+          unit_cost: unitCostNum,
+          reference: form.reference || null,
+          notes: [form.stone_cut ? `Talla: ${form.stone_cut}` : '', `${qtyCt} ct`, `${qtyUnits} und`, form.notes || ''].filter(Boolean).join(' · '),
+          registered_by: user.id,
+        });
+
+        setShowModal(false);
+        setForm(EMPTY_ENTRY_FORM);
+        await Promise.all([loadItems(), loadContainers()]);
+        if (tab === 'movimientos') await loadMovements();
+        return; // Early return — skip the generic createInventoryMovement below
       }
       if (form.notes) noteParts.push(form.notes);
 
       const unitCostNum = form.unit_cost ? parseFloat(form.unit_cost) : null;
-      const totalCostNum = unitCostNum != null ? Number((unitCostNum * registeredQty).toFixed(0)) : null;
+      const totalCostNum = unitCostNum != null ? Number((unitCostNum * registeredQty!).toFixed(0)) : null;
 
       await createInventoryMovement({
         item_id: item.id,
         movement_type: 'purchase',
-        quantity: registeredQty,
+        quantity: registeredQty!,
         unit_cost: unitCostNum,
         total_cost: totalCostNum,
         reference: form.reference || null,
@@ -369,6 +453,79 @@ export default function InventarioPage() {
       setSubmitError(msg);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const isSaleFormValid = () => {
+    if (!saleForm.metal_type || !saleForm.weight_g || parseFloat(saleForm.weight_g) <= 0) return false;
+    if ((saleForm.metal_type === 'oro' || saleForm.metal_type === 'plata') && !saleForm.ley) return false;
+    return true;
+  };
+
+  const handleSaleSubmit = async () => {
+    if (!user || !isSaleFormValid()) return;
+    setSaleSubmitting(true);
+    setSaleError(null);
+    try {
+      const metalType = saleForm.metal_type as Exclude<MetalType, ''>;
+      let itemCode: string;
+      let itemName: string;
+      if (saleForm.metal_type === 'oro') {
+        itemCode = 'gold_pure';
+        itemName = 'Oro Puro (equiv. 24k)';
+      } else if (saleForm.metal_type === 'plata') {
+        itemCode = 'silver_pure';
+        itemName = 'Plata Pura (equiv.)';
+      } else {
+        itemCode = `MTL-${saleForm.metal_type.toUpperCase()}`;
+        itemName = METAL_LABELS[metalType];
+      }
+
+      const item = await upsertInventoryItem({ name: itemName, code: itemCode, type: 'metal', unit: 'g' });
+
+      const rawWeight = parseFloat(saleForm.weight_g);
+      let registeredQty: number;
+      const noteParts: string[] = [];
+
+      if (saleForm.metal_type === 'oro' || saleForm.metal_type === 'plata') {
+        registeredQty = toPureGrams(rawWeight, saleForm.metal_type, saleForm.ley);
+        const leyPct = leyToPct(saleForm.metal_type, saleForm.ley);
+        const leyLabel = saleForm.metal_type === 'oro'
+          ? `${saleForm.ley}k (${leyPct.toFixed(1)}%)`
+          : `${saleForm.ley} mil (${leyPct.toFixed(1)}%)`;
+        noteParts.push(`Peso bruto: ${rawWeight.toFixed(3)} g`);
+        noteParts.push(`Ley: ${leyLabel}`);
+        noteParts.push(`Equiv. puro: ${registeredQty.toFixed(4)} g`);
+      } else {
+        registeredQty = rawWeight;
+        noteParts.push(`Peso: ${rawWeight} g`);
+      }
+      noteParts.push(`Comprador: ${saleForm.buyer_type === 'client' ? 'Cliente' : 'Joyero'}`);
+      if (saleForm.notes) noteParts.push(saleForm.notes);
+
+      const unitPriceNum = saleForm.unit_price ? parseFloat(saleForm.unit_price) : null;
+      const totalNum = unitPriceNum != null ? Number((unitPriceNum * registeredQty).toFixed(0)) : null;
+
+      await createInventoryMovement({
+        item_id: item.id,
+        movement_type: 'sale',
+        quantity: registeredQty,
+        unit_cost: unitPriceNum,
+        total_cost: totalNum,
+        reference: saleForm.reference || null,
+        notes: noteParts.join(' · '),
+        registered_by: user.id,
+      });
+
+      setShowSaleModal(false);
+      setSaleForm(EMPTY_SALE_FORM);
+      await loadItems();
+      if (tab === 'movimientos') await loadMovements();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : JSON.stringify(err);
+      setSaleError(msg);
+    } finally {
+      setSaleSubmitting(false);
     }
   };
 
@@ -397,34 +554,22 @@ export default function InventarioPage() {
       )}
 
       {/* Actions bar */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex gap-2">
-          {(['all', 'metal', 'stone'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setFilterType(t)}
-              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors font-sans-custom ${
-                filterType === t
-                  ? ''
-                  : ''
-              }`}
-              style={{
-                background: filterType === t ? 'rgba(212,175,55,0.12)' : 'transparent',
-                border: filterType === t ? '1px solid rgba(212,175,55,0.2)' : '1px solid rgba(255,255,255,0.1)',
-                color: filterType === t ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.4)',
-              }}
-            >
-              {t === 'all' ? 'Todos' : t === 'metal' ? 'Metales' : 'Piedras'}
-            </button>
-          ))}
-        </div>
+      <div className="flex items-center justify-end gap-3 flex-wrap">
         <div className="flex gap-2">
           <button
-            onClick={loadItems}
+            onClick={() => { loadItems(); loadContainers(); }}
             className="p-2 transition-colors"
             style={{ color: 'rgba(242,240,237,0.4)' }}
           >
             <RefreshCw size={16} />
+          </button>
+          <button
+            onClick={() => { setShowSaleModal(true); setSaleForm(EMPTY_SALE_FORM); setSaleError(null); }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors font-sans-custom"
+            style={{ background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.25)', color: 'rgba(244,63,94,0.9)' }}
+          >
+            <ArrowDownLeft size={16} />
+            Registrar salida
           </button>
           <button
             onClick={() => { setShowModal(true); setForm(EMPTY_ENTRY_FORM); setSubmitError(null); }}
@@ -443,9 +588,7 @@ export default function InventarioPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`pb-2 text-sm font-medium border-b-2 transition-colors font-sans-custom ${
-              tab === t ? '' : ''
-            }`}
+            className="pb-2 text-sm font-medium border-b-2 transition-colors font-sans-custom"
             style={{
               borderColor: tab === t ? 'rgba(212,175,55,0.9)' : 'transparent',
               color: tab === t ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.4)',
@@ -456,155 +599,145 @@ export default function InventarioPage() {
         ))}
       </div>
 
-      {/* Stock tab */}
+      {/* ── Stock tab ── */}
       {tab === 'stock' && (
-        loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="animate-spin h-8 w-8 border-2 border-gold-500 border-t-transparent rounded-full" />
-          </div>
-        ) : (
-          <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-xs uppercase tracking-wide font-sans-custom" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.4)' }}>
-                  <th className="text-left px-4 py-3">Material</th>
-                  <th className="text-left px-4 py-3">Tipo</th>
-                  <th className="text-right px-4 py-3">Stock actual</th>
-                  <th className="text-right px-4 py-3">Stock mínimo</th>
-                  <th className="text-right px-4 py-3">Costo ref./u</th>
-                  <th className="text-left px-4 py-3">Estado</th>
-                </tr>
-              </thead>
-              <tbody style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                {filteredItems.map((item) => {
+        <div className="space-y-8">
+
+          {/* ── SECCIÓN METALES ── */}
+          <div>
+            <p className="text-xs uppercase tracking-widest font-sans-custom mb-3" style={{ color: 'rgba(212,175,55,0.5)' }}>Metales</p>
+            {loading ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="animate-spin h-6 w-6 border-2 border-gold-500 border-t-transparent rounded-full" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {items.filter((i) => i.type === 'metal' && i.is_active).map((item) => {
                   const isBelowMin = item.min_stock != null && item.current_stock < item.min_stock;
                   return (
-                    <React.Fragment key={item.id}>
-                    <tr className="transition-colors" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td className="px-4 py-3">
-                        <p className="font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{item.name}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-sans-custom ${
-                          item.type === 'metal'
-                            ? ''
-                            : ''
-                        }`} style={{
-                          background: item.type === 'metal' ? 'rgba(251,191,36,0.1)' : 'rgba(168,85,247,0.1)',
-                          color: item.type === 'metal' ? 'rgba(251,191,36,0.8)' : 'rgba(168,85,247,0.8)',
-                        }}>
-                          {item.type === 'metal' ? 'Metal' : 'Piedra'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className={`font-semibold font-sans-custom ${isBelowMin ? '' : ''}`} style={{ color: isBelowMin ? 'rgba(248,113,113,0.9)' : 'rgba(242,240,237,0.8)' }}>
-                          {item.current_stock.toFixed(2)}
-                        </span>
-                        <span className="text-xs ml-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>{item.unit}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {editingMinStock?.id === item.id ? (
-                          <div className="flex items-center justify-end gap-1">
-                            <input
-                              type="number"
-                              value={editingMinStock.value}
-                              onChange={(e) => setEditingMinStock({ id: item.id, value: e.target.value })}
-                              className="w-20 rounded px-2 py-1 text-xs font-sans-custom focus:outline-none"
+                    <button
+                      key={item.id}
+                      onClick={() => setSelectedItem(item)}
+                      className="text-left rounded-xl p-4 transition-all hover:scale-[1.02] active:scale-[0.99] group"
+                      style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        border: isBelowMin
+                          ? '1px solid rgba(248,113,113,0.25)'
+                          : '1px solid rgba(212,175,55,0.12)',
+                      }}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <span className="text-xs font-sans-custom font-medium px-2 py-0.5 rounded-full" style={{ background: 'rgba(212,175,55,0.1)', color: 'rgba(212,175,55,0.7)' }}>Metal</span>
+                        {isBelowMin && <AlertTriangle size={14} style={{ color: 'rgba(248,113,113,0.8)' }} />}
+                      </div>
+                      <p className="text-base font-semibold font-display mb-1" style={{ color: 'rgba(242,240,237,0.9)' }}>{item.name}</p>
+                      <p className="text-2xl font-bold font-sans-custom" style={{ color: isBelowMin ? 'rgba(248,113,113,0.9)' : 'rgba(212,175,55,0.95)' }}>
+                        {item.current_stock.toFixed(2)}
+                        <span className="text-sm font-normal ml-1" style={{ color: 'rgba(242,240,237,0.4)' }}>g</span>
+                      </p>
+                      {item.min_stock != null && (
+                        <div className="mt-2 flex items-center gap-1">
+                          <div className="flex-1 rounded-full h-1" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                            <div
+                              className="h-1 rounded-full transition-all"
                               style={{
-                                background: 'rgba(255,255,255,0.06)',
-                                border: '1px solid rgba(212,175,55,0.4)',
-                                color: 'rgba(242,240,237,0.7)',
+                                width: `${Math.min(100, (item.current_stock / item.min_stock) * 100)}%`,
+                                background: isBelowMin ? 'rgba(248,113,113,0.7)' : 'rgba(52,211,153,0.7)',
                               }}
-                              step="0.01"
                             />
-                            <button onClick={() => handleSaveMinStock(item.id)} className="text-xs font-sans-custom" style={{ color: 'rgba(212,175,55,0.9)' }}>✓</button>
-                            <button onClick={() => setEditingMinStock(null)} className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>✕</button>
                           </div>
-                        ) : (
-                          <button
-                            onClick={() => setEditingMinStock({ id: item.id, value: item.min_stock?.toString() ?? '0' })}
-                            className="text-xs font-sans-custom transition-colors group"
-                            style={{ color: 'rgba(242,240,237,0.4)' }}
-                          >
-                            {item.min_stock != null ? `${item.min_stock} ${item.unit}` : '—'}
-                            <span className="ml-1 opacity-0 group-hover:opacity-100 font-sans-custom" style={{ color: 'rgba(212,175,55,0.7)' }}>✎</span>
-                          </button>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
-                        {item.cost_per_unit != null ? formatCOP(item.cost_per_unit) : '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex-1">
-                            {!item.is_active ? (
-                              <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Inactivo</span>
-                            ) : isBelowMin ? (
-                              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-sans-custom" style={{ background: 'rgba(248,113,113,0.1)', color: 'rgba(248,113,113,0.8)' }}>
-                                <AlertTriangle size={10} /> Stock bajo
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-sans-custom" style={{ background: 'rgba(52,211,153,0.1)', color: 'rgba(52,211,153,0.8)' }}>
-                                OK
-                              </span>
-                            )}
-                          </div>
-                          {item.type === 'stone' && (
-                            <button
-                              onClick={() => toggleStoneDetail(item.id)}
-                              className="text-xs px-2 py-0.5 rounded font-sans-custom transition-colors whitespace-nowrap"
-                              style={{
-                                background: expandedStone === item.id ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.04)',
-                                color: expandedStone === item.id ? 'rgba(168,85,247,0.9)' : 'rgba(242,240,237,0.4)',
-                                border: '1px solid rgba(255,255,255,0.06)',
-                              }}
-                            >
-                              {stoneMovLoading === item.id ? '...' : expandedStone === item.id ? '▲ Ocultar' : '▼ Detalle'}
-                            </button>
-                          )}
+                          <span className="text-xs font-sans-custom shrink-0" style={{ color: 'rgba(242,240,237,0.25)' }}>mín {item.min_stock}g</span>
                         </div>
-                      </td>
-                    </tr>
-                    {/* Detalle expandible por talla */}
-                    {item.type === 'stone' && expandedStone === item.id && (
-                      <tr>
-                        <td colSpan={6} className="px-6 pb-3 pt-0">
-                          <div className="rounded-lg overflow-hidden" style={{ background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.1)' }}>
-                            {stoneMovLoading === item.id ? (
-                              <p className="text-xs text-center py-3 font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Cargando...</p>
-                            ) : !stoneMovements[item.id]?.length ? (
-                              <p className="text-xs text-center py-3 font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Sin movimientos registrados</p>
-                            ) : (
-                              <table className="w-full text-xs">
-                                <thead>
-                                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                                    <th className="text-left px-4 py-2 font-sans-custom uppercase tracking-wide" style={{ color: 'rgba(168,85,247,0.7)' }}>Talla</th>
-                                    <th className="text-right px-4 py-2 font-sans-custom uppercase tracking-wide" style={{ color: 'rgba(168,85,247,0.7)' }}>Total ct</th>
-                                    <th className="text-right px-4 py-2 font-sans-custom uppercase tracking-wide" style={{ color: 'rgba(168,85,247,0.7)' }}>Unidades</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {groupByTalla(stoneMovements[item.id]).map((row) => (
-                                    <tr key={row.talla} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                                      <td className="px-4 py-2 font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>{row.talla}</td>
-                                      <td className="px-4 py-2 text-right font-sans-custom font-medium" style={{ color: 'rgba(242,240,237,0.8)' }}>{row.totalCt.toFixed(3)} ct</td>
-                                      <td className="px-4 py-2 text-right font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{row.totalUnd > 0 ? `${row.totalUnd} und` : '—'}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                    </React.Fragment>
+                      )}
+                      <p className="text-xs mt-2 font-sans-custom opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: 'rgba(212,175,55,0.5)' }}>Ver detalle →</p>
+                    </button>
                   );
                 })}
-              </tbody>
-            </table>
+              </div>
+            )}
           </div>
-        )
+
+          {/* ── SECCIÓN PIEDRAS ── */}
+          <div>
+            <p className="text-xs uppercase tracking-widest font-sans-custom mb-3" style={{ color: 'rgba(168,85,247,0.5)' }}>Piedras</p>
+            {containersLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="animate-spin h-6 w-6 border-2 border-purple-500 border-t-transparent rounded-full" />
+              </div>
+            ) : allContainers.length === 0 ? (
+              <div className="rounded-xl py-12 text-center" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Sin contenedores. Registra una entrada de piedras para crear el primero.</p>
+              </div>
+            ) : (() => {
+              // Group containers by stone_type
+              const grouped = allContainers.reduce<Record<string, typeof allContainers>>((acc, c) => {
+                if (!acc[c.stone_type]) acc[c.stone_type] = [];
+                acc[c.stone_type].push(c);
+                return acc;
+              }, {});
+
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {Object.entries(grouped).map(([stoneType, containers]) => {
+                    const totalCt = containers.reduce((s, c) => s + c.current_stock_ct, 0);
+                    const totalUnits = containers.reduce((s, c) => s + c.current_stock_units, 0);
+                    const activeContainers = containers.filter((c) => c.current_stock_ct > 0).length;
+                    const hasStock = totalCt > 0;
+                    const stoneItem = items.find((i) => i.name === stoneType && i.type === 'stone');
+
+                    return (
+                      <button
+                        key={stoneType}
+                        onClick={() => { if (stoneItem) setSelectedItem(stoneItem); }}
+                        className="text-left rounded-xl p-4 transition-all hover:scale-[1.02] active:scale-[0.99] group"
+                        style={{
+                          background: 'rgba(255,255,255,0.03)',
+                          border: hasStock
+                            ? '1px solid rgba(168,85,247,0.15)'
+                            : '1px solid rgba(255,255,255,0.05)',
+                        }}
+                      >
+                        {/* Header */}
+                        <div className="flex items-start justify-between mb-3">
+                          <span className="text-xs font-sans-custom font-medium px-2 py-0.5 rounded-full" style={{ background: 'rgba(168,85,247,0.1)', color: 'rgba(168,85,247,0.7)' }}>
+                            Piedra
+                          </span>
+                          <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>
+                            {containers.length} cont.
+                          </span>
+                        </div>
+
+                        {/* Name */}
+                        <p className="text-base font-semibold font-display mb-1" style={{ color: 'rgba(242,240,237,0.9)' }}>{stoneType}</p>
+
+                        {/* Total ct — main number */}
+                        <p className="text-2xl font-bold font-sans-custom" style={{ color: hasStock ? 'rgba(168,85,247,0.95)' : 'rgba(242,240,237,0.2)' }}>
+                          {totalCt.toFixed(2)}
+                          <span className="text-sm font-normal ml-1" style={{ color: 'rgba(242,240,237,0.35)' }}>ct</span>
+                        </p>
+
+                        {/* Secondary stats */}
+                        <div className="mt-2 flex items-center gap-3">
+                          <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
+                            {totalUnits} und
+                          </span>
+                          {activeContainers > 0 && (
+                            <span className="text-xs font-sans-custom px-1.5 py-0.5 rounded" style={{ background: 'rgba(52,211,153,0.08)', color: 'rgba(52,211,153,0.6)' }}>
+                              {activeContainers} con stock
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-xs mt-2 font-sans-custom opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: 'rgba(168,85,247,0.5)' }}>Ver contenedores →</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+
+        </div>
       )}
 
       {/* Movements tab */}
@@ -775,19 +908,31 @@ export default function InventarioPage() {
                   {(form.metal_type === 'oro' || form.metal_type === 'plata') && (
                     <div>
                       <label className="text-xs mb-1.5 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
-                        {form.metal_type === 'oro' ? 'Ley (quilates) *' : 'Ley (milésimas) *'}
+                        {form.metal_type === 'oro' ? 'Ley del metal (quilates) *' : 'Ley del metal (milésimas) *'}
                       </label>
-                      <select
-                        value={form.ley}
-                        onChange={(e) => setForm((f) => ({ ...f, ley: e.target.value }))}
-                        className="w-full rounded-lg px-3 py-2.5 text-sm font-sans-custom focus:outline-none"
-                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(242,240,237,0.7)' }}
-                      >
-                        <option value="">{form.metal_type === 'oro' ? 'Seleccionar quilates...' : 'Seleccionar milésimas...'}</option>
-                        {(form.metal_type === 'oro' ? LEY_OPTIONS_ORO : LEY_OPTIONS_PLATA).map((o) => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={form.ley}
+                            onChange={(e) => setForm((f) => ({ ...f, ley: e.target.value }))}
+                            placeholder={form.metal_type === 'oro' ? 'ej: 18' : 'ej: 925'}
+                            step={form.metal_type === 'oro' ? '0.1' : '1'}
+                            min="0"
+                            max={form.metal_type === 'oro' ? '24' : '999'}
+                            className="w-full rounded-lg px-3 py-2.5 text-sm font-sans-custom focus:outline-none"
+                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(242,240,237,0.7)' }}
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
+                            {form.metal_type === 'oro' ? 'k' : 'mil'}
+                          </span>
+                        </div>
+                        <div className="rounded-lg px-3 py-2.5 text-sm font-sans-custom flex items-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(242,240,237,0.35)' }}>
+                          {form.ley && parseFloat(form.ley) > 0
+                            ? `${leyToPct(form.metal_type, form.ley).toFixed(1)}% pureza`
+                            : '— % pureza'}
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -871,7 +1016,7 @@ export default function InventarioPage() {
                         />
                       </div>
                       <div>
-                        <label className="text-xs mb-1.5 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Cantidad (und) *</label>
+                        <label className="text-xs mb-1.5 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Cantidad (und)</label>
                         <input
                           type="number"
                           step="1"
@@ -883,6 +1028,25 @@ export default function InventarioPage() {
                           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(242,240,237,0.7)' }}
                         />
                       </div>
+                    </div>
+                    <div>
+                      <label className="text-xs mb-1.5 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
+                        Precio de venta del contenedor (COP/ct)
+                        <span className="ml-1.5 font-sans-custom" style={{ color: 'rgba(168,85,247,0.5)' }}>· Define el ID del contenedor</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="100"
+                        min="0"
+                        value={form.stone_price_per_ct}
+                        onChange={(e) => setForm((f) => ({ ...f, stone_price_per_ct: e.target.value }))}
+                        placeholder="ej: 50000"
+                        className="w-full rounded-lg px-3 py-2.5 text-sm font-sans-custom focus:outline-none"
+                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(168,85,247,0.2)', color: 'rgba(242,240,237,0.7)' }}
+                      />
+                      <p className="text-xs mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>
+                        Si ya existe un contenedor con esta talla y precio, se agrega a él. Si no, se crea uno nuevo.
+                      </p>
                     </div>
                     </>
                   )}
@@ -974,6 +1138,227 @@ export default function InventarioPage() {
                 style={{ background: 'rgba(212,175,55,0.9)', color: 'rgba(8,8,8,0.9)' }}
               >
                 {submitting ? 'Guardando...' : 'Registrar entrada'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <InventoryDetailPanel item={selectedItem} onClose={() => setSelectedItem(null)} />
+
+      {/* Sale modal */}
+      {showSaleModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="rounded-xl p-6 w-full max-w-md shadow-2xl my-4" style={{ background: 'rgba(20,20,20,0.98)', border: '1px solid rgba(244,63,94,0.15)' }}>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <ArrowDownLeft size={18} style={{ color: 'rgba(244,63,94,0.8)' }} />
+                <h3 className="text-lg font-semibold font-display" style={{ color: 'rgba(242,240,237,0.95)' }}>Registrar salida de metal</h3>
+              </div>
+              <button onClick={() => { setShowSaleModal(false); setSaleForm(EMPTY_SALE_FORM); }} style={{ color: 'rgba(242,240,237,0.4)' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Metal */}
+              <div>
+                <label className="text-xs mb-2 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Metal *</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.entries(METAL_LABELS) as [Exclude<MetalType,''>, string][]).map(([val, lbl]) => (
+                    <button
+                      key={val}
+                      onClick={() => setSaleForm((f) => ({ ...f, metal_type: val, ley: '', unit_price: '' }))}
+                      className="py-2 rounded-lg text-sm font-sans-custom transition-colors"
+                      style={{
+                        background: saleForm.metal_type === val ? 'rgba(244,63,94,0.12)' : 'rgba(255,255,255,0.04)',
+                        border: saleForm.metal_type === val ? '1px solid rgba(244,63,94,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                        color: saleForm.metal_type === val ? 'rgba(244,63,94,0.9)' : 'rgba(242,240,237,0.5)',
+                      }}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tipo de comprador */}
+              {saleForm.metal_type && (
+                <div>
+                  <label className="text-xs mb-2 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Tipo de comprador *</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([['client', 'Cliente'], ['jeweler', 'Joyero']] as [BuyerType, string][]).map(([val, lbl]) => (
+                      <button
+                        key={val}
+                        onClick={() => setSaleForm((f) => ({ ...f, buyer_type: val }))}
+                        className="py-2 rounded-lg text-sm font-sans-custom transition-colors"
+                        style={{
+                          background: saleForm.buyer_type === val ? 'rgba(96,165,250,0.12)' : 'rgba(255,255,255,0.04)',
+                          border: saleForm.buyer_type === val ? '1px solid rgba(96,165,250,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                          color: saleForm.buyer_type === val ? 'rgba(96,165,250,0.9)' : 'rgba(242,240,237,0.5)',
+                        }}
+                      >
+                        {lbl}
+                      </button>
+                    ))}
+                  </div>
+                  {saleForm.metal_type && (() => {
+                    const metalCode = METAL_CODE_MAP[saleForm.metal_type];
+                    const prices = pricingMetalsFull[metalCode];
+                    const clientPrice = prices?.client_sale_base_price;
+                    const jewelerPrice = prices?.jeweler_sale_base_price;
+                    if (!clientPrice && !jewelerPrice) return null;
+                    return (
+                      <p className="text-xs mt-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
+                        Tarifa: Cliente {clientPrice ? formatCOP(clientPrice) : '—'}/g · Joyero {jewelerPrice ? formatCOP(jewelerPrice) : '—'}/g
+                      </p>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Ley */}
+              {saleForm.metal_type && (saleForm.metal_type === 'oro' || saleForm.metal_type === 'plata') && (
+                <div>
+                  <label className="text-xs mb-1.5 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
+                    {saleForm.metal_type === 'oro' ? 'Ley del metal (quilates) *' : 'Ley del metal (milésimas) *'}
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={saleForm.ley}
+                        onChange={(e) => setSaleForm((f) => ({ ...f, ley: e.target.value }))}
+                        placeholder={saleForm.metal_type === 'oro' ? 'ej: 18' : 'ej: 925'}
+                        step={saleForm.metal_type === 'oro' ? '0.1' : '1'}
+                        min="0"
+                        max={saleForm.metal_type === 'oro' ? '24' : '999'}
+                        className="w-full rounded-lg px-3 py-2.5 text-sm font-sans-custom focus:outline-none"
+                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(242,240,237,0.7)' }}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
+                        {saleForm.metal_type === 'oro' ? 'k' : 'mil'}
+                      </span>
+                    </div>
+                    <div className="rounded-lg px-3 py-2.5 text-sm font-sans-custom flex items-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(242,240,237,0.35)' }}>
+                      {saleForm.ley && parseFloat(saleForm.ley) > 0
+                        ? `${leyToPct(saleForm.metal_type, saleForm.ley).toFixed(1)}% pureza`
+                        : '— % pureza'}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Peso */}
+              {saleForm.metal_type && (
+                <div>
+                  <label className="text-xs mb-1.5 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Peso bruto a vender (gramos) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={saleForm.weight_g}
+                    onChange={(e) => setSaleForm((f) => ({ ...f, weight_g: e.target.value }))}
+                    placeholder="0.00"
+                    className="w-full rounded-lg px-3 py-2.5 text-sm font-sans-custom focus:outline-none"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(242,240,237,0.7)' }}
+                  />
+                </div>
+              )}
+
+              {/* Preview equiv puro */}
+              {saleForm.metal_type && (saleForm.metal_type === 'oro' || saleForm.metal_type === 'plata') && saleForm.ley && saleForm.weight_g && parseFloat(saleForm.weight_g) > 0 && (
+                <div className="rounded-lg px-3 py-2.5 flex items-center justify-between text-sm" style={{ background: 'rgba(244,63,94,0.05)', border: '1px solid rgba(244,63,94,0.12)' }}>
+                  <span className="font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>
+                    {saleForm.metal_type === 'oro' ? 'Oro puro equiv. (24k)' : 'Plata pura equiv.'}
+                  </span>
+                  <span className="font-semibold font-sans-custom" style={{ color: 'rgba(244,63,94,0.8)' }}>
+                    {toPureGrams(parseFloat(saleForm.weight_g), saleForm.metal_type, saleForm.ley).toFixed(4)} g
+                  </span>
+                </div>
+              )}
+
+              {/* Precio de venta */}
+              {saleForm.metal_type && (
+                <div>
+                  <label className="text-xs mb-1.5 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
+                    Precio de venta (COP/g equiv. puro)
+                    <span className="ml-2" style={{ color: 'rgba(96,165,250,0.5)' }}>· Pre-cargado desde tarifas</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="100"
+                    min="0"
+                    value={saleForm.unit_price}
+                    onChange={(e) => setSaleForm((f) => ({ ...f, unit_price: e.target.value }))}
+                    placeholder="0"
+                    className="w-full rounded-lg px-3 py-2.5 text-sm font-sans-custom focus:outline-none"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(242,240,237,0.7)' }}
+                  />
+                  {saleForm.unit_price && saleForm.weight_g && parseFloat(saleForm.weight_g) > 0 && (() => {
+                    const qty = (saleForm.metal_type === 'oro' || saleForm.metal_type === 'plata') && saleForm.ley
+                      ? toPureGrams(parseFloat(saleForm.weight_g), saleForm.metal_type, saleForm.ley)
+                      : parseFloat(saleForm.weight_g);
+                    const total = parseFloat(saleForm.unit_price) * qty;
+                    return qty > 0 ? (
+                      <p className="text-xs mt-1 font-sans-custom" style={{ color: 'rgba(96,165,250,0.7)' }}>
+                        Total venta: {formatCOP(total)}
+                      </p>
+                    ) : null;
+                  })()}
+                </div>
+              )}
+
+              {/* Referencia y notas */}
+              {saleForm.metal_type && (
+                <>
+                  <div>
+                    <label className="text-xs mb-1.5 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Referencia / comprador</label>
+                    <input
+                      type="text"
+                      value={saleForm.reference}
+                      onChange={(e) => setSaleForm((f) => ({ ...f, reference: e.target.value }))}
+                      placeholder="Nombre, cédula, factura..."
+                      className="w-full rounded-lg px-3 py-2.5 text-sm font-sans-custom focus:outline-none"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(242,240,237,0.7)' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs mb-1.5 block font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>Observaciones</label>
+                    <textarea
+                      value={saleForm.notes}
+                      onChange={(e) => setSaleForm((f) => ({ ...f, notes: e.target.value }))}
+                      rows={2}
+                      placeholder="Notas adicionales..."
+                      className="w-full rounded-lg px-3 py-2.5 text-sm font-sans-custom focus:outline-none resize-none"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(242,240,237,0.7)' }}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {saleError && (
+              <div className="mt-4 rounded-lg px-3 py-2.5 text-xs font-sans-custom" style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.2)', color: 'rgba(244,63,94,0.9)' }}>
+                <strong>Error:</strong> {saleError}
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => { setShowSaleModal(false); setSaleForm(EMPTY_SALE_FORM); setSaleError(null); }}
+                className="flex-1 py-2.5 rounded-lg transition-colors text-sm font-sans-custom"
+                style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(242,240,237,0.5)' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaleSubmit}
+                disabled={saleSubmitting || !isSaleFormValid()}
+                className="flex-1 py-2.5 rounded-lg transition-colors text-sm font-semibold font-sans-custom disabled:opacity-50"
+                style={{ background: 'rgba(244,63,94,0.85)', color: 'rgba(255,255,255,0.95)' }}
+              >
+                {saleSubmitting ? 'Guardando...' : 'Registrar salida'}
               </button>
             </div>
           </div>

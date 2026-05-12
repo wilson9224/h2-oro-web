@@ -109,19 +109,19 @@ export default function NuevaCotizacionPage() {
   const quoteTypeLabel = form.quote_type === 'client' ? 'Cliente Final' : 'Joyero';
 
   return (
-    <div className="pb-40">
+    <div className="min-h-screen">
       {/* Back + header */}
-      <div className="space-y-4 mb-6">
+      <div className="space-y-1 mb-6">
         <Link
           href="/admin/cotizacion"
           className="inline-flex items-center gap-2 text-sm transition-colors font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.8)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.4)'}
         >
           <ArrowLeft size={16} /> Cotizaciones
         </Link>
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.95)' }}>Nueva Cotización</h1>
-            <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
+            <p className="text-sm mt-0.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
               Tipo:{' '}
               <span className="font-medium" style={{ color: 'rgba(212,175,55,0.9)' }}>{quoteTypeLabel}</span>
               <button
@@ -133,78 +133,94 @@ export default function NuevaCotizacionPage() {
             </p>
           </div>
           {savedId && (
-            <span className="text-xs mt-1 font-sans-custom" style={{ color: 'rgba(16,185,129,0.7)' }}>Borrador guardado</span>
+            <span className="text-xs font-sans-custom" style={{ color: 'rgba(16,185,129,0.7)' }}>Borrador guardado</span>
           )}
         </div>
       </div>
 
       {/* Error */}
       {saveError && (
-        <div className="mb-4 p-3 rounded-2xl text-sm text-center font-sans-custom" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', color: 'rgba(248,113,113,0.9)' }}>
+        <div className="mb-4 p-3 rounded-xl text-sm text-center font-sans-custom" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', color: 'rgba(248,113,113,0.9)' }}>
           {saveError}
         </div>
       )}
 
-      {/* Form sections */}
-      <div className="space-y-8 max-w-2xl">
-        {/* Información general */}
-        <SectionCard>
-          <GeneralInfoSection
-            form={form}
-            setPieceType={setPieceType}
-            setDescription={setDescription}
-            setClientData={setClientData}
-          />
-        </SectionCard>
+      {/* ── 2-column layout on lg+ ── */}
+      <div className="flex gap-6 items-start">
 
-        {/* Metal */}
-        <SectionCard>
-          <MetalSection
-            form={form}
-            setMetalType={setMetalType}
-            setMetalPurity={setMetalPurity}
-            setEstimatedWeight={setEstimatedWeight}
-            setGoldColor={setGoldColor}
-          />
-        </SectionCard>
+        {/* LEFT: form sections */}
+        <div className="flex-1 min-w-0 space-y-5 pb-40 lg:pb-8">
+          <SectionCard>
+            <GeneralInfoSection
+              form={form}
+              setPieceType={setPieceType}
+              setDescription={setDescription}
+              setClientData={setClientData}
+            />
+          </SectionCard>
 
-        {/* Cliente entrega metal */}
-        <SectionCard>
-          <ClientMetalSection
-            form={form}
-            setClientProvidesMetal={setClientProvidesMetal}
-            setClientMetalWeight={setClientMetalWeight}
-            setClientMetalPurity={setClientMetalPurity}
-          />
-        </SectionCard>
+          <SectionCard>
+            <MetalSection
+              form={form}
+              setMetalType={setMetalType}
+              setMetalPurity={setMetalPurity}
+              setEstimatedWeight={setEstimatedWeight}
+              setGoldColor={setGoldColor}
+            />
+          </SectionCard>
 
-        {/* Piedras */}
-        <SectionCard>
-          <StonesSection
-            form={form}
-            setHasStones={setHasStones}
-            addStoneRow={addStoneRow}
-            updateStoneRow={updateStoneRow}
-            removeStoneRow={removeStoneRow}
-          />
-        </SectionCard>
+          <SectionCard>
+            <ClientMetalSection
+              form={form}
+              setClientProvidesMetal={setClientProvidesMetal}
+              setClientMetalWeight={setClientMetalWeight}
+              setClientMetalPurity={setClientMetalPurity}
+            />
+          </SectionCard>
 
-        {/* Mano de obra */}
-        <SectionCard>
-          <LaborSection
-            laborItems={form.labor_items}
-            setLaborItems={setLaborItems}
-          />
-        </SectionCard>
+          <SectionCard>
+            <StonesSection
+              form={form}
+              setHasStones={setHasStones}
+              addStoneRow={addStoneRow}
+              updateStoneRow={updateStoneRow}
+              removeStoneRow={removeStoneRow}
+            />
+          </SectionCard>
+
+          <SectionCard>
+            <LaborSection
+              laborItems={form.labor_items}
+              setLaborItems={setLaborItems}
+            />
+          </SectionCard>
+        </div>
+
+        {/* RIGHT: summary — sticky sidebar on lg+, hidden (uses bottom bar instead) on mobile */}
+        <div className="hidden lg:block w-80 xl:w-96 shrink-0">
+          <div className="sticky top-8">
+            <QuotationSummary
+              form={form}
+              saving={saving}
+              onSaveDraft={handleSaveDraft}
+              onCreateOrder={handleOpenModal}
+              variant="sidebar"
+            />
+          </div>
+        </div>
+
       </div>
 
-      {/* Sticky summary + actions */}
-      <QuotationSummary
-        form={form}
-        saving={saving}
-        onSaveDraft={handleSaveDraft}
-        onCreateOrder={handleOpenModal}
-      />
+      {/* Mobile sticky bottom bar */}
+      <div className="lg:hidden">
+        <QuotationSummary
+          form={form}
+          saving={saving}
+          onSaveDraft={handleSaveDraft}
+          onCreateOrder={handleOpenModal}
+          variant="bottom"
+        />
+      </div>
 
       {/* Convert to order modal */}
       {showModal && savedId && (
