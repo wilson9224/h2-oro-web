@@ -38,61 +38,65 @@ export function Testimonials() {
   }, [next]);
 
   return (
-    <section className="py-28 md:py-40 section-padding relative overflow-hidden">
+    <section className="py-20 md:py-32 section-padding relative overflow-hidden">
       <div className="max-w-[90rem] mx-auto">
-        {/* Label + nav row */}
-        <div className="flex items-center justify-between mb-16 md:mb-24">
-          <span className="text-label uppercase text-cream-200/25 font-sans">
-            Testimonios
-          </span>
+
+        {/* Label + nav row — thread visual */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.6 }}
+          className="flex items-center justify-between mb-12 md:mb-16"
+        >
+          <div className="section-rule">
+            <span className="text-label uppercase text-cream-200/30 font-sans tracking-[0.2em]">
+              Testimonios
+            </span>
+          </div>
           <div className="flex items-center gap-3">
-            <span className="text-label text-cream-200/20 font-mono mr-2">
+            <span className="text-label text-cream-200/20 font-mono mr-1">
               {String(current + 1).padStart(2, '0')}/{String(testimonials.length).padStart(2, '0')}
             </span>
             <button
               onClick={prev}
-              className="w-10 h-10 rounded-full border border-cream-200/10 flex items-center justify-center text-cream-200/30 hover:text-cream-200 hover:border-cream-200/30 transition-all duration-500"
+              className="w-9 h-9 flex items-center justify-center text-cream-200/25 hover:text-cream-200/70 transition-colors duration-400"
+              style={{ border: '1px solid rgba(255,255,255,0.07)', borderRadius: '2px' }}
               aria-label="Anterior"
             >
-              <ArrowLeft size={16} />
+              <ArrowLeft size={14} />
             </button>
             <button
               onClick={next}
-              className="w-10 h-10 rounded-full border border-cream-200/10 flex items-center justify-center text-cream-200/30 hover:text-cream-200 hover:border-cream-200/30 transition-all duration-500"
+              className="w-9 h-9 flex items-center justify-center text-cream-200/25 hover:text-cream-200/70 transition-colors duration-400"
+              style={{ border: '1px solid rgba(255,255,255,0.07)', borderRadius: '2px' }}
               aria-label="Siguiente"
             >
-              <ArrowRight size={16} />
+              <ArrowRight size={14} />
             </button>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Quote — cinematic, oversized */}
-        <div className="relative min-h-[40vh] flex items-center">
-          {/* Decorative oversized quote mark */}
-          <span
-            className="absolute -top-10 -left-4 md:-left-8 font-display text-[15rem] md:text-[22rem] leading-none text-gold-500/[0.04] select-none pointer-events-none"
-            aria-hidden
-          >
-            &ldquo;
-          </span>
-
+        {/* Quote */}
+        <div className="relative min-h-[35vh] flex items-center">
           <AnimatePresence mode="wait">
             <motion.div
               key={current}
-              initial={{ opacity: 0, y: 40 }}
+              initial={{ opacity: 0, y: 32 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -30 }}
-              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              exit={{ opacity: 0, y: -24 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               className="relative z-10"
             >
-              <blockquote className="font-display text-display-md md:text-display-xl text-cream-100 max-w-5xl leading-[1.15] font-light">
+              <blockquote className="font-display text-display-md md:text-display-xl text-cream-100/90 max-w-5xl leading-[1.15] font-light">
                 {testimonials[current].text}
               </blockquote>
 
-              <div className="mt-10 md:mt-14 flex items-center gap-4">
-                <div className="w-px h-8 bg-gold-500/30" />
+              <div className="mt-8 md:mt-12 flex items-center gap-4">
+                <div className="w-5 h-px" style={{ background: 'rgba(212,175,55,0.4)' }} />
+                <div className="w-1 h-1 rounded-full" style={{ background: 'rgba(212,175,55,0.5)' }} />
                 <div>
-                  <p className="text-sm font-sans text-cream-200/70">
+                  <p className="text-sm font-sans text-cream-200/65">
                     {testimonials[current].name}
                   </p>
                   <p className="text-label uppercase text-cream-200/25 font-sans mt-1">
@@ -104,11 +108,12 @@ export function Testimonials() {
           </AnimatePresence>
         </div>
 
-        {/* Progress bar */}
-        <div className="mt-16 h-px bg-cream-200/[0.06] relative overflow-hidden">
+        {/* Progress bar — thread visual */}
+        <div className="mt-12 h-px relative overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
           <motion.div
             key={current}
-            className="absolute top-0 left-0 h-full bg-gold-500/40"
+            className="absolute top-0 left-0 h-full"
+            style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.6), rgba(212,175,55,0.2))' }}
             initial={{ width: '0%' }}
             animate={{ width: '100%' }}
             transition={{ duration: 6, ease: 'linear' }}

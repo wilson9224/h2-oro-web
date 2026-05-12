@@ -13,23 +13,15 @@ const collections = [
   { title: 'Dijes', tagline: 'Detalles que cuentan', num: '05', image: '/collections/home-dijes.png' },
 ];
 
-const GRADIENTS = [
-  'from-charcoal-800 to-charcoal-900',
-  'from-charcoal-700 to-charcoal-800',
-  'from-charcoal-800 to-charcoal-900',
-  'from-charcoal-700 to-charcoal-800',
-  'from-charcoal-800 to-charcoal-900',
-];
-
 const ACCENT_COLORS = [
-  'rgba(212,175,55,0.08)',
-  'rgba(212,175,55,0.05)',
-  'rgba(212,175,55,0.10)',
+  'rgba(212,175,55,0.09)',
   'rgba(212,175,55,0.06)',
+  'rgba(212,175,55,0.11)',
   'rgba(212,175,55,0.07)',
+  'rgba(212,175,55,0.08)',
 ];
 
-function CollectionItem({
+function CollectionCard({
   item,
   index,
 }: {
@@ -37,85 +29,73 @@ function CollectionItem({
   index: number;
 }) {
   const ref = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start end', 'end start'],
-  });
-  const y = useTransform(scrollYProgress, [0, 1], [50, -50]);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const y = useTransform(scrollYProgress, [0, 1], [40, -40]);
 
   return (
-    <motion.div
-      ref={ref}
-      style={{ y }}
-      className={`${index % 2 === 1 ? 'md:mt-28' : ''}`}
-    >
+    <motion.div ref={ref} style={{ y }}>
       <Link href="/catalogo" className="group block">
-        {/* Image card */}
         <div
-          className="relative aspect-[3/4] overflow-hidden mb-5 rounded-2xl group-hover:shadow-2xl group-hover:shadow-gold-500/20 transition-all duration-500"
+          className="relative aspect-[3/4] overflow-hidden mb-4"
           style={{
-            background: `linear-gradient(145deg, #1A1A1A, #0D0D0D)`,
-            boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.4) inset',
+            background: 'linear-gradient(160deg, #161410, #0D0B08)',
+            borderTop: '1px solid rgba(212,175,55,0.1)',
           }}
         >
-          {/* Image */}
           <img
             src={item.image}
             alt={item.title}
-            className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-700"
+            className="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:opacity-90 transition-opacity duration-700 scale-100 group-hover:scale-[1.03] transition-transform"
           />
 
-          {/* Inner gradient accent */}
           <div
-            className="absolute inset-0 transition-opacity duration-700 group-hover:opacity-150"
+            className="absolute inset-0"
             style={{
-              background: `radial-gradient(ellipse 80% 80% at 50% 100%, ${ACCENT_COLORS[index]}, transparent)`,
+              background: `radial-gradient(ellipse 90% 60% at 50% 100%, ${ACCENT_COLORS[index]}, transparent)`,
             }}
           />
 
-          {/* Decorative oversized number */}
-          <span className="absolute -bottom-6 -right-2 font-display text-[10rem] leading-none select-none pointer-events-none"
-            style={{ color: 'rgba(242,240,237,0.025)' }}>
-            {item.num}
-          </span>
+          <div
+            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+            style={{ background: 'rgba(0,0,0,0.25)' }}
+          />
 
-          {/* Top border accent */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] group-hover:h-[3px] transition-all duration-500"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.6), transparent)' }} />
+          {/* Top rule — thread visual */}
+          <motion.div
+            className="absolute top-0 left-0 right-0 h-px origin-left"
+            initial={{ scaleX: 0 }}
+            whileInView={{ scaleX: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: index * 0.08 }}
+            style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.5), rgba(212,175,55,0.15) 70%, transparent)' }}
+          />
 
-          {/* Hover reveal CTA */}
-          <div className="absolute inset-0 flex items-end p-6">
-            <div className="opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-500">
+          {/* Hover CTA */}
+          <div className="absolute inset-0 flex items-end p-5">
+            <div className="opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-400">
               <span
-                className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-gold-400 px-4 py-2 rounded-full font-sans-custom shadow-lg"
+                className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-gold-400 px-4 py-2 font-sans"
                 style={{
-                  background: 'rgba(26,26,26,0.95)',
-                  border: '1px solid rgba(212,175,55,0.5)',
-                  boxShadow: '0 4px 20px rgba(212,175,55,0.3)',
+                  background: 'rgba(10,10,10,0.92)',
+                  border: '1px solid rgba(212,175,55,0.35)',
+                  borderRadius: '2px',
                 }}
               >
-                Ver colección <ArrowUpRight size={10} />
+                Ver <ArrowUpRight size={10} />
               </span>
             </div>
           </div>
-
-          {/* Gold corner accent */}
-          <div className="absolute top-4 right-4 w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-            <div className="w-full h-px bg-gold-500/40" />
-            <div className="w-px h-full bg-gold-500/40 ml-auto" />
-          </div>
         </div>
 
-        {/* Text */}
         <div className="flex items-baseline justify-between">
-          <h3 className="font-display text-display-sm text-cream-100 group-hover:text-gold-400 transition-colors duration-500">
+          <h3 className="font-display text-display-sm text-cream-100/90 group-hover:text-gold-400 transition-colors duration-400">
             {item.title}
           </h3>
-          <span className="text-label uppercase text-cream-200/20 font-mono">
+          <span className="text-label font-mono text-cream-200/18">
             {item.num}
           </span>
         </div>
-        <p className="mt-1.5 text-xs text-cream-200/30 font-sans tracking-wide">
+        <p className="mt-1 text-[11px] text-cream-200/35 font-sans tracking-wide leading-relaxed">
           {item.tagline}
         </p>
       </Link>
@@ -125,36 +105,39 @@ function CollectionItem({
 
 export function FeaturedCollection() {
   return (
-    <section className="py-24 md:py-34 section-padding">
+    <section id="coleccion" className="py-24 md:py-32 section-padding">
       <div className="max-w-[90rem] mx-auto">
-        {/* Section header — asymmetric */}
-        <div className="flex flex-col md:flex-row md:items-end gap-6 mb-16 md:mb-24">
+
+        {/* Section header — thread visual unificado */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.7 }}
+          className="flex flex-col md:flex-row md:items-end gap-6 mb-16 md:mb-20"
+        >
           <div className="flex-1">
-            <span className="text-label uppercase text-cream-200/25 font-sans block mb-4">
-              Colección
-            </span>
+            <div className="section-rule mb-5">
+              <span className="text-label uppercase text-cream-200/30 font-sans tracking-[0.2em]">
+                Colección
+              </span>
+            </div>
             <h2 className="font-display text-display-xl text-cream-100">
               Piezas que
               <br />
               <span className="italic text-outline-gold">trascienden</span>
             </h2>
           </div>
-          <Link
-            href="/catalogo"
-            className="btn-pill-outline group self-start md:self-auto"
-          >
+          <Link href="/catalogo" className="btn-pill-outline group self-start md:self-auto shrink-0">
             Ver todo
-            <ArrowUpRight
-              size={14}
-              className="group-hover:rotate-45 transition-transform duration-500"
-            />
+            <ArrowUpRight size={14} className="group-hover:rotate-45 transition-transform duration-500" />
           </Link>
-        </div>
+        </motion.div>
 
-        {/* Asymmetric grid with parallax */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+        {/* Collection grid — staggered, no offset alternado que rompe mobile */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5">
           {collections.map((item, i) => (
-            <CollectionItem key={item.title} item={item} index={i} />
+            <CollectionCard key={item.title} item={item} index={i} />
           ))}
         </div>
       </div>
