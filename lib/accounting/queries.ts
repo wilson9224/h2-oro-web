@@ -134,7 +134,9 @@ export async function createInventoryMovement(payload: {
   const supabase = createClient();
 
   const finalQuantity =
-    payload.movement_type === 'delivery' ? -Math.abs(payload.quantity) : Math.abs(payload.quantity);
+    payload.movement_type === 'delivery' || payload.movement_type === 'sale'
+      ? -Math.abs(payload.quantity)
+      : Math.abs(payload.quantity);
 
   const totalCost =
     payload.total_cost ??

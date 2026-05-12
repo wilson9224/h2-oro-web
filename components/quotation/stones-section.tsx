@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Trash2, Search, CheckCircle, AlertCircle } from 'lucide-react';
+import { fetchContainerByCode } from '@/lib/accounting/stone-containers';
 import { formatPriceCOP } from '@/lib/pricing/calculations';
 import { STONE_TYPES, STONE_CUTS } from '@/lib/quotation/types';
 import type { QuotationFormState, StoneRow } from '@/lib/quotation/types';
@@ -62,6 +63,9 @@ export default function StonesSection({
                 <tr className="border-b border-white/5">
                   <th className="text-left py-2 px-2 text-charcoal-400 uppercase tracking-widest font-normal w-20">
                     Entrega cliente
+                  </th>
+                  <th className="text-left py-2 px-2 text-charcoal-400 uppercase tracking-widest font-normal w-24">
+                    ID Cont.
                   </th>
                   <th className="text-left py-2 px-2 text-charcoal-400 uppercase tracking-widest font-normal">
                     Tipo piedra
@@ -142,11 +146,47 @@ function StoneRowEditor({
   const [weightStr, setWeightStr] = useState(
     row.weight_ct > 0 ? String(row.weight_ct) : ''
   );
+  const [containerCodeInput, setContainerCodeInput] = useState(row.container_code ?? '');
+  const [lookupState, setLookupState] = useState<'idle' | 'loading' | 'found' | 'notfound'>('idle');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleContainerLookup = (code: string) => {
+    setContainerCodeInput(code);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!code.trim()) {
+      setLookupState('idle');
+      onUpdate({ container_id: undefined, container_code: undefined });
+      return;
+    }
+    setLookupState('loading');
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const container = await fetchContainerByCode(code.trim());
+        if (container) {
+          setLookupState('found');
+          onUpdate({
+            container_id: container.id,
+            container_code: container.container_code,
+            stone_type: container.stone_type,
+            cut: container.cut,
+            price_per_ct: container.price_per_ct,
+          });
+        } else {
+          setLookupState('notfound');
+          onUpdate({ container_id: undefined, container_code: undefined });
+        }
+      } catch {
+        setLookupState('notfound');
+      }
+    }, 600);
+  };
 
   const inputCls =
     'w-full px-2 py-1.5 bg-charcoal-800 border border-white/5 rounded text-xs text-cream-200 placeholder:text-charcoal-500 focus:outline-none focus:border-gold-500/30';
   const selectCls =
     'w-full px-2 py-1.5 bg-charcoal-800 border border-white/5 rounded text-xs text-cream-200 focus:outline-none focus:border-gold-500/30';
+
+  const fromContainer = !!row.container_id;
 
   return (
     <tr className="group">
@@ -164,12 +204,30 @@ function StoneRowEditor({
           {row.client_delivers ? 'Sí' : 'No'}
         </button>
       </td>
+      {/* Container ID lookup */}
+      <td className="py-2 px-2">
+        <div className="relative">
+          <input
+            type="text"
+            value={containerCodeInput}
+            onChange={(e) => handleContainerLookup(e.target.value)}
+            placeholder="DIA-001"
+            className={`${inputCls} pr-5 font-mono`}
+          />
+          <span className="absolute right-1.5 top-1/2 -translate-y-1/2">
+            {lookupState === 'loading' && <Search size={10} className="text-charcoal-500 animate-pulse" />}
+            {lookupState === 'found' && <CheckCircle size={10} className="text-emerald-400" />}
+            {lookupState === 'notfound' && <AlertCircle size={10} className="text-red-400" />}
+          </span>
+        </div>
+      </td>
       {/* Tipo */}
       <td className="py-2 px-2">
         <select
           value={row.stone_type}
           onChange={(e) => onUpdate({ stone_type: e.target.value })}
-          className={selectCls}
+          disabled={fromContainer}
+          className={`${selectCls} ${fromContainer ? 'opacity-60 cursor-not-allowed' : ''}`}
         >
           <option value="">Tipo...</option>
           {STONE_TYPES.map((t) => (
@@ -184,7 +242,8 @@ function StoneRowEditor({
         <select
           value={row.cut}
           onChange={(e) => onUpdate({ cut: e.target.value })}
-          className={selectCls}
+          disabled={fromContainer}
+          className={`${selectCls} ${fromContainer ? 'opacity-60 cursor-not-allowed' : ''}`}
         >
           <option value="">Talla...</option>
           {STONE_CUTS.map((c) => (
@@ -231,7 +290,7 @@ function StoneRowEditor({
           onChange={(e) => onUpdate({ price_per_ct: parseFloat(e.target.value) || 0 })}
           placeholder="0"
           min="0"
-          disabled={row.client_delivers}
+          disabled={row.client_delivers || fromContainer}
           className={`${inputCls} disabled:opacity-40 disabled:cursor-not-allowed`}
         />
       </td>

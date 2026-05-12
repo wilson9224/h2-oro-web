@@ -51,6 +51,8 @@ export interface StoneRow {
   quantity: number;
   price_per_ct: number;
   total_cop: number;
+  container_id?: string;
+  container_code?: string;
 }
 
 export interface AlloyBreakdown {

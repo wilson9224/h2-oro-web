@@ -1,6 +1,6 @@
 export type InventoryItemType = 'metal' | 'stone';
 
-export type MovementType = 'purchase' | 'delivery' | 'return' | 'adjustment';
+export type MovementType = 'purchase' | 'delivery' | 'return' | 'adjustment' | 'sale';
 
 export type ExpenseCategory =
   | 'rent'
@@ -96,6 +96,7 @@ export const MOVEMENT_TYPE_LABELS: Record<MovementType, string> = {
   delivery: 'Entrega a joyero',
   return: 'Devolución',
   adjustment: 'Ajuste manual',
+  sale: 'Venta',
 };
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
