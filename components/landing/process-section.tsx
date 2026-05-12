@@ -229,12 +229,11 @@ function HomeCategoryCard({ cat, index }: { cat: (typeof categories)[number]; in
     <motion.div
       ref={ref}
       style={{ y }}
-      className={index % 2 === 1 ? 'md:mt-28' : ''}
     >
       <Link href="/servicios" className="group block">
-        {/* Card — mismo aspect ratio que Colección */}
+        {/* Card — mismo aspect ratio y estilo que Colección */}
         <div
-          className="relative aspect-[3/4] overflow-hidden mb-5 rounded-2xl group-hover:shadow-2xl group-hover:shadow-gold-500/20 transition-all duration-500"
+          className="relative aspect-[3/4] overflow-hidden mb-5 group-hover:shadow-2xl group-hover:shadow-gold-500/20 transition-all duration-500"
           style={{
             background: 'linear-gradient(145deg, #1A1A1A, #0D0D0D)',
             boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.4) inset',
@@ -312,16 +311,75 @@ function HomeCategoryCard({ cat, index }: { cat: (typeof categories)[number]; in
   );
 }
 
+function HomeCategoryRow({ cat, index }: { cat: (typeof categories)[number]; index: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ duration: 0.5, delay: index * 0.06 }}
+    >
+      <Link
+        href="/servicios"
+        className="group flex items-baseline gap-6 md:gap-10 py-5 md:py-6"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+      >
+        {/* Number */}
+        <span className="font-mono text-[11px] text-gold-500/35 tracking-[0.15em] shrink-0 w-8">
+          {cat.num}
+        </span>
+
+        {/* Title */}
+        <h3 className="font-display text-display-md text-cream-100/85 group-hover:text-gold-400 transition-colors duration-400 flex-1 leading-none">
+          {cat.title}
+        </h3>
+
+        {/* Tagline — hidden on mobile */}
+        <p className="hidden md:block text-xs text-cream-200/30 font-sans tracking-wide max-w-[260px] leading-relaxed flex-1">
+          {cat.tagline}
+        </p>
+
+        {/* Services pills */}
+        <div className="hidden lg:flex items-center gap-2 flex-wrap max-w-[300px]">
+          {cat.services.map((s) => (
+            <span
+              key={s.title}
+              className="text-[10px] font-sans text-cream-200/25 uppercase tracking-[0.1em] px-2 py-1 group-hover:text-cream-200/45 transition-colors duration-400"
+              style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: '2px' }}
+            >
+              {s.title}
+            </span>
+          ))}
+        </div>
+
+        {/* Arrow */}
+        <ArrowUpRight
+          size={16}
+          className="text-cream-200/15 group-hover:text-gold-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-400 shrink-0"
+        />
+      </Link>
+    </motion.div>
+  );
+}
+
 export function ProcessSection() {
   return (
-    <section className="py-24 md:py-34 section-padding relative overflow-hidden">
+    <section id="servicios" className="py-24 md:py-34 section-padding relative overflow-hidden">
       <div className="max-w-[90rem] mx-auto">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end gap-6 mb-16 md:mb-24">
+        {/* Header — thread visual unificado */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.7 }}
+          className="flex flex-col md:flex-row md:items-end gap-6 mb-16 md:mb-20"
+        >
           <div className="flex-1 max-w-2xl">
-            <span className="text-label uppercase text-cream-200/25 font-sans block mb-4">
-              Servicios
-            </span>
+            <div className="section-rule mb-5">
+              <span className="text-label uppercase text-cream-200/30 font-sans tracking-[0.2em]">
+                Servicios
+              </span>
+            </div>
             <h2 className="font-display text-display-xl text-cream-100">
               Todo lo que <br />
               <span className="italic text-outline-gold">podemos hacer</span>
@@ -334,10 +392,10 @@ export function ProcessSection() {
             Ver todos
             <ArrowUpRight size={14} className="group-hover:rotate-45 transition-transform duration-500" />
           </Link>
-        </div>
+        </motion.div>
 
-        {/* Category cards grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Category cards — misma genética que FeaturedCollection */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
           {categories.map((cat, i) => (
             <HomeCategoryCard key={cat.num} cat={cat} index={i} />
           ))}

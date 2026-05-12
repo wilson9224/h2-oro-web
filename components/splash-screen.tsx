@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { WaveCanvas } from './landing/hero';
 
 const BUBBLES = Array.from({ length: 18 }, (_, i) => ({
   id: i,
@@ -32,6 +33,9 @@ export function SplashScreen() {
           className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
           style={{ background: '#080808' }}
         >
+          {/* Wave canvas background */}
+          <WaveCanvas />
+
           {/* Radial gold glow behind logo */}
           <motion.div
             initial={{ opacity: 0, scale: 0.6 }}

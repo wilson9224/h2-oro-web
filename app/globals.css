@@ -138,6 +138,43 @@
   .gold-border {
     border: 1px solid rgba(212,175,55,0.2);
   }
+
+  /* Section divider — thread visual unificado */
+  .section-rule {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .section-rule::before {
+    content: '';
+    display: block;
+    width: 2rem;
+    height: 1px;
+    background: rgba(212,175,55,0.45);
+    flex-shrink: 0;
+  }
+  .section-rule::after {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(212,175,55,0.55);
+    flex-shrink: 0;
+  }
+
+  /* Gold ticker border — used in price widgets */
+  .gold-ticker {
+    border: 1px solid rgba(212,175,55,0.2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  /* Section separator line */
+  .section-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212,175,55,0.12) 30%, rgba(212,175,55,0.12) 70%, transparent);
+  }
 }
 
 @layer utilities {
