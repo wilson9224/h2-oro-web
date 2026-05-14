@@ -184,6 +184,65 @@ function ServiceCard({
   );
 }
 
+function CategoryCard({ cat, index }: { cat: (typeof categories)[number]; index: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+      className="group h-full"
+    >
+      <div
+        className="relative p-6 md:p-8 rounded-2xl transition-all duration-500 h-full flex flex-col"
+        style={{
+          background: 'rgba(20,19,17,0.85)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.4) inset',
+        }}
+      >
+        {/* Número decorativo */}
+        <span
+          className="absolute top-4 right-4 font-mono text-[10px] text-gold-500/30"
+        >
+          {cat.num}
+        </span>
+
+        {/* Título */}
+        <h3 className="font-display text-display-md text-cream-100 mb-3 pr-8">
+          {cat.title}
+        </h3>
+
+        {/* Tagline */}
+        <p className="text-xs text-cream-200/25 font-sans uppercase tracking-[0.15em] mb-6">
+          {cat.tagline}
+        </p>
+
+        {/* Lista de servicios visible */}
+        <ul className="space-y-3">
+          {cat.services.map((service, i) => (
+            <li
+              key={service.title}
+              className="flex items-start gap-3 pb-3"
+              style={{ borderBottom: i < cat.services.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
+            >
+              <span className="text-gold-500/40 text-[10px] shrink-0 mt-1">—</span>
+              <div className="flex-1">
+                <h4 className="text-sm font-sans font-semibold text-cream-200/80 mb-1">
+                  {service.title}
+                </h4>
+                <p className="text-xs text-cream-200/35 font-sans leading-relaxed">
+                  {service.desc}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </motion.div>
+  );
+}
+
 function CategoryBlock({ cat }: { cat: (typeof categories)[number] }) {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -408,23 +467,32 @@ export function ProcessSection() {
 export function ServicesFullSection() {
   return (
     <section className="py-24 md:py-34 section-padding relative overflow-hidden">
-      <div className="max-w-[90rem] mx-auto">
-        {/* Header */}
-        <div className="mb-16 md:mb-24 max-w-2xl">
-          <span className="text-label uppercase text-cream-200/25 font-sans block mb-4">
-            Servicios
-          </span>
-          <h2 className="font-display text-display-xl text-cream-100">
-            Todo lo que <br />
-            <span className="italic text-outline-gold">podemos hacer</span>
-          </h2>
-        </div>
+      <div className="max-w-[90rem] mx-auto px-6 md:px-12 lg:px-16">
+        {/* Grid con título integrado */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Hero — primera posición, sin card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="lg:col-span-1 flex flex-col justify-center p-6 md:p-8"
+          >
+            <span className="text-label uppercase text-gold-500/50 font-sans block mb-4 tracking-[0.2em]">
+              Servicios
+            </span>
+            <h1 className="font-display text-display-xl text-cream-100 mb-4">
+              Todo lo que <br />
+              <span className="text-gold-400 font-semibold">podemos hacer</span>
+            </h1>
+            <p className="text-sm text-cream-200/50 font-sans leading-relaxed">
+              Diseño personalizado, compra y venta de oro, piedras preciosas, reparaciones y más.
+              Cada servicio con la calidad y atención que tu joya merece.
+            </p>
+          </motion.div>
 
-        {/* Categories + services */}
-        <div className="relative">
-          <div className="h-px bg-cream-200/[0.06]" />
-          {categories.map((cat) => (
-            <CategoryBlock key={cat.num} cat={cat} />
+          {/* Services cards */}
+          {categories.map((cat, i) => (
+            <CategoryCard key={cat.num} cat={cat} index={i} />
           ))}
         </div>
       </div>
