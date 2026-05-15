@@ -207,7 +207,7 @@ const PURITY: Record<string, number> = {
 };
 
 // ─── Calculadora de compra de oro ──────────────────────────────────────────
-function GoldCalculator({ pricePerGram24k, stretch = false }: { pricePerGram24k: number | null; stretch?: boolean }) {
+function GoldCalculator({ pricePerGram24k, stretch = false, inSheet = false }: { pricePerGram24k: number | null; stretch?: boolean; inSheet?: boolean }) {
   const [karat, setKarat] = useState('18K');
   const [grams, setGrams] = useState('');
 
@@ -221,6 +221,123 @@ function GoldCalculator({ pricePerGram24k, stretch = false }: { pricePerGram24k:
   const formattedResult = result
     ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(result)
     : null;
+
+  const body = (
+    <div className={`px-6 py-5 flex flex-col gap-6 ${stretch ? 'flex-1 justify-between' : ''}`}>
+      {/* Label sección */}
+      <div className="flex items-center gap-2">
+        <div className="w-5 h-px" style={{ background: 'rgba(212,175,55,0.3)' }} />
+        <span className="text-[11px] font-sans uppercase tracking-[0.2em] text-cream-200/35">
+          Calcula el valor de tu oro
+        </span>
+      </div>
+
+      {/* Selector de ley */}
+      <div className="flex flex-col gap-2.5">
+        <label className="text-[11px] font-mono uppercase tracking-[0.18em] text-cream-200/40">
+          Ley del oro
+        </label>
+        <div className="flex gap-2">
+          {Object.keys(PURITY).map((k) => (
+            <button
+              key={k}
+              onClick={() => setKarat(k)}
+              className="flex-1 py-3 text-[12px] font-mono uppercase tracking-[0.1em] transition-all duration-200"
+              style={{
+                borderRadius: '2px',
+                border: karat === k
+                  ? '1px solid rgba(212,175,55,0.6)'
+                  : '1px solid rgba(255,255,255,0.07)',
+                background: karat === k
+                  ? 'rgba(212,175,55,0.12)'
+                  : 'rgba(255,255,255,0.02)',
+                color: karat === k
+                  ? 'rgba(212,175,55,0.95)'
+                  : 'rgba(242,240,237,0.35)',
+              }}
+            >
+              {k}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Input de gramos */}
+      <div className="flex flex-col gap-2.5">
+        <label className="text-[11px] font-mono uppercase tracking-[0.18em] text-cream-200/40">
+          Peso en gramos
+        </label>
+        <div
+          className="flex items-center"
+          style={{
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '2px',
+            background: 'rgba(255,255,255,0.03)',
+          }}
+        >
+          <input
+            type="number"
+            min="0"
+            step="0.1"
+            placeholder="0.0"
+            value={grams}
+            onChange={(e) => setGrams(e.target.value)}
+            className="flex-1 bg-transparent px-5 py-4 text-cream-100 text-base font-mono outline-none placeholder:text-cream-200/20"
+          />
+          <span
+            className="px-4 py-4 text-[12px] font-mono text-cream-200/30 uppercase"
+            style={{ borderLeft: '1px solid rgba(255,255,255,0.07)' }}
+          >
+            g
+          </span>
+        </div>
+      </div>
+
+      {/* Resultado */}
+      <div
+        className="flex flex-col gap-1.5 py-5 px-5 transition-all duration-300"
+        style={{
+          background: formattedResult ? 'rgba(212,175,55,0.06)' : 'rgba(255,255,255,0.02)',
+          border: `1px solid ${formattedResult ? 'rgba(212,175,55,0.2)' : 'rgba(255,255,255,0.05)'}`,
+          borderRadius: '2px',
+          minHeight: '80px',
+          justifyContent: 'center',
+        }}
+      >
+        {formattedResult ? (
+          <>
+            <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-cream-200/35">
+              Recibirías aproximadamente
+            </span>
+            <motion.span
+              key={formattedResult}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className="font-mono text-gold-400 font-bold leading-none"
+              style={{ fontSize: 'clamp(1.3rem, 3vw, 1.8rem)' }}
+            >
+              {formattedResult}
+            </motion.span>
+            <span className="text-[9px] font-sans text-cream-200/25 mt-0.5">
+              por {parseFloat(grams || '0').toFixed(1)}g de oro {karat} · precio de referencia hoy
+            </span>
+          </>
+        ) : (
+          <span className="text-[12px] font-sans text-cream-200/20 text-center">
+            Ingresa el peso para ver el valor estimado
+          </span>
+        )}
+      </div>
+
+      {/* Nota legal */}
+      <p className="text-[10px] font-sans text-cream-200/20 leading-relaxed">
+        * Valor de referencia basado en el precio de compra actual. El monto final depende de la evaluación presencial.
+      </p>
+    </div>
+  );
+
+  if (inSheet) return body;
 
   return (
     <motion.div
@@ -271,121 +388,7 @@ function GoldCalculator({ pricePerGram24k, stretch = false }: { pricePerGram24k:
           </span>
         </div>
       </div>
-
-      {/* Body — inputs */}
-      <div className={`px-6 py-5 flex flex-col gap-6 ${stretch ? 'flex-1 justify-between' : ''}`}>
-
-        {/* Label sección */}
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-px" style={{ background: 'rgba(212,175,55,0.3)' }} />
-          <span className="text-[11px] font-sans uppercase tracking-[0.2em] text-cream-200/35">
-            Calcula el valor de tu oro
-          </span>
-        </div>
-
-        {/* Selector de ley */}
-        <div className="flex flex-col gap-2.5">
-          <label className="text-[11px] font-mono uppercase tracking-[0.18em] text-cream-200/40">
-            Ley del oro
-          </label>
-          <div className="flex gap-2">
-            {Object.keys(PURITY).map((k) => (
-              <button
-                key={k}
-                onClick={() => setKarat(k)}
-                className="flex-1 py-3 text-[12px] font-mono uppercase tracking-[0.1em] transition-all duration-200"
-                style={{
-                  borderRadius: '2px',
-                  border: karat === k
-                    ? '1px solid rgba(212,175,55,0.6)'
-                    : '1px solid rgba(255,255,255,0.07)',
-                  background: karat === k
-                    ? 'rgba(212,175,55,0.12)'
-                    : 'rgba(255,255,255,0.02)',
-                  color: karat === k
-                    ? 'rgba(212,175,55,0.95)'
-                    : 'rgba(242,240,237,0.35)',
-                }}
-              >
-                {k}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Input de gramos */}
-        <div className="flex flex-col gap-2.5">
-          <label className="text-[11px] font-mono uppercase tracking-[0.18em] text-cream-200/40">
-            Peso en gramos
-          </label>
-          <div
-            className="flex items-center"
-            style={{
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '2px',
-              background: 'rgba(255,255,255,0.03)',
-            }}
-          >
-            <input
-              type="number"
-              min="0"
-              step="0.1"
-              placeholder="0.0"
-              value={grams}
-              onChange={(e) => setGrams(e.target.value)}
-              className="flex-1 bg-transparent px-5 py-4 text-cream-100 text-base font-mono outline-none placeholder:text-cream-200/20"
-            />
-            <span
-              className="px-4 py-4 text-[12px] font-mono text-cream-200/30 uppercase"
-              style={{ borderLeft: '1px solid rgba(255,255,255,0.07)' }}
-            >
-              g
-            </span>
-          </div>
-        </div>
-
-        {/* Resultado */}
-        <div
-          className="flex flex-col gap-1.5 py-5 px-5 transition-all duration-300"
-          style={{
-            background: formattedResult ? 'rgba(212,175,55,0.06)' : 'rgba(255,255,255,0.02)',
-            border: `1px solid ${formattedResult ? 'rgba(212,175,55,0.2)' : 'rgba(255,255,255,0.05)'}`,
-            borderRadius: '2px',
-            minHeight: '80px',
-            justifyContent: 'center',
-          }}
-        >
-          {formattedResult ? (
-            <>
-              <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-cream-200/35">
-                Recibirías aproximadamente
-              </span>
-              <motion.span
-                key={formattedResult}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25 }}
-                className="font-mono text-gold-400 font-bold leading-none"
-                style={{ fontSize: 'clamp(1.3rem, 3vw, 1.8rem)' }}
-              >
-                {formattedResult}
-              </motion.span>
-              <span className="text-[9px] font-sans text-cream-200/25 mt-0.5">
-                por {parseFloat(grams || '0').toFixed(1)}g de oro {karat} · precio de referencia hoy
-              </span>
-            </>
-          ) : (
-            <span className="text-[12px] font-sans text-cream-200/20 text-center">
-              Ingresa el peso para ver el valor estimado
-            </span>
-          )}
-        </div>
-
-        {/* Nota legal */}
-        <p className="text-[10px] font-sans text-cream-200/20 leading-relaxed">
-          * Valor de referencia basado en el precio de compra actual. El monto final depende de la evaluación presencial.
-        </p>
-      </div>
+      {body}
     </motion.div>
   );
 }
@@ -449,7 +452,7 @@ function GoldCalculatorBottomSheet({
             </div>
             {/* Contenido calculadora */}
             <div className="overflow-y-auto" style={{ maxHeight: 'calc(90svh - 80px)' }}>
-              <GoldCalculator pricePerGram24k={pricePerGram24k} />
+              <GoldCalculator pricePerGram24k={pricePerGram24k} inSheet />
             </div>
           </motion.div>
         </>
