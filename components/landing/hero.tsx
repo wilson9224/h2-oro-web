@@ -466,7 +466,7 @@ export function Hero() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   return (
-    <section className="relative min-h-[100svh] overflow-hidden" style={{ background: '#080808' }}>
+    <section className="relative min-h-[100dvh] overflow-hidden" style={{ background: '#080808' }}>
 
       {/* ── Fondo ─────────────────────────────────────────────── */}
       <WaveCanvas />
@@ -477,7 +477,7 @@ export function Hero() {
       />
 
       {/* ── Contenido centrado verticalmente ──────────────────── */}
-      <div className="relative z-10 min-h-[100svh] flex flex-col justify-center
+      <div className="relative z-10 min-h-[100dvh] flex flex-col justify-center
                       px-5 sm:px-8 md:px-12 lg:px-16
                       py-16 md:py-24 max-w-[1200px] mx-auto w-full gap-6">
 
