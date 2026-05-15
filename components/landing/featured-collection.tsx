@@ -105,37 +105,46 @@ function CollectionCard({
 
 export function FeaturedCollection() {
   return (
-    <section id="coleccion" className="py-24 md:py-32 section-padding">
-      <div className="max-w-[90rem] mx-auto">
+    <section id="coleccion" className="py-24 md:py-32 px-5 sm:px-8 md:px-12 lg:px-16">
+      <div className="max-w-[1200px] mx-auto">
 
-        {/* Section header — thread visual unificado */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={{ duration: 0.7 }}
-          className="flex flex-col md:flex-row md:items-end gap-6 mb-16 md:mb-20"
-        >
-          <div className="flex-1">
-            <div className="section-rule mb-5">
-              <span className="text-label uppercase text-cream-200/30 font-sans tracking-[0.2em]">
-                Colección
-              </span>
+        {/* Collection grid — 2 filas x 3 columnas en sm+, header integrado en primer slot */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 md:gap-5">
+          {/* Header integrado — mobile: texto compacto, sm+: texto completo con descripción */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.4 }}
+            transition={{ duration: 0.7 }}
+          >
+            <div className="aspect-[3/4] flex flex-col justify-center py-2 sm:py-3">
+              <div className="mb-auto">
+                <div className="section-rule mb-3 sm:mb-4">
+                  <span className="text-[10px] uppercase text-cream-200/30 font-sans tracking-[0.2em]">
+                    Colección
+                  </span>
+                </div>
+                <h2
+                  className="font-display text-cream-100 leading-[1.05]"
+                  style={{ fontSize: 'clamp(2.5rem, 5vw, 5rem)' }}
+                >
+                  Nuestros <br />
+                  <span className="text-gold-400 font-semibold">diseños</span>
+                </h2>
+                <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-cream-200/40 font-sans leading-relaxed">
+                  Explorá nuestros diseños. Si algo te inspira o tienes una idea propia, escribenos y lo hacemos realidad.
+                </p>
+              </div>
+              <Link
+                href="/catalogo"
+                className="inline-flex items-center gap-1 self-start text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-gold-400 font-sans px-3 py-1.5"
+                style={{ border: '1px solid rgba(212,175,55,0.4)', borderRadius: '100px' }}
+              >
+                Ver todo <ArrowUpRight size={9} />
+              </Link>
             </div>
-            <h2 className="font-display text-display-xl text-cream-100">
-              Piezas que
-              <br />
-              <span className="italic text-outline-gold">trascienden</span>
-            </h2>
-          </div>
-          <Link href="/catalogo" className="btn-pill-outline group self-start md:self-auto shrink-0">
-            Ver todo
-            <ArrowUpRight size={14} className="group-hover:rotate-45 transition-transform duration-500" />
-          </Link>
-        </motion.div>
+          </motion.div>
 
-        {/* Collection grid — staggered, no offset alternado que rompe mobile */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5">
           {collections.map((item, i) => (
             <CollectionCard key={item.title} item={item} index={i} />
           ))}

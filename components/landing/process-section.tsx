@@ -292,7 +292,7 @@ function HomeCategoryCard({ cat, index }: { cat: (typeof categories)[number]; in
       <Link href="/servicios" className="group block">
         {/* Card — mismo aspect ratio y estilo que Colección */}
         <div
-          className="relative aspect-[3/4] overflow-hidden mb-5 group-hover:shadow-2xl group-hover:shadow-gold-500/20 transition-all duration-500"
+          className="relative aspect-[3/4] overflow-hidden mb-5 group-hover:shadow-2xl group-hover:shadow-gold-500/20 active:opacity-80 transition-all duration-500"
           style={{
             background: 'linear-gradient(145deg, #1A1A1A, #0D0D0D)',
             boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 rgba(0,0,0,0.4) inset',
@@ -331,27 +331,6 @@ function HomeCategoryCard({ cat, index }: { cat: (typeof categories)[number]; in
             style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.6), transparent)' }}
           />
 
-          {/* Hover CTA */}
-          <div className="absolute inset-0 flex items-end p-6">
-            <div className="opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-500">
-              <span
-                className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-gold-400 px-4 py-2 rounded-full font-sans"
-                style={{
-                  background: 'rgba(26,26,26,0.95)',
-                  border: '1px solid rgba(212,175,55,0.5)',
-                  boxShadow: '0 4px 20px rgba(212,175,55,0.3)',
-                }}
-              >
-                Ver servicios <ArrowUpRight size={10} />
-              </span>
-            </div>
-          </div>
-
-          {/* Gold corner accent */}
-          <div className="absolute top-4 right-4 w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-            <div className="w-full h-px bg-gold-500/40" />
-            <div className="w-px h-full bg-gold-500/40 ml-auto" />
-          </div>
         </div>
 
         {/* Services list below */}
@@ -423,38 +402,45 @@ function HomeCategoryRow({ cat, index }: { cat: (typeof categories)[number]; ind
 
 export function ProcessSection() {
   return (
-    <section id="servicios" className="py-24 md:py-34 section-padding relative overflow-hidden">
-      <div className="max-w-[90rem] mx-auto">
-        {/* Header — thread visual unificado */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={{ duration: 0.7 }}
-          className="flex flex-col md:flex-row md:items-end gap-6 mb-16 md:mb-20"
-        >
-          <div className="flex-1 max-w-2xl">
-            <div className="section-rule mb-5">
-              <span className="text-label uppercase text-cream-200/30 font-sans tracking-[0.2em]">
-                Servicios
-              </span>
-            </div>
-            <h2 className="font-display text-display-xl text-cream-100">
-              Todo lo que <br />
-              <span className="italic text-outline-gold">podemos hacer</span>
-            </h2>
-          </div>
-          <Link
-            href="/servicios"
-            className="btn-pill-outline group self-start md:self-auto shrink-0"
+    <section id="servicios" className="py-24 md:py-34 px-5 sm:px-8 md:px-12 lg:px-16 relative overflow-hidden">
+      <div className="max-w-[1200px] mx-auto">
+        {/* Category cards — 2 filas x 3 columnas en sm+, header integrado en primer slot */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 md:gap-6">
+          {/* Header integrado — mobile: texto compacto, sm+: texto completo con descripción */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.4 }}
+            transition={{ duration: 0.7 }}
           >
-            Ver todos
-            <ArrowUpRight size={14} className="group-hover:rotate-45 transition-transform duration-500" />
-          </Link>
-        </motion.div>
+            <div className="aspect-[3/4] flex flex-col justify-center py-2 sm:py-3">
+              <div className="mb-auto">
+                <div className="section-rule mb-3 sm:mb-4">
+                  <span className="text-[10px] uppercase text-cream-200/30 font-sans tracking-[0.2em]">
+                    Servicios
+                  </span>
+                </div>
+                <h2
+                  className="font-display text-cream-100 leading-[1.05]"
+                  style={{ fontSize: 'clamp(2.5rem, 5vw, 5rem)' }}
+                >
+                  Lo que <br />
+                  <span className="text-gold-400 font-semibold">hacemos</span>
+                </h2>
+                <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-cream-200/40 font-sans leading-relaxed">
+                  Fabricamos, reparamos, valuamos y mucho más. Si tiene que ver con oro, plata o piedras preciosas, nosotros lo hacemos.
+                </p>
+              </div>
+              <Link
+                href="/servicios"
+                className="inline-flex items-center gap-1 self-start text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-gold-400 font-sans px-3 py-1.5"
+                style={{ border: '1px solid rgba(212,175,55,0.4)', borderRadius: '100px' }}
+              >
+                Ver todos <ArrowUpRight size={9} />
+              </Link>
+            </div>
+          </motion.div>
 
-        {/* Category cards — misma genética que FeaturedCollection */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
           {categories.map((cat, i) => (
             <HomeCategoryCard key={cat.num} cat={cat} index={i} />
           ))}
@@ -481,8 +467,8 @@ export function ServicesFullSection() {
               Servicios
             </span>
             <h1 className="font-display text-display-xl text-cream-100 mb-4">
-              Todo lo que <br />
-              <span className="text-gold-400 font-semibold">podemos hacer</span>
+              Lo que <br />
+              <span className="text-gold-400 font-semibold">hacemos</span>
             </h1>
             <p className="text-sm text-cream-200/50 font-sans leading-relaxed">
               Diseño personalizado, compra y venta de oro, piedras preciosas, reparaciones y más.
