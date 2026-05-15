@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { ArrowRight, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, ChevronDown, X, Calculator } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 function formatCOP(value: number) {
@@ -390,8 +390,77 @@ function GoldCalculator({ pricePerGram24k, stretch = false }: { pricePerGram24k:
   );
 }
 
+// ─── Bottom Sheet mobile para la calculadora ──────────────────────────────
+function GoldCalculatorBottomSheet({
+  open,
+  onClose,
+  pricePerGram24k,
+}: {
+  open: boolean;
+  onClose: () => void;
+  pricePerGram24k: number | null;
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-40 md:hidden"
+            style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(4px)' }}
+            onClick={onClose}
+          />
+          {/* Sheet */}
+          <motion.div
+            key="sheet"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 z-50 md:hidden rounded-t-2xl overflow-hidden"
+            style={{
+              background: 'rgba(10,9,5,0.97)',
+              border: '1px solid rgba(212,175,55,0.2)',
+              borderBottom: 'none',
+              maxHeight: '90svh',
+            }}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full" style={{ background: 'rgba(212,175,55,0.25)' }} />
+            </div>
+            {/* Header sheet */}
+            <div className="flex items-center justify-between px-6 py-3" style={{ borderBottom: '1px solid rgba(212,175,55,0.1)' }}>
+              <span className="text-[11px] font-sans uppercase tracking-[0.2em] text-cream-200/40">
+                Calculadora de oro
+              </span>
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-full"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                <X size={14} className="text-cream-200/50" />
+              </button>
+            </div>
+            {/* Contenido calculadora */}
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(90svh - 80px)' }}>
+              <GoldCalculator pricePerGram24k={pricePerGram24k} />
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export function Hero() {
   const { raw: goldPriceRaw } = useGoldPrice();
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   return (
     <section className="relative min-h-[100svh] overflow-hidden" style={{ background: '#080808' }}>
@@ -511,14 +580,75 @@ export function Hero() {
             </motion.div>
           </div>
 
-          {/* ═══ Calculadora ════════════════════════════════════ */}
+          {/* ═══ Calculadora — desktop full, mobile: chip + sheet ════════════ */}
+          {/* Desktop */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.5, ease }}
-            className="w-full flex-1 min-w-0 flex"
+            className="hidden md:flex w-full flex-1 min-w-0"
           >
             <GoldCalculator pricePerGram24k={goldPriceRaw} stretch />
+          </motion.div>
+
+          {/* Mobile — chip live + botón abrir calculadora */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.6, ease }}
+            className="flex md:hidden items-center justify-between w-full px-4 py-3"
+            style={{
+              background: 'rgba(10,9,5,0.75)',
+              border: '1px solid rgba(212,175,55,0.18)',
+              borderRadius: '4px',
+              backdropFilter: 'blur(24px)',
+            }}
+          >
+            {/* Precio live */}
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[8px] font-sans uppercase tracking-[0.1em] text-cream-200/28 leading-none">
+                Oro 24K · por gramo
+              </span>
+              <div className="flex items-center gap-2 mt-1">
+                <motion.span
+                  key={goldPriceRaw ?? 'loading'}
+                  initial={{ opacity: 0.3 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.4 }}
+                  className="font-mono text-gold-400 font-bold text-lg leading-none"
+                >
+                  {goldPriceRaw
+                    ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(goldPriceRaw)
+                    : '—'}
+                </motion.span>
+                <span
+                  className="text-[8px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5"
+                  style={{
+                    color: 'rgba(100,210,120,0.9)',
+                    background: 'rgba(100,210,120,0.07)',
+                    border: '1px solid rgba(100,210,120,0.15)',
+                    borderRadius: '2px',
+                  }}
+                >
+                  ● live
+                </span>
+              </div>
+            </div>
+            {/* Botón abrir calculadora */}
+            <button
+              onClick={() => setIsSheetOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5"
+              style={{
+                background: 'rgba(212,175,55,0.1)',
+                border: '1px solid rgba(212,175,55,0.35)',
+                borderRadius: '3px',
+              }}
+            >
+              <Calculator size={13} className="text-gold-400" />
+              <span className="text-[10px] font-sans uppercase tracking-[0.15em] text-gold-400">
+                Calcular
+              </span>
+            </button>
           </motion.div>
 
         </div>
@@ -585,6 +715,13 @@ export function Hero() {
           <ChevronDown size={14} className="text-cream-200/30 group-hover:text-gold-400/70 transition-colors duration-500" />
         </motion.div>
       </motion.button>
+
+      {/* Bottom Sheet calculadora — solo mobile */}
+      <GoldCalculatorBottomSheet
+        open={isSheetOpen}
+        onClose={() => setIsSheetOpen(false)}
+        pricePerGram24k={goldPriceRaw}
+      />
     </section>
   );
 }
