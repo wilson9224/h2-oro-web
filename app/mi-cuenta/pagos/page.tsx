@@ -30,11 +30,11 @@ function formatCOP(amount: number) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
 }
 
-const statusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
-  completed: { label: 'Completado', color: 'text-emerald-400', icon: CheckCircle2 },
-  pending: { label: 'Pendiente', color: 'text-yellow-400', icon: Clock },
-  failed: { label: 'Fallido', color: 'text-red-400', icon: XCircle },
-  refunded: { label: 'Reembolsado', color: 'text-orange-400', icon: XCircle },
+const statusConfig: Record<string, { label: string; iconColor: string; bg: string; border: string; icon: typeof CheckCircle2 }> = {
+  completed: { label: 'Completado', iconColor: 'rgba(52,211,153,0.9)',  bg: 'rgba(52,211,153,0.08)',  border: '1px solid rgba(52,211,153,0.15)',  icon: CheckCircle2 },
+  pending:   { label: 'Pendiente',  iconColor: 'rgba(234,179,8,0.9)',   bg: 'rgba(234,179,8,0.08)',   border: '1px solid rgba(234,179,8,0.15)',   icon: Clock },
+  failed:    { label: 'Fallido',    iconColor: 'rgba(248,113,113,0.9)', bg: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.15)', icon: XCircle },
+  refunded:  { label: 'Reembolsado',iconColor: 'rgba(251,146,60,0.9)',  bg: 'rgba(251,146,60,0.08)',  border: '1px solid rgba(251,146,60,0.15)',  icon: XCircle },
 };
 
 export default function PaymentsPage() {
@@ -54,7 +54,6 @@ export default function PaymentsPage() {
           setOrder(o);
           setAllPayments(o.payments || []);
         } else if (user) {
-          // Fetch all user orders to get payments
           const orders = await api.get<{ data: Order[] }>(`/orders?clientId=${user.id}&limit=100`);
           const payments: Payment[] = [];
           for (const o of orders.data) {
@@ -82,29 +81,47 @@ export default function PaymentsPage() {
     .reduce((sum, p) => sum + Number(p.amountCop), 0);
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="px-5 pt-6 pb-4 space-y-5 max-w-2xl">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-serif text-cream-100">
+        <p className="text-[10px] font-sans-custom uppercase tracking-[0.2em] mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>
+          Historial
+        </p>
+        <h1 className="font-display text-xl font-semibold" style={{ color: 'rgba(242,240,237,0.92)' }}>
           {order ? `Pagos — ${order.orderNumber}` : 'Mis Pagos'}
         </h1>
-        <p className="text-sm text-charcoal-400 mt-1">Historial y estado de pagos</p>
       </div>
 
-      {/* Summary */}
+      {/* KPI cards */}
       {!loading && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <div className="bg-charcoal-800 rounded-lg border border-white/5 p-4">
-            <p className="text-xs text-charcoal-400 mb-1">Total pagado</p>
-            <p className="text-lg font-mono text-emerald-400">{formatCOP(totalPaid)}</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.12)' }}
+          >
+            <p className="text-[10px] font-sans-custom uppercase tracking-[0.15em] mb-2" style={{ color: 'rgba(52,211,153,0.5)' }}>
+              Total pagado
+            </p>
+            <p className="font-mono text-base font-bold" style={{ color: 'rgba(52,211,153,0.9)' }}>{formatCOP(totalPaid)}</p>
           </div>
-          <div className="bg-charcoal-800 rounded-lg border border-white/5 p-4">
-            <p className="text-xs text-charcoal-400 mb-1">Transacciones</p>
-            <p className="text-lg font-mono text-cream-200">{allPayments.length}</p>
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+          >
+            <p className="text-[10px] font-sans-custom uppercase tracking-[0.15em] mb-2" style={{ color: 'rgba(242,240,237,0.3)' }}>
+              Transacciones
+            </p>
+            <p className="font-mono text-base font-bold" style={{ color: 'rgba(242,240,237,0.8)' }}>{allPayments.length}</p>
           </div>
-          {order && order.totalAmountCop && (
-            <div className="bg-charcoal-800 rounded-lg border border-white/5 p-4">
-              <p className="text-xs text-charcoal-400 mb-1">Saldo pendiente</p>
-              <p className="text-lg font-mono text-yellow-400">
+          {order && order.totalAmountCop && Number(order.totalAmountCop) > totalPaid && (
+            <div
+              className="col-span-2 rounded-2xl p-4"
+              style={{ background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.12)' }}
+            >
+              <p className="text-[10px] font-sans-custom uppercase tracking-[0.15em] mb-2" style={{ color: 'rgba(234,179,8,0.5)' }}>
+                Saldo pendiente
+              </p>
+              <p className="font-mono text-base font-bold" style={{ color: 'rgba(234,179,8,0.9)' }}>
                 {formatCOP(Number(order.totalAmountCop) - totalPaid)}
               </p>
             </div>
@@ -114,71 +131,85 @@ export default function PaymentsPage() {
 
       {/* Wompi payment button */}
       {order && Number(order.totalAmountCop) > totalPaid && (
-        <div className="bg-gold-500/5 border border-gold-500/20 rounded-lg p-5">
-          <h3 className="text-sm font-medium text-cream-200 mb-2">Realizar un pago</h3>
-          <p className="text-xs text-charcoal-400 mb-4">
-            Saldo pendiente: {formatCOP(Number(order.totalAmountCop) - totalPaid)}
+        <div
+          className="rounded-2xl p-4"
+          style={{ background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.15)' }}
+        >
+          <p className="text-xs font-sans-custom mb-3" style={{ color: 'rgba(242,240,237,0.5)' }}>
+            Saldo por pagar: {formatCOP(Number(order.totalAmountCop) - totalPaid)}
           </p>
           <button
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors"
-            onClick={() => {
-              // TODO: Integrate Wompi checkout
-              alert('Integración Wompi en desarrollo. Contacte al administrador para realizar el pago.');
-            }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-[0.1em] font-sans-custom transition-all"
+            style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.3)', color: '#D4AF37' }}
+            onClick={() => alert('Integración Wompi en desarrollo. Contacte al administrador para realizar el pago.')}
           >
-            <CreditCard size={16} />
+            <CreditCard size={14} />
             Pagar con Wompi
           </button>
         </div>
       )}
 
       {/* Payment list */}
-      <div className="bg-charcoal-800 rounded-lg border border-white/5 overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin h-6 w-6 border-2 border-gold-500 border-t-transparent rounded-full mx-auto" />
-          </div>
-        ) : allPayments.length === 0 ? (
-          <div className="p-12 text-center">
-            <DollarSign size={32} className="mx-auto text-charcoal-600 mb-3" />
-            <p className="text-charcoal-500 text-sm">No hay pagos registrados</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-white/5">
-            {allPayments.map((p) => {
-              const cfg = statusConfig[p.status] || statusConfig.pending;
-              const Icon = cfg.icon;
-              return (
-                <div key={p.id} className="px-5 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-md bg-charcoal-700 ${cfg.color}`}>
-                      <Icon size={16} />
-                    </div>
-                    <div>
-                      <p className="text-sm text-cream-200 capitalize">{p.method}</p>
-                      <div className="flex items-center gap-2 text-xs text-charcoal-500 mt-0.5">
-                        {(p as Payment & { order?: { orderNumber: string } }).order && (
-                          <span>{(p as Payment & { order?: { orderNumber: string } }).order!.orderNumber}</span>
-                        )}
-                        <span>
-                          {new Date(p.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </span>
-                        {p.wompiReference && (
-                          <span className="font-mono text-[10px]">Ref: {p.wompiReference}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-mono text-cream-200">{formatCOP(Number(p.amountCop))}</p>
-                    <p className={`text-[11px] ${cfg.color}`}>{cfg.label}</p>
+      {loading ? (
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-16 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+          ))}
+        </div>
+      ) : allPayments.length === 0 ? (
+        <div
+          className="rounded-2xl p-10 text-center"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <DollarSign size={32} className="mx-auto mb-3" style={{ color: 'rgba(242,240,237,0.12)' }} />
+          <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>No hay pagos registrados</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {allPayments.map((p) => {
+            const cfg = statusConfig[p.status] || statusConfig.pending;
+            const Icon = cfg.icon;
+            return (
+              <div
+                key={p.id}
+                className="flex items-center gap-4 rounded-2xl px-4 py-3.5"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+              >
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: cfg.bg, border: cfg.border }}
+                >
+                  <Icon size={14} style={{ color: cfg.iconColor }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-sans-custom font-medium capitalize" style={{ color: 'rgba(242,240,237,0.8)' }}>
+                    {p.method}
+                    {p.order && <span style={{ color: 'rgba(212,175,55,0.6)' }}> · {p.order.orderNumber}</span>}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>
+                      {new Date(p.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </span>
+                    {p.wompiReference && (
+                      <span className="text-[10px] font-mono" style={{ color: 'rgba(242,240,237,0.2)' }}>
+                        Ref: {p.wompiReference}
+                      </span>
+                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                <div className="text-right shrink-0">
+                  <p className="font-mono text-sm font-bold" style={{ color: 'rgba(242,240,237,0.85)' }}>
+                    {formatCOP(Number(p.amountCop))}
+                  </p>
+                  <p className="text-[10px] font-sans-custom" style={{ color: cfg.iconColor }}>
+                    {cfg.label}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

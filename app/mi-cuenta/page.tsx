@@ -20,23 +20,33 @@ interface Order {
   pieces: { id: string; name: string; currentState: { code: string; name: string } | null }[];
 }
 
-const statusLabels: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Pendiente', color: 'bg-yellow-500/20 text-yellow-400' },
-  in_progress: { label: 'En progreso', color: 'bg-blue-500/20 text-blue-400' },
-  completed: { label: 'Completado', color: 'bg-emerald-500/20 text-emerald-400' },
-  cancelled: { label: 'Cancelado', color: 'bg-red-500/20 text-red-400' },
-  delivered: { label: 'Entregado', color: 'bg-green-500/20 text-green-400' },
+type InlineStyle = { background: string; color: string; border?: string };
+
+const statusLabels: Record<string, { label: string }> = {
+  pending:     { label: 'Pendiente' },
+  in_progress: { label: 'En progreso' },
+  completed:   { label: 'Completado' },
+  cancelled:   { label: 'Cancelado' },
+  delivered:   { label: 'Entregado' },
 };
 
-const stateColors: Record<string, string> = {
-  quote: 'bg-yellow-500/20 text-yellow-400',
-  design: 'bg-purple-500/20 text-purple-400',
-  design_approval: 'bg-orange-500/20 text-orange-400',
-  production: 'bg-blue-500/20 text-blue-400',
-  quality_check: 'bg-cyan-500/20 text-cyan-400',
-  ready: 'bg-emerald-500/20 text-emerald-400',
-  delivered: 'bg-green-500/20 text-green-400',
-  cancelled: 'bg-red-500/20 text-red-400',
+const statusColors: Record<string, InlineStyle> = {
+  pending:     { background: 'rgba(234,179,8,0.1)',   color: 'rgba(234,179,8,0.9)',   border: '1px solid rgba(234,179,8,0.2)' },
+  in_progress: { background: 'rgba(59,130,246,0.1)',  color: 'rgba(147,197,253,0.9)', border: '1px solid rgba(59,130,246,0.2)' },
+  completed:   { background: 'rgba(52,211,153,0.1)',  color: 'rgba(52,211,153,0.9)',  border: '1px solid rgba(52,211,153,0.2)' },
+  cancelled:   { background: 'rgba(248,113,113,0.1)', color: 'rgba(248,113,113,0.9)', border: '1px solid rgba(248,113,113,0.2)' },
+  delivered:   { background: 'rgba(52,211,153,0.1)',  color: 'rgba(52,211,153,0.9)',  border: '1px solid rgba(52,211,153,0.2)' },
+};
+
+const stateStyles: Record<string, InlineStyle> = {
+  quote:           { background: 'rgba(234,179,8,0.08)',   color: 'rgba(234,179,8,0.8)' },
+  design:          { background: 'rgba(168,85,247,0.08)',  color: 'rgba(216,180,254,0.8)' },
+  design_approval: { background: 'rgba(249,115,22,0.08)',  color: 'rgba(253,186,116,0.8)' },
+  production:      { background: 'rgba(59,130,246,0.08)',  color: 'rgba(147,197,253,0.8)' },
+  quality_check:   { background: 'rgba(6,182,212,0.08)',   color: 'rgba(103,232,249,0.8)' },
+  ready:           { background: 'rgba(52,211,153,0.08)',  color: 'rgba(52,211,153,0.8)' },
+  delivered:       { background: 'rgba(52,211,153,0.08)',  color: 'rgba(52,211,153,0.8)' },
+  cancelled:       { background: 'rgba(248,113,113,0.08)', color: 'rgba(248,113,113,0.8)' },
 };
 
 const typeLabels: Record<string, string> = {
@@ -107,41 +117,59 @@ export default function MyOrdersPage() {
   }, [user]);
 
   return (
-    <div className="space-y-6">
+    <div className="px-5 pt-6 pb-4 space-y-5">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-serif text-cream-100">Mis Pedidos</h1>
-        <p className="text-sm text-charcoal-400 mt-1">
-          {user && `Hola, ${user.firstName}. `}
-          {loading ? 'Cargando...' : `Tienes ${orders.length} pedido${orders.length !== 1 ? 's' : ''}`}
+        <p className="text-[10px] font-sans-custom uppercase tracking-[0.2em] mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>
+          Hola, {user?.firstName}
+        </p>
+        <h1 className="font-display text-xl font-semibold" style={{ color: 'rgba(242,240,237,0.92)' }}>
+          Mis Pedidos
+        </h1>
+        <p className="text-xs font-sans-custom mt-0.5" style={{ color: 'rgba(242,240,237,0.3)' }}>
+          {loading ? 'Cargando...' : `${orders.length} pedido${orders.length !== 1 ? 's' : ''} registrado${orders.length !== 1 ? 's' : ''}`}
         </p>
       </div>
 
+      {/* Skeleton */}
       {loading && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-32 bg-charcoal-800 rounded-lg animate-pulse" />
+            <div
+              key={i}
+              className="h-28 rounded-2xl animate-pulse"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)' }}
+            />
           ))}
         </div>
       )}
 
+      {/* Empty state */}
       {!loading && orders.length === 0 && (
-        <div className="bg-charcoal-800 rounded-lg border border-white/5 p-12 text-center">
-          <ShoppingBag size={40} className="mx-auto text-charcoal-600 mb-4" />
-          <h2 className="text-lg font-serif text-cream-200 mb-2">Aún no tienes pedidos</h2>
-          <p className="text-sm text-charcoal-400 mb-6 max-w-sm mx-auto">
+        <div
+          className="rounded-2xl p-10 text-center"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <ShoppingBag size={36} className="mx-auto mb-4" style={{ color: 'rgba(242,240,237,0.12)' }} />
+          <h2 className="font-display text-base font-semibold mb-2" style={{ color: 'rgba(242,240,237,0.7)' }}>
+            Aún no tienes pedidos
+          </h2>
+          <p className="text-xs font-sans-custom mb-6 max-w-xs mx-auto" style={{ color: 'rgba(242,240,237,0.3)' }}>
             Cuando realices tu primer pedido, podrás ver su estado y seguimiento aquí.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href="/catalogo"
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-[0.1em] font-sans-custom transition-all"
+              style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.3)', color: '#D4AF37' }}
             >
               Explorar catálogo
-              <ArrowUpRight size={14} />
+              <ArrowUpRight size={13} />
             </Link>
             <Link
               href="/seguimiento"
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-charcoal-700 text-cream-200 text-sm rounded-md hover:bg-charcoal-600 transition-colors"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-sans-custom transition-all"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(242,240,237,0.6)' }}
             >
               Consultar un pedido
             </Link>
@@ -149,66 +177,81 @@ export default function MyOrdersPage() {
         </div>
       )}
 
+      {/* Orders list */}
       {!loading && orders.map((order) => {
-        const st = statusLabels[order.status] || { label: order.status, color: 'bg-charcoal-700 text-charcoal-300' };
+        const st = statusLabels[order.status] || { label: order.status, colors: { bg: 'rgba(255,255,255,0.05)', text: 'rgba(242,240,237,0.4)', border: 'rgba(255,255,255,0.08)' } };
         return (
           <Link
             key={order.id}
             href={`/mi-cuenta/pedidos/${order.id}`}
-            className="block bg-charcoal-800 rounded-lg border border-white/5 p-5 hover:border-gold-500/20 transition-all group"
+            className="block rounded-2xl p-4 transition-all duration-200 group"
+            style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.07)',
+            }}
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div className="flex items-center gap-3">
-                <h3 className="text-sm font-mono text-cream-200 group-hover:text-gold-400 transition-colors">
+            {/* Top row */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <span className="font-mono text-sm font-semibold" style={{ color: 'rgba(242,240,237,0.85)' }}>
                   {order.orderNumber}
-                </h3>
-                <span className={`text-[11px] px-2 py-0.5 rounded ${st.color}`}>{st.label}</span>
-                <span className="text-xs text-charcoal-500">{typeLabels[order.type] || order.type}</span>
-              </div>
-              <div className="flex items-center gap-3 text-xs text-charcoal-500">
-                <span className="flex items-center gap-1">
-                  <Clock size={12} />
-                  {new Date(order.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </span>
-                {order.estimatedDeliveryDate && (
-                  <span>
-                    Entrega: {new Date(order.estimatedDeliveryDate).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
-                  </span>
-                )}
-                <ArrowUpRight size={14} className="text-charcoal-600 group-hover:text-gold-400 transition-colors" />
+                <span
+                  className="text-[10px] px-2 py-0.5 rounded-full font-sans-custom font-medium"
+                  style={statusColors[order.status] ?? { background: 'rgba(255,255,255,0.06)', color: 'rgba(242,240,237,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
+                >
+                  {st.label}
+                </span>
+                <span className="text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
+                  {typeLabels[order.type] || order.type}
+                </span>
               </div>
+              <ArrowUpRight size={14} style={{ color: 'rgba(212,175,55,0.4)' }} />
             </div>
 
             {/* Pieces */}
-            <div className="flex flex-wrap gap-2">
-              {order.pieces.map((piece) => {
-                const sc = piece.currentState
-                  ? stateColors[piece.currentState.code] || 'bg-charcoal-700 text-charcoal-300'
-                  : 'bg-charcoal-700 text-charcoal-400';
-                return (
+            {order.pieces.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {order.pieces.map((piece) => (
                   <div
                     key={piece.id}
-                    className="flex items-center gap-2 bg-charcoal-700/50 rounded px-3 py-1.5"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
                   >
-                    <Package size={12} className="text-charcoal-500" />
-                    <span className="text-xs text-charcoal-300">{piece.name}</span>
+                    <Package size={11} style={{ color: 'rgba(242,240,237,0.25)' }} />
+                    <span className="text-[11px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.55)' }}>{piece.name}</span>
                     {piece.currentState && (
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${sc}`}>
+                      <span
+                        className="text-[9px] px-1.5 py-0.5 rounded font-sans-custom"
+                        style={stateStyles[piece.currentState.code] ?? { background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.35)' }}
+                      >
                         {piece.currentState.name}
                       </span>
                     )}
                   </div>
-                );
-              })}
-            </div>
-
-            {order.totalAmountCop && (
-              <div className="mt-3 text-right">
-                <span className="text-sm font-mono text-gold-400">
-                  {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(Number(order.totalAmountCop))}
-                </span>
+                ))}
               </div>
             )}
+
+            {/* Bottom row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5" style={{ color: 'rgba(242,240,237,0.25)' }}>
+                <Clock size={11} />
+                <span className="text-[10px] font-sans-custom">
+                  {new Date(order.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </span>
+                {order.estimatedDeliveryDate && (
+                  <span className="text-[10px] font-sans-custom" style={{ color: 'rgba(212,175,55,0.4)' }}>
+                    · Entrega {new Date(order.estimatedDeliveryDate).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
+                  </span>
+                )}
+              </div>
+              {order.totalAmountCop && (
+                <span className="font-mono text-sm font-bold" style={{ color: 'rgba(212,175,55,0.9)' }}>
+                  {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(Number(order.totalAmountCop))}
+                </span>
+              )}
+            </div>
           </Link>
         );
       })}
