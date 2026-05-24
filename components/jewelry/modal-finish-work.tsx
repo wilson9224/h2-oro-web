@@ -267,7 +267,7 @@ export default function ModalFinishWork({
                     <AlertTriangle size={13} className="shrink-0 mt-0.5" style={{ color: 'rgba(251,146,60,0.8)' }} />
                     <div>
                       <p className="text-xs font-semibold mb-0.5" style={{ color: 'rgba(251,146,60,0.9)' }}>Atención</p>
-                      <p className="text-[11px]" style={{ color: 'rgba(251,146,60,0.65)' }}>Al rechazar el trabajo se creará un nuevo ciclo de retrabajo y el pedido volverá a "Inicio Trabajo".</p>
+                      <p className="text-[11px]" style={{ color: 'rgba(251,146,60,0.65)' }}>Al rechazar el trabajo se creará un nuevo ciclo de retrabajo y el pedido volverá a &ldquo;Inicio Trabajo&rdquo;.</p>
                     </div>
                   </div>
                 )}

@@ -91,7 +91,7 @@ export default function JoyeroDashboard() {
         const { start, end } = getDateRange();
         
         // Fetch worker stats with date filter
-        let query = supabase
+        const query = supabase
           .from('work_assignments')
           .select('status, started_at, completed_at')
           .eq('worker_id', user.id)
