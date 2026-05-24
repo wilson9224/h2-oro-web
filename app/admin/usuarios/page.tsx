@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Pencil, X, Loader2, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pencil, X, Loader2, Check, Search } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 
 const supabase = createClient();
 
@@ -42,31 +43,49 @@ const roleBadges: Record<string, { label: string; color: string }> = {
 };
 
 export default function UsersPage() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editForm, setEditForm] = useState<EditForm>({ firstName: '', lastName: '', email: '', phone: '', roleId: '', isActive: true });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const limit = 20;
+  const isManager = currentUser?.role === 'manager';
+  const clientRoleId = roles.find((role) => role.name === 'client')?.id;
+  const columnCount = isManager ? 5 : 7;
 
   // Fetch roles once
   useEffect(() => {
     supabase.from('roles').select('id, name, description').order('name').then(({ data }) => {
       if (data) setRoles(data as Role[]);
+      setRolesLoaded(true);
     });
   }, []);
 
   const fetchUsers = useCallback(async () => {
+    if (isManager && !rolesLoaded) return;
+
+    if (isManager && !clientRoleId) {
+      setUsers([]);
+      setTotal(0);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const from = (page - 1) * limit;
     const to = from + limit - 1;
+    const safeSearch = search.replace(/[,%]/g, '').trim();
 
-    const { data, error, count } = await supabase
+    let query = supabase
       .from('users')
       .select(`
         id,
@@ -80,8 +99,14 @@ export default function UsersPage() {
         roles ( name, description )
       `, { count: 'exact' })
       .is('deleted_at', null)
-      .order('created_at', { ascending: false })
-      .range(from, to);
+      .order('created_at', { ascending: false });
+
+    if (isManager && clientRoleId) query = query.eq('role_id', clientRoleId);
+    if (safeSearch) {
+      query = query.or(`first_name.ilike.%${safeSearch}%,last_name.ilike.%${safeSearch}%,email.ilike.%${safeSearch}%,phone.ilike.%${safeSearch}%`);
+    }
+
+    const { data, error, count } = await query.range(from, to);
 
     if (!error && data) {
       setUsers(data.map((u: Record<string, unknown>) => {
@@ -101,13 +126,22 @@ export default function UsersPage() {
       setTotal(count || 0);
     }
     setLoading(false);
-  }, [page]);
+  }, [clientRoleId, isManager, page, rolesLoaded, search]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   const openEdit = (user: User) => {
+    if (isManager) return;
     setEditingUser(user);
     setEditForm({
       firstName: user.firstName,
@@ -162,11 +196,31 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>Usuarios</h1>
+          <h1 className="text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>{isManager ? 'Clientes' : 'Usuarios'}</h1>
           <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
-            {loading ? 'Cargando...' : `${total} usuario${total !== 1 ? 's' : ''} registrados`}
+            {loading
+              ? 'Cargando...'
+              : isManager
+                ? `${total} cliente${total !== 1 ? 's' : ''} registrado${total !== 1 ? 's' : ''}`
+                : `${total} usuario${total !== 1 ? 's' : ''} registrados`}
           </p>
         </div>
+      </div>
+
+      <div className="relative max-w-xl">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(242,240,237,0.25)' }} />
+        <input
+          type="text"
+          placeholder={isManager ? 'Buscar cliente por nombre, email o teléfono...' : 'Buscar usuario por nombre, email o teléfono...'}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom"
+          style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            color: 'rgba(242,240,237,0.85)',
+          }}
+        />
       </div>
 
       <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -177,16 +231,16 @@ export default function UsersPage() {
                 <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Nombre</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Email</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Teléfono</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Rol</th>
+                {!isManager && <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Rol</th>}
                 <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Estado</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Registro</th>
-                <th className="px-5 py-3"></th>
+                {!isManager && <th className="px-5 py-3"></th>}
               </tr>
             </thead>
             <tbody>
               {loading && [...Array(5)].map((_, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  {[...Array(7)].map((_, j) => (
+                  {[...Array(columnCount)].map((_, j) => (
                     <td key={j} className="px-5 py-4"><div className="h-4 rounded animate-pulse w-24" style={{ background: 'rgba(255,255,255,0.08)' }} /></td>
                   ))}
                 </tr>
@@ -205,9 +259,11 @@ export default function UsersPage() {
                     </td>
                     <td className="px-5 py-3 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{u.email}</td>
                     <td className="px-5 py-3 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{u.phone || '—'}</td>
-                    <td className="px-5 py-3">
-                      <span className={`text-[11px] px-2 py-0.5 rounded font-sans-custom ${badge.color}`}>{badge.label}</span>
-                    </td>
+                    {!isManager && (
+                      <td className="px-5 py-3">
+                        <span className={`text-[11px] px-2 py-0.5 rounded font-sans-custom ${badge.color}`}>{badge.label}</span>
+                      </td>
+                    )}
                     <td className="px-5 py-3">
                       <span className={`text-[11px] px-2 py-0.5 rounded font-sans-custom ${u.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
                         {u.isActive ? 'Activo' : 'Inactivo'}
@@ -216,20 +272,22 @@ export default function UsersPage() {
                     <td className="px-5 py-3 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
                       {new Date(u.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
-                    <td className="px-5 py-3 text-right">
-                      <button
-                        onClick={() => openEdit(u)}
-                        className="p-1.5 rounded hover:bg-white/5 text-charcoal-400 hover:text-gold-400 transition-colors"
-                        title="Editar usuario"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                    </td>
+                    {!isManager && (
+                      <td className="px-5 py-3 text-right">
+                        <button
+                          onClick={() => openEdit(u)}
+                          className="p-1.5 rounded hover:bg-white/5 text-charcoal-400 hover:text-gold-400 transition-colors"
+                          title="Editar usuario"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
               {!loading && users.length === 0 && (
-                <tr><td colSpan={7} className="px-5 py-12 text-center text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>No hay usuarios</td></tr>
+                <tr><td colSpan={columnCount} className="px-5 py-12 text-center text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>{isManager ? 'No hay clientes con esos criterios' : 'No hay usuarios'}</td></tr>
               )}
             </tbody>
           </table>
@@ -246,7 +304,7 @@ export default function UsersPage() {
       </div>
 
       {/* Edit User Modal */}
-      {editingUser && (
+      {!isManager && editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeEdit} />

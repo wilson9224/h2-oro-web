@@ -14,7 +14,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 
 const TABS = [
-  { key: 'dashboard',           label: 'Dashboard',           href: '/admin/contabilidad',                       icon: LayoutDashboard },
+  { key: 'dashboard',           label: 'Resumen',             href: '/admin/contabilidad',                       icon: LayoutDashboard },
   { key: 'facturacion',         label: 'Facturación',         href: '/admin/contabilidad/facturacion',           icon: Receipt },
   { key: 'pagos-trabajadores',  label: 'Pagos Trabajadores',  href: '/admin/contabilidad/pagos-trabajadores',    icon: Wallet },
   { key: 'inventario',          label: 'Inventario',          href: '/admin/contabilidad/inventario',            icon: Package },
@@ -47,8 +47,8 @@ export default function ContabilidadLayout({ children }: { children: React.React
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>Contabilidad</h1>
-        <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Finanzas, inventario y gastos del negocio</p>
+        <h1 className="text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>Finanzas</h1>
+        <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.32)' }}>Dinero, cartera, egresos y flujo de caja</p>
       </div>
 
       {/* Sub-tabs */}
