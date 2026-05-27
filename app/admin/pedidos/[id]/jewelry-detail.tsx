@@ -21,6 +21,21 @@ import ModalRequote from '@/components/jewelry/modal-requote';
 
 const supabase = createClient();
 
+function notifyOrderWorkStarted(orderId: string) {
+  void supabase.functions
+    .invoke('send-order-whatsapp-notification', {
+      body: { orderId, eventKey: 'work_started' },
+    })
+    .then(({ error }) => {
+      if (error) {
+        console.warn('No se pudo registrar/enviar WhatsApp de inicio de trabajo:', error.message);
+      }
+    })
+    .catch((error: unknown) => {
+      console.warn('No se pudo registrar/enviar WhatsApp de inicio de trabajo:', error);
+    });
+}
+
 // Interfaces (simplificadas para esta vista)
 interface JewelryData {
   id: string;
@@ -226,7 +241,82 @@ interface FileAttachment {
   description?: string;
 }
 
+type FileAttachmentRow = {
+  id: string;
+  bucket?: string | null;
+  storage_path?: string | null;
+  file_name?: string | null;
+  file_url?: string | null;
+  file_type?: string | null;
+  mime_type?: string | null;
+  size_bytes?: number | null;
+  file_size?: number | null;
+  entity_type: string;
+  entity_id: string;
+  uploaded_by_id?: string | null;
+  created_at: string;
+  description?: string | null;
+};
+
 type TabType = 'datos' | 'estados' | 'abonos' | 'ciclos' | 'evidencia';
+
+async function getAttachmentUrl(attachment: FileAttachmentRow) {
+  if (!attachment.bucket || !attachment.storage_path) return attachment.file_url || '';
+
+  const { data, error } = await supabase.storage
+    .from(attachment.bucket)
+    .createSignedUrl(attachment.storage_path, 60 * 60);
+
+  if (!error && data?.signedUrl) return data.signedUrl;
+
+  const { data: publicData } = supabase.storage
+    .from(attachment.bucket)
+    .getPublicUrl(attachment.storage_path);
+
+  return publicData.publicUrl;
+}
+
+async function normalizeAttachments(rows: FileAttachmentRow[]): Promise<FileAttachment[]> {
+  const uploaderIds = Array.from(new Set(rows.map(row => row.uploaded_by_id).filter(Boolean))) as string[];
+  let uploaders: Record<string, { id: string; firstName: string; lastName: string }> = {};
+
+  if (uploaderIds.length > 0) {
+    const { data: usersData } = await supabase
+      .from('users')
+      .select('id, first_name, last_name')
+      .in('id', uploaderIds);
+
+    uploaders = (usersData || []).reduce((acc: Record<string, { id: string; firstName: string; lastName: string }>, user: any) => {
+      acc[user.id] = {
+        id: user.id,
+        firstName: user.first_name,
+        lastName: user.last_name,
+      };
+      return acc;
+    }, {});
+  }
+
+  return Promise.all(rows.map(async row => {
+    const uploader = row.uploaded_by_id ? uploaders[row.uploaded_by_id] : null;
+
+    return {
+      id: row.id,
+      fileName: row.file_name || 'Archivo',
+      fileUrl: await getAttachmentUrl(row),
+      fileSize: Number(row.size_bytes ?? row.file_size ?? 0),
+      mimeType: row.mime_type || (row.file_type === 'image' ? 'image/*' : 'application/octet-stream'),
+      entityType: row.entity_type,
+      entityId: row.entity_id,
+      uploadedBy: uploader || {
+        id: '',
+        firstName: 'Sistema',
+        lastName: '',
+      },
+      createdAt: row.created_at,
+      description: row.description || undefined,
+    };
+  }));
+}
 
 export default function JewelryDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -277,7 +367,7 @@ export default function JewelryDetailPage() {
     try {
       console.log('Iniciando fetchData para pedido:', id);
       
-      // Fetch usuarios para selects en modales (joyeros, managers, diseñadores)
+      // Fetch usuarios para selects en modales (admins, managers, joyeros, diseñadores)
       console.log('Fetching users for work assignment...');
       const { data: usersData, error: usersErr } = await supabase
         .from('users')
@@ -290,7 +380,7 @@ export default function JewelryDetailPage() {
             name
           )
         `)
-        .in('roles.name', ['jeweler', 'manager', 'designer'])
+        .in('roles.name', ['admin', 'jeweler', 'manager', 'designer'])
         .order('first_name');
 
       console.log('Users data:', usersData);
@@ -639,16 +729,31 @@ export default function JewelryDetailPage() {
         setClientMetalDeliveries(clientMetalData || []);
       }
 
-      // Fetch attachments generales del pedido sin relaciones complejas
-      const { data: attachmentsData, error: attachmentsErr } = await supabase
+      // Fetch attachments del pedido y de sus ciclos de trabajo.
+      const attachmentRows: FileAttachmentRow[] = [];
+      const { data: orderAttachments, error: orderAttachmentsErr } = await supabase
         .from('file_attachments')
         .select('*')
-        .eq('entity_type', 'jewelry_order')
-        .eq('entity_id', id)
-        .order('created_at', { ascending: false });
+        .in('entity_type', ['jewelry_order', 'order'])
+        .eq('entity_id', id);
 
-      if (attachmentsErr) throw new Error(attachmentsErr.message);
-      setAttachments(attachmentsData || []);
+      if (orderAttachmentsErr) throw new Error(orderAttachmentsErr.message);
+      attachmentRows.push(...((orderAttachments || []) as FileAttachmentRow[]));
+
+      const cycleIds = (cyclesData || []).map((cycle: any) => cycle.id);
+      if (cycleIds.length > 0) {
+        const { data: cycleAttachments, error: cycleAttachmentsErr } = await supabase
+          .from('file_attachments')
+          .select('*')
+          .eq('entity_type', 'work_cycle')
+          .in('entity_id', cycleIds);
+
+        if (cycleAttachmentsErr) throw new Error(cycleAttachmentsErr.message);
+        attachmentRows.push(...((cycleAttachments || []) as FileAttachmentRow[]));
+      }
+
+      attachmentRows.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setAttachments(await normalizeAttachments(attachmentRows));
 
       // Fetch assignment change log
       const { data: logData } = await supabase
@@ -808,24 +913,33 @@ export default function JewelryDetailPage() {
 
       // Subir fotos de referencia si las hay
       if (data.referenceFiles?.length && cycleId) {
-        for (const file of data.referenceFiles as File[]) {
-          const path = `work_cycles/${cycleId}/${Date.now()}-${file.name}`;
+        const files = data.referenceFiles as File[];
+        for (let index = 0; index < files.length; index += 1) {
+          const file = files[index];
+          const safeName = file.name.replace(/[^\w.-]+/g, '_');
+          const path = `work_cycles/${cycleId}/${Date.now()}-${index}-${safeName}`;
           const { error: uploadErr } = await supabase.storage
             .from('evidences')
-            .upload(path, file);
-          if (!uploadErr) {
-            const { data: { publicUrl } } = supabase.storage
-              .from('evidences')
-              .getPublicUrl(path);
-            await supabase.from('file_attachments').insert({
-              entity_type: 'work_cycle',
-              entity_id: cycleId,
-              file_name: file.name,
-              file_url: publicUrl,
-              file_type: 'image',
-              file_size: file.size,
-              mime_type: file.type,
+            .upload(path, file, {
+              contentType: file.type || 'application/octet-stream',
             });
+
+          if (uploadErr) throw new Error(uploadErr.message);
+
+          const { error: attachmentErr } = await supabase.from('file_attachments').insert({
+            bucket: 'evidences',
+            storage_path: path,
+            file_name: file.name,
+            mime_type: file.type || 'application/octet-stream',
+            size_bytes: file.size,
+            entity_type: 'work_cycle',
+            entity_id: cycleId,
+            uploaded_by_id: data.receivedByUserId || null,
+          });
+
+          if (attachmentErr) {
+            await supabase.storage.from('evidences').remove([path]);
+            throw new Error(attachmentErr.message);
           }
         }
       }
@@ -864,6 +978,7 @@ export default function JewelryDetailPage() {
           observation: 'Material entregado al joyero',
         });
 
+      notifyOrderWorkStarted(id);
       await fetchData();
     } catch (err: unknown) {
       console.error('Error iniciando trabajo:', err);

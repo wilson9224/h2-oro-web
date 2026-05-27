@@ -30,6 +30,7 @@ export default function CotizacionListPage() {
   const [fetching, setFetching] = useState(true);
 
   const PAGE_SIZE = 20;
+  const isManager = user?.role === 'manager';
 
   useEffect(() => {
     if (!loading && user && !ALLOWED_ROLES.includes(user.role)) {
@@ -40,7 +41,7 @@ export default function CotizacionListPage() {
   useEffect(() => {
     if (!user || !ALLOWED_ROLES.includes(user.role)) return;
     setFetching(true);
-    fetchQuotations(page, PAGE_SIZE)
+    fetchQuotations(page, PAGE_SIZE, { userId: user.id, role: user.role })
       .then(({ data, count: total }) => {
         setQuotations(data);
         setCount(total);
@@ -72,7 +73,7 @@ export default function CotizacionListPage() {
           <div>
             <h1 className="text-xl font-semibold font-display" style={{ color: 'rgba(242,240,237,0.95)' }}>Cotizaciones</h1>
             <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
-              {count > 0 ? `${count} cotización${count !== 1 ? 'es' : ''}` : 'Sin cotizaciones'}
+              {count > 0 ? `${count} cotización${count !== 1 ? 'es' : ''}${isManager ? ' tuyas' : ''}` : 'Sin cotizaciones'}
             </p>
           </div>
         </div>
@@ -106,7 +107,55 @@ export default function CotizacionListPage() {
           </Link>
         </div>
       ) : (
-        <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <>
+        <div className="space-y-3 md:hidden">
+          {quotations.map((q) => {
+            const chip = STATUS_CHIP[q.status] ?? STATUS_CHIP.draft;
+            const clientName = q.client
+              ? `${q.client.first_name} ${q.client.last_name}`
+              : q.client_name_temp || q.client_phone || '—';
+
+            return (
+              <Link
+                key={q.id}
+                href={`/admin/cotizacion/nueva?edit=${q.id}`}
+                className="block rounded-2xl p-4"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-mono text-xs" style={{ color: 'rgba(212,175,55,0.9)' }}>{q.quote_number}</p>
+                    <h2 className="mt-1 truncate text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.86)' }}>
+                      {clientName}
+                    </h2>
+                    <p className="mt-0.5 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.38)' }}>
+                      {q.piece_type || 'Sin pieza'} · {QUOTE_TYPE_LABEL[q.quote_type] ?? q.quote_type}
+                    </p>
+                  </div>
+                  <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium border font-sans-custom ${chip.classes}`}>
+                    {chip.label}
+                  </span>
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <span className="text-sm font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.82)' }}>
+                    {q.total_cop > 0 ? formatPriceCOP(q.total_cop) : 'Sin total'}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.34)' }}>
+                    {new Date(q.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
+                    <ChevronRight size={14} />
+                  </span>
+                </div>
+                {q.status === 'converted' && q.order_id && (
+                  <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-sans-custom" style={{ color: 'rgba(52,211,153,0.85)' }}>
+                    <ExternalLink size={12} /> Pedido creado
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="hidden rounded-2xl overflow-hidden md:block" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -143,7 +192,7 @@ export default function CotizacionListPage() {
                     : q.client_name_temp || q.client_phone || '—';
 
                   return (
-                    <tr key={q.id} className="hover:bg-white/2 transition-colors group">
+                    <tr key={q.id} onClick={() => router.push(`/admin/cotizacion/nueva?edit=${q.id}`)} className="hover:bg-white/2 transition-colors group cursor-pointer">
                       <td className="px-4 py-3">
                         <span className="font-mono text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{q.quote_number}</span>
                       </td>
@@ -189,6 +238,7 @@ export default function CotizacionListPage() {
                             <Link
                               href={`/admin/pedidos/${q.order_id}`}
                               title="Ver pedido"
+                              onClick={(event) => event.stopPropagation()}
                               className="p-1.5 rounded transition-colors" style={{ color: 'rgba(242,240,237,0.3)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(16,185,129,0.9)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'}
                             >
                               <ExternalLink size={13} />
@@ -229,6 +279,7 @@ export default function CotizacionListPage() {
             </div>
           )}
         </div>
+        </>
       )}
     </div>
   );

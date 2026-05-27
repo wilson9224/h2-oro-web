@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/use-auth';
 import {
   ArrowLeft, PlayCircle, Square, PauseCircle, RotateCcw,
   Camera, Clock, FileText, Upload, X, ChevronDown, ChevronUp,
-  AlertCircle, CheckCircle2,
+  AlertCircle, CheckCircle2, ImageIcon,
 } from 'lucide-react';
 import type { Assignment, Evidence, PauseLog } from '@/lib/joyero/types';
 import {
@@ -26,7 +26,7 @@ export default function JoyeroWorkPage() {
   const { user } = useAuth();
   const params = useParams<{ assignmentId: string }>();
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [assignment, setAssignment] = useState<Assignment | null>(null);
@@ -220,6 +220,61 @@ export default function JoyeroWorkPage() {
           <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{assignment.stageName} · {assignment.pieceName}</p>
         </div>
       </div>
+
+      {/* Reference photos */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-5 h-5" style={{ color: 'rgba(212,175,55,0.9)' }} />
+            <h2 className="text-base font-semibold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>Foto de referencia</h2>
+          </div>
+          {assignment.referenceImages.length > 1 && (
+            <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
+              {assignment.referenceImages.length} fotos
+            </span>
+          )}
+        </div>
+
+        {assignment.referenceImages.length > 0 ? (
+          <div className="space-y-2">
+            <div
+              className="aspect-[4/3] rounded-2xl overflow-hidden"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <img
+                src={assignment.referenceImages[0].url}
+                alt={`Referencia para ${assignment.pieceName}`}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            {assignment.referenceImages.length > 1 && (
+              <div className="grid grid-cols-4 gap-2">
+                {assignment.referenceImages.slice(1, 5).map(image => (
+                  <div
+                    key={image.id}
+                    className="aspect-square rounded-xl overflow-hidden"
+                    style={{ background: 'rgba(255,255,255,0.04)' }}
+                  >
+                    <img src={image.url} alt={image.fileName} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div
+            className="rounded-2xl p-4 flex items-center gap-3"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.08)' }}>
+              <ImageIcon className="w-5 h-5" style={{ color: 'rgba(212,175,55,0.45)' }} />
+            </div>
+            <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.42)' }}>
+              Este trabajo no tiene referencia visual guardada.
+            </p>
+          </div>
+        )}
+      </section>
 
       {/* Work Status Card */}
       <div className="rounded-2xl p-4 space-y-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -418,7 +473,8 @@ export default function JoyeroWorkPage() {
                   {assignment.status !== 'completed' && (
                     <button
                       onClick={() => handleDeleteEvidence(img.id)}
-                      className="absolute top-1 right-1 bg-red-600/90 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label={`Eliminar ${img.fileName}`}
+                      className="absolute top-1.5 right-1.5 bg-red-600/90 text-white p-1.5 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                     >
                       <X className="w-3 h-3" />
                     </button>

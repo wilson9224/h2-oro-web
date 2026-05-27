@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X, Loader2, Package, User, Calendar, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 import { convertToOrder } from '@/lib/quotation/queries';
 import { formatPriceCOP } from '@/lib/pricing/calculations';
 import type { QuotationFormState } from '@/lib/quotation/types';
@@ -36,6 +37,8 @@ export default function ConvertToOrderModal({
   onClose,
   onSuccess,
 }: Props) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [staff, setStaff] = useState<StaffUser[]>([]);
   const [assignedToId, setAssignedToId] = useState('');
   const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState('');
@@ -71,11 +74,30 @@ export default function ConvertToOrderModal({
             })
             .filter((u) => ['admin', 'manager'].includes(u.role_name));
           setStaff(mapped);
-          const me = mapped.find((u) => u.id === userId);
-          if (me) setAssignedToId(me.id);
+          if (userId) setAssignedToId(userId);
         }
       });
   }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    setAssignedToId(userId);
+  }, [userId]);
+
+  const staffOptions = useMemo(() => {
+    if (!user) return staff;
+    if (staff.some(staffUser => staffUser.id === user.id)) return staff;
+
+    return [
+      {
+        id: user.id,
+        first_name: user.firstName,
+        last_name: user.lastName,
+        role_name: user.role,
+      },
+      ...staff,
+    ];
+  }, [staff, user]);
 
   const searchByPhone = async (phone: string) => {
     setClientPhone(phone);
@@ -132,11 +154,12 @@ export default function ConvertToOrderModal({
 
   const handleConfirm = async () => {
     const clientId = searchedClient?.id ?? form.client_id;
+    const effectiveAssignedToId = isAdmin ? assignedToId : userId;
     if (!clientId) {
       setError('Debes identificar al cliente antes de crear el pedido');
       return;
     }
-    if (!assignedToId) {
+    if (!effectiveAssignedToId) {
       setError('Selecciona un responsable del pedido');
       return;
     }
@@ -149,7 +172,7 @@ export default function ConvertToOrderModal({
     try {
       const orderId = await convertToOrder(quotationId, form, {
         clientId,
-        assignedToId,
+        assignedToId: effectiveAssignedToId,
         estimatedDeliveryDate,
         userId,
       });
@@ -300,10 +323,16 @@ export default function ConvertToOrderModal({
             <select
               value={assignedToId}
               onChange={(e) => setAssignedToId(e.target.value)}
-              style={{ ...inputStyle, appearance: 'none' }}
+              disabled={!isAdmin}
+              style={{
+                ...inputStyle,
+                appearance: 'none',
+                opacity: !isAdmin ? 0.72 : 1,
+                cursor: !isAdmin ? 'not-allowed' : 'pointer',
+              }}
             >
               <option value="">Seleccionar...</option>
-              {staff.map((u) => (
+              {staffOptions.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.first_name} {u.last_name} ({ROLE_LABEL[u.role_name] || u.role_name})
                   {u.id === userId ? ' — Yo' : ''}
@@ -335,9 +364,9 @@ export default function ConvertToOrderModal({
           </button>
           <button
             onClick={handleConfirm}
-            disabled={loading || !effectiveClientId || !assignedToId || !estimatedDeliveryDate}
+            disabled={loading || !effectiveClientId || !(isAdmin ? assignedToId : userId) || !estimatedDeliveryDate}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all"
-            style={{ background: 'rgba(212,175,55,0.9)', color: 'rgba(8,8,8,0.9)', opacity: loading || !effectiveClientId || !assignedToId || !estimatedDeliveryDate ? 0.5 : 1 }}
+            style={{ background: 'rgba(212,175,55,0.9)', color: 'rgba(8,8,8,0.9)', opacity: loading || !effectiveClientId || !(isAdmin ? assignedToId : userId) || !estimatedDeliveryDate ? 0.5 : 1 }}
           >
             {loading ? (
               <>

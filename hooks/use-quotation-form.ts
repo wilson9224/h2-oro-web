@@ -36,6 +36,15 @@ export function useQuotationForm(initialState?: Partial<QuotationFormState>) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Reset form when initialState changes (async load)
+  const initialStateKey = initialState ? JSON.stringify(initialState.id) : '';
+  useEffect(() => {
+    if (initialState && Object.keys(initialState).length > 0) {
+      setForm({ ...DEFAULT_FORM_STATE, ...initialState });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialStateKey]);
+
   // ─── Helper: get base price for selected metal ────────────────────────────
   const getBasePrice = useCallback(
     (metalCode: string) => {

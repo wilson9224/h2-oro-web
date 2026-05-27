@@ -115,6 +115,7 @@ export interface Assignment {
   orderNumber: string;
   orderId: string;
   notes: string | null;
+  referenceImages: Evidence[];
 }
 
 export interface Evidence {

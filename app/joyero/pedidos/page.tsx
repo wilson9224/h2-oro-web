@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import {
-  PlayCircle, CheckCircle, CheckCircle2, PauseCircle,
-  Lock, ArrowRight, Sparkles, RotateCcw,
+  PlayCircle, CheckCircle, CheckCircle2,
+  Lock, ArrowRight, Sparkles, RotateCcw, ImageIcon,
 } from 'lucide-react';
 
 type AssignmentStatus = 'assigned' | 'pending' | 'in_progress' | 'paused' | 'completed' | 'blocked';
@@ -37,15 +37,25 @@ interface OrderGroup {
   completedCount: number;
   totalCount: number;
   hasInProgress: boolean;
+  referenceImageUrl: string | null;
+}
+
+function resolveAttachmentUrl(supabase: ReturnType<typeof createClient>, item: any): string | null {
+  if (item?.file_url) return item.file_url;
+  if (item?.bucket && item?.storage_path) {
+    const { data } = supabase.storage.from(item.bucket).getPublicUrl(item.storage_path);
+    return data.publicUrl;
+  }
+  return null;
 }
 
 export default function JoyeroPedidosPage() {
   const { user } = useAuth();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [orderGroups, setOrderGroups] = useState<OrderGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [expandedOrders] = useState<Set<string>>(new Set());
   const [activeFilter, setActiveFilter] = useState<'active' | 'completed'>('active');
 
   useEffect(() => {
@@ -119,6 +129,7 @@ export default function JoyeroPedidosPage() {
               completedCount: 0,
               totalCount: 0,
               hasInProgress: false,
+              referenceImageUrl: null,
             });
           }
 
@@ -166,7 +177,31 @@ export default function JoyeroPedidosPage() {
           }
         }
 
-        setOrderGroups(Array.from(orderMap.values() as IterableIterator<OrderGroup>));
+        const groups = Array.from(orderMap.values() as IterableIterator<OrderGroup>);
+        const orderIds = groups.map(group => group.orderId);
+
+        if (orderIds.length > 0) {
+          const { data: imageRows } = await supabase
+            .from('file_attachments')
+            .select('entity_id, file_url, bucket, storage_path')
+            .eq('entity_type', 'order')
+            .in('entity_id', orderIds)
+            .eq('file_type', 'image')
+            .order('created_at', { ascending: true });
+
+          const firstImageByOrder = new Map<string, string>();
+          (imageRows ?? []).forEach((image: any) => {
+            if (firstImageByOrder.has(image.entity_id)) return;
+            const url = resolveAttachmentUrl(supabase, image);
+            if (url) firstImageByOrder.set(image.entity_id, url);
+          });
+
+          groups.forEach(group => {
+            group.referenceImageUrl = firstImageByOrder.get(group.orderId) ?? null;
+          });
+        }
+
+        setOrderGroups(groups);
       } catch (error) {
         console.error('Error fetching assignments:', error);
       } finally {
@@ -310,6 +345,22 @@ function OrderRow({ group }: { group: OrderGroup; expanded: boolean; onToggle: (
       {/* Order header */}
       <div className="px-4 pt-3.5 pb-3 flex items-center justify-between gap-3"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div
+          className="w-14 h-14 rounded-2xl overflow-hidden flex-shrink-0"
+          style={{ background: 'rgba(255,255,255,0.045)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          {group.referenceImageUrl ? (
+            <img
+              src={group.referenceImageUrl}
+              alt={`Referencia de ${group.pieceName}`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <ImageIcon className="w-5 h-5" style={{ color: 'rgba(212,175,55,0.35)' }} />
+            </div>
+          )}
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1.5">
             <span className="font-display text-sm font-semibold" style={{ color: 'rgba(212,175,55,0.9)' }}>
@@ -453,7 +504,7 @@ function OrderRow({ group }: { group: OrderGroup; expanded: boolean; onToggle: (
               ) : (
                 <Link
                   href={`/joyero/trabajo/${stage.assignmentId}`}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold font-sans-custom shrink-0 transition-all duration-200"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold font-sans-custom shrink-0 transition-all duration-200 active:scale-[0.98]"
                   style={{
                     background: isActive ? 'rgba(96,165,250,0.12)' : 'linear-gradient(135deg, #E8C547, #D4AF37)',
                     color: isActive ? 'rgba(96,165,250,0.9)' : '#1A1400',
@@ -462,10 +513,10 @@ function OrderRow({ group }: { group: OrderGroup; expanded: boolean; onToggle: (
                   onClick={e => e.stopPropagation()}
                 >
                   {stage.status === 'paused'
-                    ? <><RotateCcw className="w-2.5 h-2.5" /><span>Reanudar</span></>
+                    ? <><RotateCcw className="w-3 h-3" /><span>Reanudar</span></>
                     : isActive
-                    ? <><ArrowRight className="w-2.5 h-2.5" /><span>Continuar</span></>
-                    : <><PlayCircle className="w-2.5 h-2.5" /><span>Iniciar</span></>}
+                    ? <><ArrowRight className="w-3 h-3" /><span>Continuar</span></>
+                    : <><PlayCircle className="w-3 h-3" /><span>Iniciar</span></>}
                 </Link>
               )}
             </div>

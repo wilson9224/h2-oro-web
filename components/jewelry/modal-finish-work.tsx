@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X, CheckCircle, XCircle, Scale, User, Calendar, Camera, AlertCircle, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 interface ModalFinishWorkProps {
   isOpen: boolean;
@@ -42,6 +43,8 @@ export default function ModalFinishWork({
   currentCycle,
   users 
 }: ModalFinishWorkProps) {
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'admin';
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState<FinishWorkData>({
@@ -55,12 +58,42 @@ export default function ModalFinishWork({
     workDeliveryDate: new Date().toISOString().split('T')[0],
   });
 
+  const responsibleUsers = useMemo(() => {
+    if (!currentUser) return users;
+    if (users.some(user => user.id === currentUser.id)) return users;
+
+    return [
+      {
+        id: currentUser.id,
+        firstName: currentUser.firstName,
+        lastName: currentUser.lastName,
+      },
+      ...users,
+    ];
+  }, [currentUser, users]);
+
+  useEffect(() => {
+    if (!isOpen || !currentUser?.id) return;
+    setFormData(prev => ({
+      ...prev,
+      qcByUserId: currentUser.id,
+      workReceivedByUserId: currentUser.id,
+    }));
+  }, [isOpen, currentUser?.id]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
+      const effectiveQcByUserId = isAdmin
+        ? formData.qcByUserId
+        : currentUser?.id ?? formData.qcByUserId;
+      const effectiveWorkReceivedByUserId = isAdmin
+        ? formData.workReceivedByUserId
+        : currentUser?.id ?? formData.workReceivedByUserId;
+
       // Validaciones
       if (!formData.finalWeightGr || formData.finalWeightGr <= 0) {
         throw new Error('El peso final es requerido');
@@ -91,15 +124,19 @@ export default function ModalFinishWork({
         throw new Error('Las observaciones de QC son obligatorias cuando se rechaza el trabajo');
       }
       
-      if (!formData.qcByUserId) {
+      if (!effectiveQcByUserId) {
         throw new Error('Debe seleccionar quién realiza el control de calidad');
       }
       
-      if (!formData.workReceivedByUserId) {
+      if (!effectiveWorkReceivedByUserId) {
         throw new Error('Debe seleccionar quién recibe el trabajo');
       }
 
-      await onSubmit(formData);
+      await onSubmit({
+        ...formData,
+        qcByUserId: effectiveQcByUserId,
+        workReceivedByUserId: effectiveWorkReceivedByUserId,
+      });
       onClose();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al finalizar trabajo');
@@ -136,7 +173,7 @@ export default function ModalFinishWork({
 
   if (!isOpen) return null;
 
-  const qualityControllers = users;
+  const qualityControllers = responsibleUsers;
   const deliveredGr = currentCycle.metalDeliveredGr ?? currentCycle.totalMetalWeightGr ?? 0;
   const materialDifference = deliveredGr > 0 ? formData.finalWeightGr - deliveredGr : 0;
   const surplusGr = deliveredGr > 0 ? deliveredGr - formData.finalWeightGr - (formData.returnedMaterialGr || 0) : 0;
@@ -282,16 +319,36 @@ export default function ModalFinishWork({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label style={labelStyle}>QC realizado por *</label>
-                  <select value={formData.qcByUserId} onChange={(e) => updateField('qcByUserId', e.target.value)} style={{ ...inputStyle, appearance: 'none' }}>
+                  <select
+                    value={formData.qcByUserId}
+                    onChange={(e) => updateField('qcByUserId', e.target.value)}
+                    disabled={!isAdmin}
+                    style={{
+                      ...inputStyle,
+                      appearance: 'none',
+                      opacity: !isAdmin ? 0.72 : 1,
+                      cursor: !isAdmin ? 'not-allowed' : 'pointer',
+                    }}
+                  >
                     <option value="">Seleccionar...</option>
                     {qualityControllers.map((user) => <option key={user.id} value={user.id}>{user.firstName} {user.lastName}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={labelStyle}>Trabajo recibido por *</label>
-                  <select value={formData.workReceivedByUserId} onChange={(e) => updateField('workReceivedByUserId', e.target.value)} style={{ ...inputStyle, appearance: 'none' }}>
+                  <select
+                    value={formData.workReceivedByUserId}
+                    onChange={(e) => updateField('workReceivedByUserId', e.target.value)}
+                    disabled={!isAdmin}
+                    style={{
+                      ...inputStyle,
+                      appearance: 'none',
+                      opacity: !isAdmin ? 0.72 : 1,
+                      cursor: !isAdmin ? 'not-allowed' : 'pointer',
+                    }}
+                  >
                     <option value="">Seleccionar...</option>
-                    {users.map((user) => <option key={user.id} value={user.id}>{user.firstName} {user.lastName}</option>)}
+                    {responsibleUsers.map((user) => <option key={user.id} value={user.id}>{user.firstName} {user.lastName}</option>)}
                   </select>
                 </div>
                 <div>

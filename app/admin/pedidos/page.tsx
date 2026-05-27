@@ -1,21 +1,31 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Search,
-  ArrowUpRight,
-  ChevronLeft,
-  ChevronRight,
   Plus,
   X,
   ShoppingBag,
   Gem,
+  Trash2,
+  Pencil,
+  AlertTriangle,
+  User,
+  Calendar,
+  ImageIcon,
+  Filter,
+  ChevronDown,
+  XCircle,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
+import { fetchQuotationByOrderId } from '@/lib/quotation/queries';
 
 const supabase = createClient();
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Order {
   id: string;
@@ -28,16 +38,30 @@ interface Order {
   createdAt: string;
   estimatedDeliveryDate: string | null;
   client: { id: string; firstName: string; lastName: string; email: string };
-  pieces: { id: string; name: string; currentState: { code: string; name: string } | null }[];
+  assignedTo: { id: string; firstName: string; lastName: string } | null;
+  workers: { id: string; firstName: string; lastName: string }[];
+  imageUrl: string | null;
 }
 
-const statusLabels: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Pendiente', color: 'bg-yellow-500/20 text-yellow-400' },
-  in_progress: { label: 'En progreso', color: 'bg-blue-500/20 text-blue-400' },
-  completed: { label: 'Completado', color: 'bg-emerald-500/20 text-emerald-400' },
-  cancelled: { label: 'Cancelado', color: 'bg-red-500/20 text-red-400' },
-  delivered: { label: 'Entregado', color: 'bg-green-500/20 text-green-400' },
+type ThumbnailAttachmentRow = {
+  entity_id: string;
+  bucket?: string | null;
+  storage_path?: string | null;
+  file_url?: string | null;
+  file_type?: string | null;
+  mime_type?: string | null;
+  created_at: string;
 };
+
+// ─── Kanban column config ─────────────────────────────────────────────────────
+
+const KANBAN_COLUMNS: { key: string; label: string; dotColor: string; headerBg: string; headerBorder: string }[] = [
+  { key: 'pending',     label: 'Pendiente',   dotColor: 'rgba(250,204,21,0.9)',  headerBg: 'rgba(234,179,8,0.06)',   headerBorder: 'rgba(234,179,8,0.15)' },
+  { key: 'in_progress', label: 'En progreso', dotColor: 'rgba(96,165,250,0.9)',  headerBg: 'rgba(59,130,246,0.06)',  headerBorder: 'rgba(59,130,246,0.15)' },
+  { key: 'completed',   label: 'Completado',  dotColor: 'rgba(52,211,153,0.9)',  headerBg: 'rgba(16,185,129,0.06)', headerBorder: 'rgba(16,185,129,0.15)' },
+  { key: 'delivered',   label: 'Entregado',   dotColor: 'rgba(134,239,172,0.9)', headerBg: 'rgba(34,197,94,0.06)',  headerBorder: 'rgba(34,197,94,0.15)' },
+  { key: 'cancelled',   label: 'Cancelado',   dotColor: 'rgba(248,113,113,0.9)', headerBg: 'rgba(239,68,68,0.06)', headerBorder: 'rgba(239,68,68,0.15)' },
+];
 
 const typeLabels: Record<string, string> = {
   custom: 'Personalizado',
@@ -47,151 +71,377 @@ const typeLabels: Record<string, string> = {
   jewelry: 'Joyería',
 };
 
-export default function OrdersListPage() {
+function formatCOP(amount: number) {
+  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
+}
+
+async function getThumbnailUrl(attachment: ThumbnailAttachmentRow) {
+  if (!attachment.bucket || !attachment.storage_path) return attachment.file_url || null;
+
+  const { data, error } = await supabase.storage
+    .from(attachment.bucket)
+    .createSignedUrl(attachment.storage_path, 60 * 60);
+
+  if (!error && data?.signedUrl) return data.signedUrl;
+
+  const { data: publicData } = supabase.storage
+    .from(attachment.bucket)
+    .getPublicUrl(attachment.storage_path);
+
+  return publicData.publicUrl || null;
+}
+
+function isImageAttachment(attachment: ThumbnailAttachmentRow) {
+  return attachment.mime_type?.startsWith('image/') || attachment.file_type === 'image' || Boolean(attachment.file_url);
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export default function OrdersKanbanPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const isManager = user?.role === 'manager';
+
   const [orders, setOrders] = useState<Order[]>([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [responsibleFilter, setResponsibleFilter] = useState('');
+  const [workerFilter, setWorkerFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [showNewModal, setShowNewModal] = useState(false);
-  const limit = 15;
+  const [mobileStatus, setMobileStatus] = useState(KANBAN_COLUMNS[0].key);
+  const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [staffList, setStaffList] = useState<{ id: string; firstName: string; lastName: string; role: string }[]>([]);
+
+  // ─── Fetch all orders + images ────────────────────────────────────────────
+
+  // Fetch staff list (responsible + workers) for filter dropdowns
+  const fetchStaff = useCallback(async () => {
+    const { data } = await supabase
+      .from('users')
+      .select('id, first_name, last_name, role')
+      .in('role', ['admin', 'manager', 'jeweler', 'designer']);
+    if (data) {
+      setStaffList(data.map((u: any) => ({ id: u.id, firstName: u.first_name, lastName: u.last_name, role: u.role })));
+    }
+  }, []);
+
+  useEffect(() => { fetchStaff(); }, [fetchStaff]);
 
   const fetchOrders = useCallback(async () => {
-    setLoading(true);
-    console.log('Fetching orders with filters:', { search, statusFilter, typeFilter, page });
-    try {
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
+    if (!user) return;
 
+    setLoading(true);
+    try {
       let query = supabase
         .from('orders')
-        .select(`
-          id,
-          order_number,
-          type,
-          status,
-          total_amount_cop,
-          currency,
-          notes,
-          created_at,
-          estimated_delivery_date,
-          client_id
-        `, { count: 'exact' })
+        .select('id, order_number, type, status, total_amount_cop, currency, notes, created_at, estimated_delivery_date, client_id, assigned_to_id')
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
-      if (statusFilter) query = query.eq('status', statusFilter);
       if (typeFilter) query = query.eq('type', typeFilter);
-      // La búsqueda por cliente se hará después de cargar los datos
+      if (statusFilter) query = query.eq('status', statusFilter);
+      if (isManager) query = query.eq('assigned_to_id', user.id);
+      else if (responsibleFilter) query = query.eq('assigned_to_id', responsibleFilter);
+      if (dateFrom) query = query.gte('created_at', `${dateFrom}T00:00:00`);
+      if (dateTo) query = query.lte('created_at', `${dateTo}T23:59:59`);
 
-      console.log('Query constructed with filters:', { statusFilter, typeFilter, search });
+      const { data, error } = await query;
+      if (error || !data) { setOrders([]); return; }
 
-      const { data, error, count } = await query.range(from, to);
+      // Fetch clients + assigned_to users
+      const clientIds = Array.from(new Set(data.map((o: any) => o.client_id).filter(Boolean)));
+      const assignedIds = Array.from(new Set(data.map((o: any) => o.assigned_to_id).filter(Boolean)));
+      const allUserIds = Array.from(new Set([...clientIds, ...assignedIds]));
+      let usersMap: Record<string, any> = {};
+      if (allUserIds.length > 0) {
+        const { data: users } = await supabase
+          .from('users')
+          .select('id, first_name, last_name, email')
+          .in('id', allUserIds);
+        if (users) {
+          usersMap = users.reduce((acc: Record<string, any>, c: any) => { acc[c.id] = c; return acc; }, {});
+        }
+      }
 
-      console.log('Orders query result:', { data, error, count });
-      console.log('Data length:', data?.length);
-      console.log('Sample order:', data?.[0]);
+      // Fetch work_assignments to get jewelers per order (via pieces)
+      const orderIds = data.map((o: any) => o.id);
+      const orderWorkersMap: Record<string, { id: string; firstName: string; lastName: string }[]> = {};
+      if (orderIds.length > 0) {
+        const { data: pieces } = await supabase
+          .from('pieces')
+          .select('id, order_id')
+          .in('order_id', orderIds);
+        if (pieces && pieces.length > 0) {
+          const pieceIds = pieces.map((p: any) => p.id);
+          const pieceOrderMap: Record<string, string> = {};
+          for (const p of pieces) pieceOrderMap[p.id] = p.order_id;
 
-      if (!error && data) {
-        // Obtener datos de clientes por separado
-        const clientIds = Array.from(new Set(data.map((o: any) => o.client_id).filter(Boolean)));
-        let clientsData: Record<string, any> = {};
-        
-        console.log('Client IDs to fetch:', clientIds);
-        
-        if (clientIds.length > 0) {
-          const { data: clients } = await supabase
-            .from('users')
-            .select('id, first_name, last_name, email')
-            .in('id', clientIds);
-          
-          console.log('Clients data:', clients);
-          
-          if (clients) {
-            clientsData = clients.reduce((acc: Record<string, any>, client: any) => {
-              acc[client.id] = client;
-              return acc;
-            }, {});
+          const { data: assignments } = await supabase
+            .from('work_assignments')
+            .select('piece_id, worker_id')
+            .in('piece_id', pieceIds);
+          if (assignments) {
+            const workerIds = Array.from(new Set(assignments.map((a: any) => a.worker_id).filter(Boolean)));
+            let workersMap: Record<string, any> = {};
+            if (workerIds.length > 0) {
+              const { data: workers } = await supabase
+                .from('users')
+                .select('id, first_name, last_name')
+                .in('id', workerIds);
+              if (workers) {
+                workersMap = workers.reduce((acc: Record<string, any>, w: any) => { acc[w.id] = w; return acc; }, {});
+              }
+            }
+            for (const a of assignments) {
+              const orderId = pieceOrderMap[a.piece_id];
+              if (!orderId) continue;
+              if (!orderWorkersMap[orderId]) orderWorkersMap[orderId] = [];
+              const worker = workersMap[a.worker_id];
+              if (worker && !orderWorkersMap[orderId].find(w => w.id === worker.id)) {
+                orderWorkersMap[orderId].push({ id: worker.id, firstName: worker.first_name, lastName: worker.last_name });
+              }
+            }
           }
         }
-        
-        let transformedOrders = data.map((o: Record<string, unknown>) => {
-          const clientId = o.client_id as string;
-          const client = clientsData[clientId];
-          
-          return {
-            id: o.id as string,
-            orderNumber: o.order_number as string,
-            type: o.type as string,
-            status: o.status as string,
-            totalAmountCop: o.total_amount_cop as number | null,
-            currency: o.currency as string,
-            notes: o.notes as string | null,
-            createdAt: o.created_at as string,
-            estimatedDeliveryDate: o.estimated_delivery_date as string | null,
-            client: client ? {
-              id: client.id,
-              firstName: client.first_name,
-              lastName: client.last_name,
-              email: client.email,
-            } : {
-              id: clientId || '',
-              firstName: '---',
-              lastName: '',
-              email: '',
-            },
-            pieces: [], // Sin pieces por ahora
-          };
-        });
-        
-        // Filtrar por búsqueda (número de pedido o nombre de cliente)
-        if (search) {
-          const searchLower = search.toLowerCase();
-          transformedOrders = transformedOrders.filter(order => 
-            order.orderNumber.toLowerCase().includes(searchLower) ||
-            order.client.firstName.toLowerCase().includes(searchLower) ||
-            order.client.lastName.toLowerCase().includes(searchLower) ||
-            `${order.client.firstName} ${order.client.lastName}`.toLowerCase().includes(searchLower)
-          );
-        }
-        
-        console.log('Filtered orders:', transformedOrders);
-        setOrders(transformedOrders);
-        setTotal(count || 0);
-      } else if (error) {
-        console.error('Query error:', error);
-        console.error('Error details:', error.message, error.details, error.hint);
-      } else {
-        console.log('No data returned but no error');
       }
+
+      // Fetch work cycles to get cycle IDs per order
+      const cycleMap: Record<string, string> = {};
+      if (orderIds.length > 0) {
+        const { data: cycles } = await supabase
+          .from('order_work_cycles')
+          .select('id, order_id')
+          .in('order_id', orderIds)
+          .order('cycle_number', { ascending: true });
+        if (cycles) {
+          for (const c of cycles) {
+            if (!cycleMap[c.order_id]) cycleMap[c.order_id] = c.id;
+          }
+        }
+      }
+
+      // Fetch first reference image per cycle from file_attachments
+      const cycleIds = Object.values(cycleMap);
+      const imageMap: Record<string, string | null> = {};
+      if (cycleIds.length > 0) {
+        const { data: attachments } = await supabase
+          .from('file_attachments')
+          .select('*')
+          .eq('entity_type', 'work_cycle')
+          .in('entity_id', cycleIds)
+          .order('created_at', { ascending: true });
+        if (attachments) {
+          for (const a of attachments as ThumbnailAttachmentRow[]) {
+            if (imageMap[a.entity_id] || !isImageAttachment(a)) continue;
+            imageMap[a.entity_id] = await getThumbnailUrl(a);
+          }
+        }
+      }
+
+      // Build order → imageUrl map from cycle references
+      const orderImageMap: Record<string, string | null> = {};
+      for (const [orderId, cycleId] of Object.entries(cycleMap)) {
+        orderImageMap[orderId] = imageMap[cycleId] || null;
+      }
+
+      // Fallback to order-level attachments if a work-cycle reference image is not present.
+      if (orderIds.length > 0) {
+        const ordersWithoutImage = orderIds.filter((orderId: string) => !orderImageMap[orderId]);
+        if (ordersWithoutImage.length > 0) {
+          const { data: orderAttachments } = await supabase
+            .from('file_attachments')
+            .select('*')
+            .in('entity_type', ['jewelry_order', 'order'])
+            .in('entity_id', ordersWithoutImage)
+            .order('created_at', { ascending: true });
+
+          if (orderAttachments) {
+            for (const attachment of orderAttachments as ThumbnailAttachmentRow[]) {
+              if (orderImageMap[attachment.entity_id] || !isImageAttachment(attachment)) continue;
+              orderImageMap[attachment.entity_id] = await getThumbnailUrl(attachment);
+            }
+          }
+        }
+      }
+
+      // Transform
+      const transformed: Order[] = data.map((o: any) => {
+        const client = usersMap[o.client_id];
+        const assignedTo = usersMap[o.assigned_to_id];
+        return {
+          id: o.id,
+          orderNumber: o.order_number,
+          type: o.type,
+          status: o.status,
+          totalAmountCop: o.total_amount_cop,
+          currency: o.currency,
+          notes: o.notes,
+          createdAt: o.created_at,
+          estimatedDeliveryDate: o.estimated_delivery_date,
+          client: client
+            ? { id: client.id, firstName: client.first_name, lastName: client.last_name, email: client.email }
+            : { id: o.client_id || '', firstName: '---', lastName: '', email: '' },
+          assignedTo: assignedTo
+            ? { id: assignedTo.id, firstName: assignedTo.first_name, lastName: assignedTo.last_name }
+            : null,
+          workers: orderWorkersMap[o.id] || [],
+          imageUrl: orderImageMap[o.id] || null,
+        };
+      });
+
+      setOrders(transformed);
     } catch (e) {
       console.error('Fetch error:', e);
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter, typeFilter]);
+  }, [dateFrom, dateTo, isManager, responsibleFilter, statusFilter, typeFilter, user]);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
-  const totalPages = total > 0 ? Math.ceil(total / limit) : 0;
+  // ─── Edit (find linked quotation) ──────────────────────────────────────────
 
-  // Debounced search
+  const handleEdit = async (order: Order) => {
+    console.log('handleEdit called for order:', order.id, order.orderNumber);
+    try {
+      const quotation = await fetchQuotationByOrderId(order.id);
+      console.log('Quotation found:', quotation);
+      if (quotation) {
+        router.push(`/admin/cotizacion/nueva?edit=${quotation.id}`);
+      } else {
+        // No quotation linked — go to order detail
+        console.log('No quotation found, going to order detail');
+        router.push(`/admin/pedidos/${order.id}`);
+      }
+    } catch (e) {
+      console.error('Error finding quotation:', e);
+      router.push(`/admin/pedidos/${order.id}`);
+    }
+  };
+
+  // ─── Delete ─────────────────────────────────────────────────────────────────
+
+  const handleDelete = async (order: Order) => {
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', order.id);
+      if (error) throw error;
+      setDeleteTarget(null);
+      fetchOrders();
+    } catch (e) {
+      console.error('Error deleting order:', e);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // ─── Debounced search ───────────────────────────────────────────────────────
+
   const [searchInput, setSearchInput] = useState('');
   useEffect(() => {
-    const t = setTimeout(() => {
-      setSearch(searchInput);
-      setPage(1);
-    }, 400);
+    const t = setTimeout(() => setSearch(searchInput), 300);
     return () => clearTimeout(t);
   }, [searchInput]);
 
+  // ─── Filter + group by status ───────────────────────────────────────────────
+
+  const groupedOrders = useMemo(() => {
+    let filtered = orders;
+    if (search) {
+      const s = search.toLowerCase();
+      filtered = filtered.filter(o =>
+        o.orderNumber.toLowerCase().includes(s) ||
+        o.client.firstName.toLowerCase().includes(s) ||
+        o.client.lastName.toLowerCase().includes(s) ||
+        `${o.client.firstName} ${o.client.lastName}`.toLowerCase().includes(s) ||
+        o.client.email.toLowerCase().includes(s) ||
+        (o.assignedTo && `${o.assignedTo.firstName} ${o.assignedTo.lastName}`.toLowerCase().includes(s)) ||
+        o.workers.some(w => `${w.firstName} ${w.lastName}`.toLowerCase().includes(s)) ||
+        (o.notes && o.notes.toLowerCase().includes(s))
+      );
+    }
+    // Worker filter (client-side since it requires piece join)
+    if (workerFilter) {
+      filtered = filtered.filter(o => o.workers.some(w => w.id === workerFilter));
+    }
+    const grouped: Record<string, Order[]> = {};
+    for (const col of KANBAN_COLUMNS) grouped[col.key] = [];
+    for (const o of filtered) {
+      if (grouped[o.status]) grouped[o.status].push(o);
+      else if (grouped['pending']) grouped['pending'].push(o); // fallback
+    }
+    return grouped;
+  }, [orders, search, workerFilter]);
+
+  const totalCount = orders.length;
+  const filteredCount = Object.values(groupedOrders).reduce((sum, arr) => sum + arr.length, 0);
+  const activeFilterCount = [typeFilter, statusFilter, isManager ? '' : responsibleFilter, workerFilter, dateFrom, dateTo].filter(Boolean).length;
+
+  const clearAllFilters = () => {
+    setTypeFilter('');
+    setStatusFilter('');
+    setResponsibleFilter('');
+    setWorkerFilter('');
+    setDateFrom('');
+    setDateTo('');
+    setSearchInput('');
+  };
+
+  const responsibles = staffList.filter(s => ['admin', 'manager'].includes(s.role));
+  const workers = staffList.filter(s => ['jeweler', 'designer'].includes(s.role));
+
+  // ─── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-5">
+
+      {/* ── Delete confirmation modal ── */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+          <div
+            className="w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{ background: 'rgba(20,18,14,0.98)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 40px 80px rgba(0,0,0,0.6)' }}
+          >
+            <div className="px-6 py-5">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <AlertTriangle size={18} style={{ color: 'rgba(248,113,113,0.9)' }} />
+              </div>
+              <h2 className="font-display text-base font-semibold mb-1" style={{ color: 'rgba(242,240,237,0.95)' }}>Eliminar pedido</h2>
+              <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.45)' }}>
+                ¿Estás seguro de eliminar <strong style={{ color: 'rgba(212,175,55,0.9)' }}>{deleteTarget.orderNumber}</strong>?{' '}
+                Esta acción se puede revertir.
+              </p>
+            </div>
+            <div className="px-6 pb-5 flex gap-2">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium font-sans-custom transition-colors"
+                style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleDelete(deleteTarget)}
+                disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium font-sans-custom transition-colors disabled:opacity-50"
+                style={{ background: 'rgba(239,68,68,0.15)', color: 'rgba(248,113,113,0.9)', border: '1px solid rgba(239,68,68,0.3)' }}
+              >
+                {deleting ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── New order modal ── */}
       {showNewModal && (
@@ -255,16 +505,16 @@ export default function OrdersListPage() {
       )}
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>Pedidos</h1>
+          <h1 className="text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>{isManager ? 'Mis pedidos' : 'Pedidos'}</h1>
           <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
-            {loading ? 'Cargando...' : `${total} pedido${total !== 1 ? 's' : ''} en total`}
+            {loading ? 'Cargando...' : isManager ? `${totalCount} pedido${totalCount !== 1 ? 's' : ''} bajo tu responsabilidad` : `${totalCount} pedido${totalCount !== 1 ? 's' : ''} activos`}
           </p>
         </div>
         <button
           onClick={() => setShowNewModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-[0.1em] transition-all duration-200 font-sans-custom"
+          className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-[0.1em] transition-all duration-200 font-sans-custom sm:w-auto"
           style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400' }}
         >
           <Plus size={14} />
@@ -273,193 +523,353 @@ export default function OrdersListPage() {
       </div>
 
       {/* ── Filters ── */}
-      <div className="flex flex-col sm:flex-row gap-2">
-        <div className="relative flex-1">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'rgba(242,240,237,0.25)' }} />
-          <input
-            type="text"
-            placeholder="Buscar por # pedido o cliente..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm transition-all duration-200 focus:outline-none font-sans-custom"
+      <div className="space-y-3">
+        {/* Search bar + filter toggle */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'rgba(242,240,237,0.25)' }} />
+            <input
+              type="text"
+              placeholder="Buscar por # pedido, cliente, responsable, joyero, notas..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm transition-all duration-200 focus:outline-none font-sans-custom"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                color: 'rgba(242,240,237,0.85)',
+              }}
+            />
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium font-sans-custom transition-all duration-200"
             style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.07)',
-              color: 'rgba(242,240,237,0.85)',
+              background: activeFilterCount > 0 ? 'rgba(212,175,55,0.1)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${activeFilterCount > 0 ? 'rgba(212,175,55,0.3)' : 'rgba(255,255,255,0.07)'}`,
+              color: activeFilterCount > 0 ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.6)',
             }}
-          />
-        </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2.5 rounded-xl text-sm focus:outline-none font-sans-custom"
-          style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            color: statusFilter ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.45)',
-          }}
-        >
-          <option value="">Todos los estados</option>
-          <option value="pending">Pendiente</option>
-          <option value="in_progress">En progreso</option>
-          <option value="completed">Completado</option>
-          <option value="delivered">Entregado</option>
-          <option value="cancelled">Cancelado</option>
-        </select>
-        <select
-          value={typeFilter}
-          onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2.5 rounded-xl text-sm focus:outline-none font-sans-custom"
-          style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            color: typeFilter ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.45)',
-          }}
-        >
-          <option value="">Todos los tipos</option>
-          <option value="custom">Personalizado</option>
-          <option value="catalog">Catálogo</option>
-          <option value="repair">Reparación</option>
-          <option value="resize">Redimensionar</option>
-          <option value="jewelry">Joyería</option>
-        </select>
-      </div>
-
-      {/* ── Table ── */}
-      <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                {['# Pedido', 'Cliente', 'Tipo', 'Estado', 'Monto', 'Fecha', ''].map((h, i) => (
-                  <th
-                    key={i}
-                    className="text-left px-4 py-3.5 text-[10px] uppercase tracking-[0.14em] font-semibold whitespace-nowrap"
-                    style={{ color: 'rgba(242,240,237,0.3)' }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
-                [...Array(6)].map((_, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    {[...Array(7)].map((_, j) => (
-                      <td key={j} className="px-4 py-4">
-                        <div
-                          className="h-3.5 rounded-lg animate-pulse"
-                          style={{ background: 'rgba(255,255,255,0.06)', width: j === 1 ? '9rem' : j === 0 ? '6rem' : '5rem' }}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              )}
-              {!loading && orders.map((order) => {
-                const st = statusLabels[order.status] || { label: order.status, color: 'bg-white/5 text-cream-200/40' };
-                return (
-                  <tr
-                    key={order.id}
-                    className="group transition-colors hover:bg-white/[0.025] cursor-pointer"
-                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-                    onClick={() => router.push(`/admin/pedidos/${order.id}`)}
-                  >
-                    <td className="px-4 py-3.5">
-                      <span className="font-mono text-xs font-medium" style={{ color: 'rgba(212,175,55,0.85)' }}>
-                        {order.orderNumber}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.75)' }}>
-                        {order.client.firstName} {order.client.lastName}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      {order.type === 'jewelry' ? (
-                        <span
-                          className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-sans-custom"
-                          style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.22)', color: 'rgba(212,175,55,0.9)' }}
-                        >
-                          <span className="w-1 h-1 rounded-full" style={{ background: 'rgba(212,175,55,0.9)' }} />
-                          {typeLabels[order.type]}
-                        </span>
-                      ) : (
-                        <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
-                          {typeLabels[order.type] || order.type}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${st.color} font-sans-custom`}>{st.label}</span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span className="text-xs font-mono" style={{ color: order.totalAmountCop ? 'rgba(242,240,237,0.65)' : 'rgba(242,240,237,0.2)' }}>
-                        {order.totalAmountCop
-                          ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(Number(order.totalAmountCop))
-                          : '—'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
-                        {new Date(order.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <ArrowUpRight
-                        size={14}
-                        className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
-                        style={{ color: 'rgba(212,175,55,0.6)' }}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-              {!loading && orders.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-5 py-14 text-center">
-                    <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>No se encontraron pedidos</p>
-                    {(statusFilter || typeFilter || search) && (
-                      <p className="text-xs mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.18)' }}>Prueba ajustando los filtros</p>
-                    )}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div
-            className="px-5 py-3.5 flex items-center justify-between"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
           >
-            <p className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
-              Página {page} de {totalPages}
-            </p>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="w-8 h-8 flex items-center justify-center rounded-xl transition-all duration-200 disabled:opacity-25"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.6)' }}
+            <Filter size={14} />
+            Filtros
+            {activeFilterCount > 0 && (
+              <span
+                className="w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold"
+                style={{ background: 'rgba(212,175,55,0.9)', color: '#1A1400' }}
               >
-                <ChevronLeft size={14} />
-              </button>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="w-8 h-8 flex items-center justify-center rounded-xl transition-all duration-200 disabled:opacity-25"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(242,240,237,0.6)' }}
+                {activeFilterCount}
+              </span>
+            )}
+            <ChevronDown size={12} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+
+        {/* Expandable filter panel */}
+        {showFilters && (
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 p-4 rounded-xl"
+            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-sans-custom font-medium" style={{ color: 'rgba(242,240,237,0.4)' }}>Tipo</label>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none font-sans-custom"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: typeFilter ? 'rgba(242,240,237,0.85)' : 'rgba(242,240,237,0.4)' }}
               >
-                <ChevronRight size={14} />
-              </button>
+                <option value="">Todos</option>
+                <option value="custom">Personalizado</option>
+                <option value="catalog">Catálogo</option>
+                <option value="repair">Reparación</option>
+                <option value="resize">Redimensionar</option>
+                <option value="jewelry">Joyería</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-sans-custom font-medium" style={{ color: 'rgba(242,240,237,0.4)' }}>Estado</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none font-sans-custom"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: statusFilter ? 'rgba(242,240,237,0.85)' : 'rgba(242,240,237,0.4)' }}
+              >
+                <option value="">Todos</option>
+                {KANBAN_COLUMNS.map(col => <option key={col.key} value={col.key}>{col.label}</option>)}
+              </select>
+            </div>
+            {!isManager && (
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-sans-custom font-medium" style={{ color: 'rgba(242,240,237,0.4)' }}>Responsable</label>
+              <select
+                value={responsibleFilter}
+                onChange={(e) => setResponsibleFilter(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none font-sans-custom"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: responsibleFilter ? 'rgba(242,240,237,0.85)' : 'rgba(242,240,237,0.4)' }}
+              >
+                <option value="">Todos</option>
+                {responsibles.map(r => <option key={r.id} value={r.id}>{r.firstName} {r.lastName}</option>)}
+              </select>
+            </div>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-sans-custom font-medium" style={{ color: 'rgba(242,240,237,0.4)' }}>Joyero</label>
+              <select
+                value={workerFilter}
+                onChange={(e) => setWorkerFilter(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none font-sans-custom"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: workerFilter ? 'rgba(242,240,237,0.85)' : 'rgba(242,240,237,0.4)' }}
+              >
+                <option value="">Todos</option>
+                {workers.map(w => <option key={w.id} value={w.id}>{w.firstName} {w.lastName}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-sans-custom font-medium" style={{ color: 'rgba(242,240,237,0.4)' }}>Fecha</label>
+              <div className="flex gap-1.5">
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="flex-1 min-w-0 px-2 py-2 rounded-lg text-xs focus:outline-none font-sans-custom"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(242,240,237,0.7)', colorScheme: 'dark' }}
+                  placeholder="Desde"
+                />
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="flex-1 min-w-0 px-2 py-2 rounded-lg text-xs focus:outline-none font-sans-custom"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(242,240,237,0.7)', colorScheme: 'dark' }}
+                  placeholder="Hasta"
+                />
+              </div>
             </div>
           </div>
         )}
+
+        {/* Active filter chips */}
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
+              {filteredCount} de {totalCount} pedidos
+            </span>
+            {typeFilter && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-sans-custom" style={{ background: 'rgba(212,175,55,0.1)', color: 'rgba(212,175,55,0.9)', border: '1px solid rgba(212,175,55,0.2)' }}>
+                Tipo: {typeLabels[typeFilter] || typeFilter}
+                <button onClick={() => setTypeFilter('')}><X size={10} /></button>
+              </span>
+            )}
+            {statusFilter && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-sans-custom" style={{ background: 'rgba(96,165,250,0.1)', color: 'rgba(96,165,250,0.9)', border: '1px solid rgba(96,165,250,0.2)' }}>
+                Estado: {KANBAN_COLUMNS.find(c => c.key === statusFilter)?.label || statusFilter}
+                <button onClick={() => setStatusFilter('')}><X size={10} /></button>
+              </span>
+            )}
+            {!isManager && responsibleFilter && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-sans-custom" style={{ background: 'rgba(139,92,246,0.1)', color: 'rgba(167,139,250,0.9)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                Resp: {responsibles.find(r => r.id === responsibleFilter)?.firstName || '...'}
+                <button onClick={() => setResponsibleFilter('')}><X size={10} /></button>
+              </span>
+            )}
+            {workerFilter && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-sans-custom" style={{ background: 'rgba(16,185,129,0.1)', color: 'rgba(52,211,153,0.9)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                Joyero: {workers.find(w => w.id === workerFilter)?.firstName || '...'}
+                <button onClick={() => setWorkerFilter('')}><X size={10} /></button>
+              </span>
+            )}
+            {(dateFrom || dateTo) && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-sans-custom" style={{ background: 'rgba(234,179,8,0.1)', color: 'rgba(250,204,21,0.9)', border: '1px solid rgba(234,179,8,0.2)' }}>
+                {dateFrom && dateTo ? `${dateFrom} → ${dateTo}` : dateFrom ? `Desde ${dateFrom}` : `Hasta ${dateTo}`}
+                <button onClick={() => { setDateFrom(''); setDateTo(''); }}><X size={10} /></button>
+              </span>
+            )}
+            <button
+              onClick={clearAllFilters}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-sans-custom transition-colors"
+              style={{ background: 'rgba(248,113,113,0.08)', color: 'rgba(248,113,113,0.8)', border: '1px solid rgba(248,113,113,0.15)' }}
+            >
+              <XCircle size={10} /> Limpiar todo
+            </button>
+          </div>
+        )}
       </div>
+
+      {!loading && (
+        <div className="md:hidden -mx-4 overflow-x-auto px-4 pb-1">
+          <div className="flex min-w-max gap-2">
+            {KANBAN_COLUMNS.map((col) => {
+              const count = groupedOrders[col.key]?.length ?? 0;
+              const active = mobileStatus === col.key;
+              return (
+                <button
+                  key={col.key}
+                  onClick={() => setMobileStatus(col.key)}
+                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium font-sans-custom"
+                  style={{
+                    background: active ? col.headerBg : 'rgba(255,255,255,0.035)',
+                    border: `1px solid ${active ? col.headerBorder : 'rgba(255,255,255,0.06)'}`,
+                    color: active ? col.dotColor : 'rgba(242,240,237,0.48)',
+                  }}
+                >
+                  <span className="h-2 w-2 rounded-full" style={{ background: col.dotColor }} />
+                  {col.label}
+                  <span className="rounded-md px-1.5 py-0.5 text-[10px]" style={{ background: 'rgba(255,255,255,0.06)' }}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Kanban Board ── */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {KANBAN_COLUMNS.map((col) => (
+            <div key={col.key} className="space-y-3">
+              <div className="h-10 rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+              {[1, 2].map(i => (
+                <div key={i} className="h-44 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.03)' }} />
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-start">
+          {KANBAN_COLUMNS.map((col) => {
+            const colOrders = groupedOrders[col.key] || [];
+            return (
+              <div key={col.key} className={`${mobileStatus === col.key ? 'flex' : 'hidden'} flex-col min-w-0 md:flex`}>
+                {/* Column header */}
+                <div
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl mb-3"
+                  style={{ background: col.headerBg, border: `1px solid ${col.headerBorder}` }}
+                >
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: col.dotColor }} />
+                  <span className="text-xs font-semibold font-sans-custom truncate" style={{ color: col.dotColor }}>
+                    {col.label}
+                  </span>
+                  <span
+                    className="ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded-md shrink-0"
+                    style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(242,240,237,0.4)' }}
+                  >
+                    {colOrders.length}
+                  </span>
+                </div>
+
+                {/* Cards */}
+                <div className="space-y-3 pr-1 md:max-h-[calc(100vh-260px)] md:overflow-y-auto md:custom-scrollbar">
+                  {colOrders.length === 0 && (
+                    <div
+                      className="rounded-2xl py-8 flex flex-col items-center justify-center"
+                      style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.06)' }}
+                    >
+                      <p className="text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.15)' }}>Sin pedidos</p>
+                    </div>
+                  )}
+                  {colOrders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="group rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:translate-y-[-1px]"
+                      style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                      }}
+                      onClick={() => router.push(`/admin/pedidos/${order.id}`)}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(212,175,55,0.2)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.25)'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)'; }}
+                    >
+                      {/* Image */}
+                      <div className="relative w-full aspect-[4/3] overflow-hidden" style={{ background: 'rgba(0,0,0,0.3)' }}>
+                        {order.imageUrl ? (
+                          <img
+                            src={order.imageUrl}
+                            alt={order.orderNumber}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-1.5">
+                            <ImageIcon size={20} style={{ color: 'rgba(242,240,237,0.1)' }} />
+                            <span className="text-[9px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.12)' }}>Sin foto</span>
+                          </div>
+                        )}
+                        {/* Type badge overlay */}
+                        <div className="absolute top-2 left-2">
+                          <span
+                            className="text-[9px] px-1.5 py-0.5 rounded-md font-sans-custom font-medium backdrop-blur-sm"
+                            style={{ background: 'rgba(0,0,0,0.6)', color: 'rgba(212,175,55,0.9)', border: '1px solid rgba(212,175,55,0.2)' }}
+                          >
+                            {typeLabels[order.type] || order.type}
+                          </span>
+                        </div>
+                        {/* Admin actions overlay */}
+                        {isAdmin && (
+                          <div
+                            className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={() => handleEdit(order)}
+                              className="w-6 h-6 flex items-center justify-center rounded-md backdrop-blur-sm transition-colors"
+                              style={{ background: 'rgba(0,0,0,0.5)', color: 'rgba(242,240,237,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}
+                              title="Editar cotización"
+                            >
+                              <Pencil size={10} />
+                            </button>
+                            <button
+                              onClick={() => setDeleteTarget(order)}
+                              className="w-6 h-6 flex items-center justify-center rounded-md backdrop-blur-sm transition-colors"
+                              style={{ background: 'rgba(0,0,0,0.5)', color: 'rgba(248,113,113,0.8)', border: '1px solid rgba(239,68,68,0.2)' }}
+                              title="Eliminar"
+                            >
+                              <Trash2 size={10} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Card body */}
+                      <div className="px-3 py-3 space-y-2">
+                        {/* Order number + amount */}
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-[11px] font-medium" style={{ color: 'rgba(212,175,55,0.85)' }}>
+                            {order.orderNumber}
+                          </span>
+                          {order.totalAmountCop && (
+                            <span className="text-[10px] font-mono" style={{ color: 'rgba(242,240,237,0.5)' }}>
+                              {formatCOP(Number(order.totalAmountCop))}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Client */}
+                        <div className="flex items-center gap-1.5">
+                          <User size={10} style={{ color: 'rgba(242,240,237,0.25)' }} />
+                          <span className="text-xs font-sans-custom truncate" style={{ color: 'rgba(242,240,237,0.6)' }}>
+                            {order.client.firstName} {order.client.lastName}
+                          </span>
+                        </div>
+
+                        {/* Date */}
+                        <div className="flex items-center gap-1.5">
+                          <Calendar size={10} style={{ color: 'rgba(242,240,237,0.2)' }} />
+                          <span className="text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
+                            {new Date(order.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
+                            {order.estimatedDeliveryDate && (
+                              <> · Entrega: {new Date(order.estimatedDeliveryDate).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}</>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

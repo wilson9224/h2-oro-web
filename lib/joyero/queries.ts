@@ -276,6 +276,17 @@ export async function fetchOrderDetailForWorker(orderId: string, workerId: strin
 }
 
 // Work queries
+function resolveAttachmentUrl(item: any): string | null {
+  if (item.file_url) return item.file_url;
+  if (item.bucket && item.storage_path) {
+    const { data } = supabase.storage
+      .from(item.bucket)
+      .getPublicUrl(item.storage_path);
+    return data.publicUrl;
+  }
+  return null;
+}
+
 export async function fetchAssignment(assignmentId: string): Promise<Assignment | null> {
   const { data } = await supabase
     .from('work_assignments')
@@ -304,6 +315,27 @@ export async function fetchAssignment(assignmentId: string): Promise<Assignment 
 
   if (!data) return null;
 
+  const orderId = (data.pieces as any).orders.id;
+  const { data: referenceRows } = await supabase
+    .from('file_attachments')
+    .select('id, file_name, file_url, bucket, storage_path')
+    .eq('entity_type', 'order')
+    .eq('entity_id', orderId)
+    .eq('file_type', 'image')
+    .order('created_at', { ascending: true });
+
+  const referenceImages: Evidence[] = (referenceRows || [])
+    .map((item: any) => {
+      const url = resolveAttachmentUrl(item);
+      if (!url) return null;
+      return {
+        id: item.id,
+        url,
+        fileName: item.file_name,
+      };
+    })
+    .filter(Boolean) as Evidence[];
+
   return {
     id: data.id,
     stageCode: data.stage_code,
@@ -320,8 +352,9 @@ export async function fetchAssignment(assignmentId: string): Promise<Assignment 
     pieceName: (data.pieces as any).name,
     pieceDescription: (data.pieces as any).description,
     orderNumber: (data.pieces as any).orders.order_number,
-    orderId: (data.pieces as any).orders.id,
+    orderId,
     notes: data.notes,
+    referenceImages,
   };
 }
 
