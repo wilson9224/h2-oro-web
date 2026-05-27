@@ -189,7 +189,7 @@ export default function GeneralInfoSection({
         {showNewClientForm && !form.searched_client && (
           <div className="mt-2 bg-gold-500/10 border border-gold-500/30 rounded-md p-3 space-y-2">
             <p className="text-xs text-gold-400 font-medium">Nuevo cliente — Regístralo</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <input
                 type="text"
                 placeholder="Nombre"

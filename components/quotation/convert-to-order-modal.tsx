@@ -210,17 +210,17 @@ export default function ConvertToOrderModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-3 sm:p-4"
       style={{ background: 'rgba(10,10,10,0.88)' }}
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md my-auto rounded-2xl font-sans-custom flex flex-col"
+        className="relative my-auto flex w-full max-w-md flex-col rounded-2xl font-sans-custom"
         style={{
           background: 'rgba(18,16,14,0.98)',
           border: '1px solid rgba(255,255,255,0.09)',
           boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
-          maxHeight: 'calc(100vh - 2rem)',
+          maxHeight: 'calc(100dvh - 1.5rem)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -284,7 +284,7 @@ export default function ConvertToOrderModal({
               {showNewClientForm && (
                 <div className="mt-2 space-y-2 rounded-xl p-3" style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.12)' }}>
                   <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(212,175,55,0.7)' }}>Registrar nuevo cliente</p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <input
                       placeholder="Nombre"
                       value={newClientData.firstName}
@@ -354,7 +354,7 @@ export default function ConvertToOrderModal({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 flex items-center gap-3 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex shrink-0 flex-col-reverse gap-2 px-5 py-4 sm:flex-row sm:items-center sm:gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
           <button
             onClick={onClose}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
@@ -365,7 +365,7 @@ export default function ConvertToOrderModal({
           <button
             onClick={handleConfirm}
             disabled={loading || !effectiveClientId || !(isAdmin ? assignedToId : userId) || !estimatedDeliveryDate}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all"
             style={{ background: 'rgba(212,175,55,0.9)', color: 'rgba(8,8,8,0.9)', opacity: loading || !effectiveClientId || !(isAdmin ? assignedToId : userId) || !estimatedDeliveryDate ? 0.5 : 1 }}
           >
             {loading ? (

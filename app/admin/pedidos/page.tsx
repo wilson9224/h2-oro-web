@@ -403,7 +403,7 @@ export default function OrdersKanbanPage() {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5">
+    <div className="max-w-full space-y-5">
 
       {/* ── Delete confirmation modal ── */}
       {deleteTarget && (

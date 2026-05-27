@@ -554,7 +554,7 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="space-y-7">
+    <div className="max-w-full space-y-7">
       {/* ═══ New Order Modal ═══ */}
       <AnimatePresence>
         {showNewModal && (
@@ -610,11 +610,11 @@ export default function AdminDashboardPage() {
 
       {/* ═══ Header ═══ */}
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>
             {greeting}, <span style={{ color: 'rgba(212,175,55,0.9)' }}>{user?.firstName}</span>
           </h1>
-          <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.32)' }}>
+          <p className="mt-1 text-sm leading-relaxed font-sans-custom" style={{ color: 'rgba(242,240,237,0.32)' }}>
             {isManager ? 'Panel operativo de tus pedidos y clientes' : 'Centro de operaciones'} · {new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
@@ -862,7 +862,7 @@ export default function AdminDashboardPage() {
           Pipeline de pedidos
         </h2>
         <div className="rounded-2xl p-1" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <div className="grid grid-cols-4 gap-1">
+          <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
             {pipelineSteps.map((step, i) => {
               const StepIcon = step.icon;
               const isActive = step.count > 0;

@@ -207,7 +207,7 @@ export default function LaborSection({ laborItems, setLaborItems }: Props) {
                 {settingSelected && (
                   <div className="px-4 pb-4 space-y-2 border-t border-white/5 pt-3">
                     {/* Cabecera columnas */}
-                    <div className="grid grid-cols-[1fr_80px_80px_28px] gap-2 mb-1">
+                    <div className="mb-1 hidden grid-cols-[minmax(0,1fr)_80px_90px_28px] gap-2 sm:grid">
                       <span className="text-[10px] uppercase tracking-widest text-charcoal-500">Tipo de engaste</span>
                       <span className="text-[10px] uppercase tracking-widest text-charcoal-500 text-center">Cant.</span>
                       <span className="text-[10px] uppercase tracking-widest text-charcoal-500 text-right">Subtotal</span>
@@ -215,12 +215,12 @@ export default function LaborSection({ laborItems, setLaborItems }: Props) {
                     </div>
 
                     {rows.map((row, idx) => (
-                      <div key={idx} className="grid grid-cols-[1fr_80px_80px_28px] gap-2 items-center">
+                      <div key={idx} className="grid min-w-0 grid-cols-1 gap-2 rounded-lg border border-white/5 bg-black/10 p-2 sm:grid-cols-[minmax(0,1fr)_80px_90px_28px] sm:items-center sm:border-0 sm:bg-transparent sm:p-0">
                         {/* Selector de tipo */}
                         <select
                           value={row.service_code}
                           onChange={(e) => updateSettingRow(idx, { service_code: e.target.value })}
-                          className="px-2 py-1.5 bg-charcoal-800 border border-white/5 rounded text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
+                          className="min-w-0 px-2 py-1.5 bg-charcoal-800 border border-white/5 rounded text-sm text-cream-200 focus:outline-none focus:border-gold-500/30"
                         >
                           {settingServices.map((s) => (
                             <option key={s.category + (s.subcategory ? '_' + s.subcategory : '')} value={s.category + (s.subcategory ? '_' + s.subcategory : '')}>
@@ -237,11 +237,11 @@ export default function LaborSection({ laborItems, setLaborItems }: Props) {
                           onChange={(e) =>
                             updateSettingRow(idx, { quantity: Math.max(1, parseInt(e.target.value) || 1) })
                           }
-                          className="px-2 py-1.5 bg-charcoal-800 border border-white/5 rounded text-sm text-cream-200 text-center focus:outline-none focus:border-gold-500/30"
+                          className="px-2 py-1.5 bg-charcoal-800 border border-white/5 rounded text-sm text-cream-200 text-left focus:outline-none focus:border-gold-500/30 sm:text-center"
                         />
 
                         {/* Subtotal */}
-                        <span className="text-sm text-gold-400 text-right font-medium">
+                        <span className="text-sm text-gold-400 font-medium sm:text-right">
                           {formatPriceCOP(row.effective_price)}
                         </span>
 
@@ -249,7 +249,7 @@ export default function LaborSection({ laborItems, setLaborItems }: Props) {
                         <button
                           type="button"
                           onClick={() => removeSettingRow(idx)}
-                          className="flex items-center justify-center text-charcoal-500 hover:text-red-400 transition-colors"
+                          className="flex items-center justify-center rounded-md py-2 text-charcoal-500 transition-colors hover:text-red-400 sm:py-0"
                         >
                           <Trash2 size={14} />
                         </button>
