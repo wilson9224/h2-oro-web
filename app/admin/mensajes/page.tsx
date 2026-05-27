@@ -322,7 +322,7 @@ export default function AdminMessagesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-full space-y-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <h1 className="text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>Mensajes</h1>
@@ -331,6 +331,7 @@ export default function AdminMessagesPage() {
           </p>
         </div>
 
+        <div className="max-w-full overflow-x-auto">
         <div className="inline-flex rounded-2xl p-1 self-start" style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.07)' }}>
           {([
             { key: 'audit', label: 'Auditoría', icon: MessageCircle },
@@ -353,6 +354,7 @@ export default function AdminMessagesPage() {
               </button>
             );
           })}
+        </div>
         </div>
       </div>
 
@@ -425,7 +427,7 @@ export default function AdminMessagesPage() {
                   <option key={template.event_key} value={template.event_key}>{template.event_label}</option>
                 ))}
               </select>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <input
                   type="date"
                   value={filters.dateFrom}

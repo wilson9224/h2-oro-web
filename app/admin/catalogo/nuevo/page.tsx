@@ -139,7 +139,7 @@ export default function NewProductPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 pb-20 lg:pb-0">
+    <div className="mx-auto max-w-full space-y-6 pb-24 sm:max-w-3xl lg:pb-0">
       <Link href="/admin/catalogo" className="inline-flex items-center gap-2 text-sm text-charcoal-400 hover:text-cream-200 transition-colors">
         <ArrowLeft size={16} /> Catálogo
       </Link>
@@ -277,7 +277,7 @@ export default function NewProductPage() {
 
         {/* Variants */}
         <div>
-          <div className="flex items-center justify-between mb-3">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <label className="text-xs tracking-widest uppercase text-charcoal-400">Variantes</label>
             <button type="button" onClick={addVariant} className="inline-flex items-center gap-1 text-xs text-gold-500 hover:text-gold-400 transition-colors">
               <Plus size={14} /> Agregar variante
@@ -286,13 +286,13 @@ export default function NewProductPage() {
           {variants.length > 0 && (
             <div className="space-y-3">
               {variants.map((v, i) => (
-                <div key={i} className="bg-charcoal-800 border border-white/5 rounded-xl p-3 flex gap-3 items-start">
-                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div key={i} className="flex min-w-0 flex-col gap-3 rounded-xl border border-white/5 bg-charcoal-800 p-3 sm:flex-row sm:items-start">
+                  <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-3">
                     <input type="text" placeholder="Nombre" value={v.name} onChange={(e) => updateVariant(i, 'name', e.target.value)} className="px-2 py-1.5 bg-charcoal-900 border border-white/5 rounded text-xs text-cream-200 placeholder:text-charcoal-600 focus:outline-none" />
                     <input type="text" placeholder="Material" value={v.material} onChange={(e) => updateVariant(i, 'material', e.target.value)} className="px-2 py-1.5 bg-charcoal-900 border border-white/5 rounded text-xs text-cream-200 placeholder:text-charcoal-600 focus:outline-none" />
                     <input type="number" placeholder="Precio COP" value={v.priceCop} onChange={(e) => updateVariant(i, 'priceCop', e.target.value)} className="px-2 py-1.5 bg-charcoal-900 border border-white/5 rounded text-xs text-cream-200 placeholder:text-charcoal-600 focus:outline-none" />
                   </div>
-                  <button type="button" onClick={() => removeVariant(i)} className="text-charcoal-500 hover:text-red-400 mt-1"><Trash2 size={14} /></button>
+                  <button type="button" onClick={() => removeVariant(i)} className="self-end rounded-lg p-2 text-charcoal-500 hover:text-red-400 sm:mt-1 sm:self-start"><Trash2 size={14} /></button>
                 </div>
               ))}
             </div>

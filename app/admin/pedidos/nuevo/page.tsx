@@ -212,7 +212,7 @@ function NewCatalogSalePage() {
   };
 
   return (
-    <div className="space-y-4 max-w-2xl font-sans-custom">
+    <div className="max-w-full space-y-4 font-sans-custom sm:max-w-2xl">
       <Link href="/admin/pedidos" className="inline-flex items-center gap-2 text-sm text-charcoal-400 hover:text-cream-200 transition-colors">
         <ArrowLeft size={16} /> Pedidos
       </Link>
@@ -234,7 +234,7 @@ function NewCatalogSalePage() {
 
             {selectedProduct ? (
               <div className="bg-gold-500/5 border border-gold-500/20 rounded-md p-4 flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-cream-100">{selectedProduct.name}</p>
                   <p className="text-xs text-charcoal-400 mt-0.5">{selectedProduct.category}{selectedProduct.material ? ` · ${selectedProduct.material}` : ''}</p>
                   {selectedProduct.basePriceCop && (
@@ -271,7 +271,7 @@ function NewCatalogSalePage() {
                           <p className="text-xs text-charcoal-400">{p.category}{p.material ? ` · ${p.material}` : ''}</p>
                         </div>
                         {p.basePriceCop && (
-                          <span className="text-xs text-gold-400 shrink-0">{formatCOP(p.basePriceCop)}</span>
+                          <span className="max-w-[7rem] shrink-0 truncate text-xs text-gold-400">{formatCOP(p.basePriceCop)}</span>
                         )}
                       </button>
                     ))}
@@ -285,7 +285,7 @@ function NewCatalogSalePage() {
           {selectedProduct && selectedProduct.variants.length > 0 && (
             <div className="mt-4">
               <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">Variante</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <button
                   type="button"
                   onClick={() => setSelectedVariantId('')}
@@ -349,7 +349,7 @@ function NewCatalogSalePage() {
               {showNewClientForm && (
                 <div className="bg-gold-500/5 border border-gold-500/20 rounded-md p-3 space-y-2">
                   <p className="text-xs text-gold-400 font-medium">Cliente nuevo — regístralo</p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <input type="text" placeholder="Nombre *" value={newClient.firstName}
                       onChange={(e) => setNewClient(p => ({ ...p, firstName: e.target.value }))}
                       className="px-2 py-1.5 bg-charcoal-900 border border-white/5 rounded text-xs text-cream-200 placeholder:text-charcoal-500" />
@@ -411,14 +411,14 @@ function NewCatalogSalePage() {
         </SectionCard>
 
         {/* Submit */}
-        <div className="flex items-center gap-3 pt-2">
+        <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:gap-3">
           <button type="submit" disabled={loading}
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 px-6 py-2.5 bg-gold-500 text-charcoal-900 text-sm font-medium rounded-md hover:bg-gold-400 transition-colors disabled:opacity-50 sm:w-auto"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : null}
             Crear Pedido
           </button>
-          <Link href="/admin/pedidos" className="px-4 py-2.5 text-sm text-charcoal-400 hover:text-cream-200 transition-colors">
+          <Link href="/admin/pedidos" className="px-4 py-2.5 text-center text-sm text-charcoal-400 hover:text-cream-200 transition-colors">
             Cancelar
           </Link>
         </div>
@@ -429,7 +429,7 @@ function NewCatalogSalePage() {
 
 function SectionCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-lg p-5 bg-charcoal-900 border border-white/5">
+    <div className="min-w-0 rounded-lg border border-white/5 bg-charcoal-900 p-4 sm:p-5">
       {children}
     </div>
   );

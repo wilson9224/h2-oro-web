@@ -248,7 +248,7 @@ export default function UsersPage() {
   const totalPages = total > 0 ? Math.ceil(total / limit) : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-full space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>{isManager ? 'Clientes' : 'Usuarios'}</h1>
@@ -273,7 +273,7 @@ export default function UsersPage() {
 
       {createClientOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
-          <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: 'rgba(20,18,14,0.98)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-hidden rounded-2xl" style={{ background: 'rgba(20,18,14,0.98)', border: '1px solid rgba(255,255,255,0.1)' }}>
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: 'rgba(212,175,55,0.1)', color: 'rgba(212,175,55,0.9)' }}>
@@ -288,7 +288,7 @@ export default function UsersPage() {
                 <X size={18} />
               </button>
             </div>
-            <div className="space-y-3 p-5">
+            <div className="max-h-[calc(100dvh-12rem)] space-y-3 overflow-y-auto p-5">
               {clientError && <div className="rounded-xl p-3 text-sm font-sans-custom" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', color: 'rgba(248,113,113,0.9)' }}>{clientError}</div>}
               {clientSuccess && <div className="rounded-xl p-3 text-sm font-sans-custom" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', color: 'rgba(16,185,129,0.9)' }}>Cliente registrado correctamente</div>}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -298,12 +298,12 @@ export default function UsersPage() {
               <input value={clientForm.phone} onChange={(e) => setClientForm((form) => ({ ...form, phone: e.target.value }))} placeholder="Teléfono *" className="w-full rounded-xl px-3 py-2.5 text-sm font-sans-custom focus:outline-none" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(242,240,237,0.86)' }} />
               <input value={clientForm.email} onChange={(e) => setClientForm((form) => ({ ...form, email: e.target.value }))} placeholder="Email opcional" type="email" className="w-full rounded-xl px-3 py-2.5 text-sm font-sans-custom focus:outline-none" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(242,240,237,0.86)' }} />
             </div>
-            <div className="flex items-center justify-end gap-2 px-5 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex flex-col-reverse gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-end" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
               <button onClick={closeCreateClient} className="rounded-xl px-4 py-2 text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>Cancelar</button>
               <button
                 onClick={handleCreateClient}
                 disabled={clientSaving}
-                className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold font-sans-custom disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold font-sans-custom disabled:opacity-50"
                 style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400' }}
               >
                 {clientSaving && <Loader2 size={14} className="animate-spin" />}

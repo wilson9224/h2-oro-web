@@ -132,9 +132,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const managerBottomNav = managerNavSections
     .flatMap((section) => section.items)
     .filter((item) => ['/admin', '/admin/pedidos', '/admin/cotizacion', '/admin/usuarios', '/admin/catalogo'].includes(item.href));
+  const showManagerBottomNav = isManager && managerBottomNav.some((item) => pathname === item.href);
 
   return (
-    <div className="min-h-screen flex" style={{ background: 'rgba(8,8,8,1)' }}>
+    <div className="flex min-h-screen overflow-x-hidden" style={{ background: 'rgba(8,8,8,1)' }}>
       {/* Sidebar - desktop - improved */}
       <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0" style={{ background: 'rgba(8,8,8,1)', borderRight: '1px solid rgba(242,240,237,0.06)' }}>
         {/* Logo */}
@@ -218,7 +219,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 w-80 z-50 flex flex-col font-sans-custom" style={{ background: 'rgba(8,8,8,1)', borderRight: '1px solid rgba(242,240,237,0.06)' }}
+              className="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-1rem))] flex-col font-sans-custom" style={{ background: 'rgba(8,8,8,1)', borderRight: '1px solid rgba(242,240,237,0.06)' }}
             >
               <div className="px-6 py-5 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(242,240,237,0.06)' }}>
                 <span className="text-xl font-semibold tracking-tight font-sans-custom">
@@ -280,7 +281,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </AnimatePresence>
 
       {/* Main content */}
-      <div className="lg:pl-64 flex-1 flex flex-col min-h-screen">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:pl-64">
         {/* Top bar (mobile) - improved */}
         <header className="lg:hidden sticky top-0 z-30 px-4 py-3 flex items-center justify-between font-sans-custom" style={{ background: 'rgba(8,8,8,0.8)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(242,240,237,0.06)' }}>
           <button onClick={() => setSidebarOpen(true)} className="transition-colors p-2 -ml-2" style={{ color: 'rgba(242,240,237,0.6)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.8)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.6)'}>
@@ -296,9 +297,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Page content - better spacing */}
-        <main className={`flex-1 p-4 md:p-6 lg:p-8 ${isManager ? 'pb-24 lg:pb-8' : ''}`}>{children}</main>
+        <main className={`min-w-0 flex-1 overflow-x-hidden p-3 sm:p-4 md:p-6 lg:p-8 ${showManagerBottomNav ? 'pb-24 lg:pb-8' : ''}`}>{children}</main>
 
-        {isManager && (
+        {showManagerBottomNav && (
           <nav
             className="lg:hidden fixed inset-x-0 bottom-0 z-30 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
             style={{ background: 'rgba(8,8,8,0.92)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(242,240,237,0.08)' }}

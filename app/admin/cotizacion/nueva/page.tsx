@@ -145,19 +145,19 @@ export default function NuevaCotizacionPage() {
   return (
     <div className="min-h-screen">
       {/* Back + header */}
-      <div className="space-y-1 mb-6">
+      <div className="mb-6 space-y-1">
         <Link
           href="/admin/cotizacion"
           className="inline-flex items-center gap-2 text-sm transition-colors font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.8)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.4)'}
         >
           <ArrowLeft size={16} /> Cotizaciones
         </Link>
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h1 className="text-2xl font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.95)' }}>
               {editId ? 'Editar Cotización' : 'Nueva Cotización'}
             </h1>
-            <p className="text-sm mt-0.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
+            <p className="mt-0.5 text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
               Tipo:{' '}
               <span className="font-medium" style={{ color: 'rgba(212,175,55,0.9)' }}>{quoteTypeLabel}</span>
               {!editId && (
@@ -176,7 +176,7 @@ export default function NuevaCotizacionPage() {
             </p>
           </div>
           {savedId && (
-            <span className="text-xs font-sans-custom" style={{ color: 'rgba(16,185,129,0.7)' }}>
+            <span className="text-xs font-sans-custom sm:shrink-0" style={{ color: 'rgba(16,185,129,0.7)' }}>
               {isConverted ? 'Cambios guardados' : 'Borrador guardado'}
             </span>
           )}
@@ -191,10 +191,10 @@ export default function NuevaCotizacionPage() {
       )}
 
       {/* ── 2-column layout on lg+ ── */}
-      <div className="flex gap-6 items-start">
+      <div className="flex min-w-0 flex-col gap-6 lg:flex-row lg:items-start">
 
         {/* LEFT: form sections */}
-        <div className="flex-1 min-w-0 space-y-5 pb-40 lg:pb-8">
+        <div className="min-w-0 flex-1 space-y-5 pb-40 lg:pb-8">
           <SectionCard>
             <GeneralInfoSection
               form={form}
@@ -283,7 +283,7 @@ export default function NuevaCotizacionPage() {
 
 function SectionCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-lg p-5 font-sans-custom" style={{ background: 'rgba(8,8,8,1)', border: '1px solid rgba(255,255,255,0.05)' }}>
+    <div className="min-w-0 rounded-lg p-4 font-sans-custom sm:p-5" style={{ background: 'rgba(8,8,8,1)', border: '1px solid rgba(255,255,255,0.05)' }}>
       {children}
     </div>
   );

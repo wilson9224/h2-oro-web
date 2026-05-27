@@ -299,7 +299,7 @@ export default function CatalogPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-full space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>Catálogo</h1>
@@ -325,7 +325,8 @@ export default function CatalogPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl p-1 w-fit" style={{ background: 'rgba(255,255,255,0.04)' }}>
+      <div className="max-w-full overflow-x-auto">
+      <div className="flex w-max gap-1 rounded-xl p-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
         <button
           onClick={() => setTab('products')}
           className={`px-4 py-2 text-sm rounded-xl font-sans-custom transition-all duration-200 ${tab === 'products' ? 'bg-white/10' : 'hover:bg-white/5'}`}
@@ -340,6 +341,7 @@ export default function CatalogPage() {
         >
           Categorías ({categories.length})
         </button>
+      </div>
       </div>
 
       {tab === 'products' && (
@@ -381,7 +383,7 @@ export default function CatalogPage() {
                 <select
                   value={categoryFilter}
                   onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-                  className="px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none transition-all duration-200 font-sans-custom sm:w-auto"
                   style={{
                     background: 'rgba(255,255,255,0.04)',
                     border: '1px solid rgba(255,255,255,0.07)',

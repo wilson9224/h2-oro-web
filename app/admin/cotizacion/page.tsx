@@ -63,7 +63,7 @@ export default function CotizacionListPage() {
   const totalPages = Math.ceil(count / PAGE_SIZE);
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-full space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -79,7 +79,7 @@ export default function CotizacionListPage() {
         </div>
         <Link
           href="/admin/cotizacion/nueva"
-          className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all duration-200 font-sans-custom"
+          className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all duration-200 font-sans-custom sm:w-auto"
           style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400', borderRadius: '0.75rem' }}
         >
           <Plus size={16} />

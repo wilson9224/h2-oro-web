@@ -120,13 +120,13 @@ export default function MetalSection({
           <label className="block text-xs tracking-widest uppercase text-charcoal-400 mb-2">
             Color del oro *
           </label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {(Object.entries(GOLD_COLOR_LABELS) as [GoldColor, string][]).map(([key, label]) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => setGoldColor(key)}
-                className={`flex-1 py-2 rounded-md text-sm border transition-all ${
+                className={`py-2 rounded-md text-sm border transition-all ${
                   form.gold_color === key
                     ? 'bg-gold-500/10 border-gold-500/30 text-gold-400'
                     : 'bg-charcoal-800 border-white/5 text-charcoal-300 hover:border-white/10'
