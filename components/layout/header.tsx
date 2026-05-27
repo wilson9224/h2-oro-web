@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { LogIn, PackageSearch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const navLinks = [
-  { href: '/seguimiento', label: 'Mi pedido' },
-];
+const actionLinks = [
+  { href: '/seguimiento', label: 'Mi pedido', icon: PackageSearch, tone: 'primary' },
+  { href: '/auth/login', label: 'Ingresar', icon: LogIn, tone: 'secondary' },
+] as const;
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,7 +37,7 @@ export function Header() {
         )}
       >
         <div className="section-padding">
-          <nav className="flex items-center justify-between h-14 md:h-18">
+          <nav className="relative flex items-center justify-between h-14 md:h-18">
             {/* Logo */}
             <Link href="/" className="relative z-50">
               <span className="font-display text-xl tracking-tight">
@@ -44,23 +46,34 @@ export function Header() {
               </span>
             </Link>
 
-            {/* Desktop nav — clean, spaced */}
-            <div className="hidden md:flex items-center gap-8">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="link-hover text-xs uppercase tracking-[0.12em] font-sans"
-                >
-                  {link.label}
-                </Link>
-              ))}
-              <Link
-                href="/auth/login"
-                className="btn-pill-outline text-[10px] px-5 py-2"
-              >
-                Ingresar
-              </Link>
+            {/* Desktop actions */}
+            <div className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full border border-cream-200/[0.08] bg-[#080806]/62 p-1.5 shadow-[0_12px_34px_rgba(0,0,0,0.28)] backdrop-blur-2xl md:flex">
+              {actionLinks.map((link) => {
+                const Icon = link.icon;
+
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      'group inline-flex h-10 items-center gap-2 rounded-full px-4 text-[10px] font-semibold uppercase tracking-[0.16em] font-sans-custom transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/45 active:scale-[0.97]',
+                      link.tone === 'primary'
+                        ? 'bg-gold-500 text-black shadow-[0_0_0_1px_rgba(245,230,204,0.18),0_10px_28px_rgba(212,175,55,0.22)] hover:bg-gold-400 hover:shadow-[0_0_0_1px_rgba(245,230,204,0.28),0_14px_36px_rgba(212,175,55,0.3)]'
+                        : 'border border-cream-200/[0.12] bg-cream-200/[0.035] text-cream-100/78 hover:border-gold-400/35 hover:bg-gold-400/[0.08] hover:text-cream-100'
+                    )}
+                  >
+                    <Icon
+                      size={15}
+                      strokeWidth={1.7}
+                      className={cn(
+                        'transition-transform duration-300 group-hover:-translate-y-px',
+                        link.tone === 'primary' ? 'text-black' : 'text-gold-400/72'
+                      )}
+                    />
+                    {link.label}
+                  </Link>
+                );
+              })}
             </div>
 
             {/* Mobile toggle — minimal line design */}
@@ -95,8 +108,11 @@ export function Header() {
             className="fixed inset-0 z-40 bg-[#0A0A0A] md:hidden"
           >
             <nav className="flex flex-col justify-between h-full section-padding pt-24 pb-12">
-              <div className="space-y-0">
-                {navLinks.map((link, i) => (
+              <div className="space-y-3">
+                {actionLinks.map((link, i) => {
+                  const Icon = link.icon;
+
+                  return (
                   <motion.div
                     key={link.href}
                     initial={{ opacity: 0, y: 30 }}
@@ -106,33 +122,46 @@ export function Header() {
                     <Link
                       href={link.href}
                       onClick={() => setIsOpen(false)}
-                      className="group flex items-baseline justify-between py-6 border-b border-cream-200/[0.06]"
+                      className={cn(
+                        'group flex items-center justify-between rounded-2xl border p-5 transition-all duration-300 active:scale-[0.98]',
+                        link.tone === 'primary'
+                          ? 'border-gold-500/40 bg-gold-500 text-black shadow-[0_18px_44px_rgba(212,175,55,0.2)]'
+                          : 'border-cream-200/[0.08] bg-cream-200/[0.035] text-cream-100'
+                      )}
                     >
-                      <span className="font-display text-display-md text-cream-100 group-hover:text-gold-400 transition-colors duration-500">
-                        {link.label}
+                      <span className="flex items-center gap-4">
+                        <span
+                          className={cn(
+                            'flex h-11 w-11 items-center justify-center rounded-xl border transition-colors',
+                            link.tone === 'primary'
+                              ? 'border-black/10 bg-black/[0.08] text-black'
+                              : 'border-gold-400/22 bg-gold-400/[0.08] text-gold-400'
+                          )}
+                        >
+                          <Icon size={18} strokeWidth={1.7} />
+                        </span>
+                        <span
+                          className={cn(
+                            'font-display text-3xl leading-none transition-colors duration-500',
+                            link.tone === 'primary' ? 'text-black' : 'text-cream-100'
+                          )}
+                        >
+                          {link.label}
+                        </span>
                       </span>
-                      <span className="text-label text-cream-200/20 font-mono">
+                      <span
+                        className={cn(
+                          'font-mono text-[10px]',
+                          link.tone === 'primary' ? 'text-black/40' : 'text-cream-200/20'
+                        )}
+                      >
                         0{i + 1}
                       </span>
                     </Link>
                   </motion.div>
-                ))}
+                  );
+                })}
               </div>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5, duration: 0.4 }}
-                className="flex gap-3"
-              >
-                <Link
-                  href="/auth/login"
-                  onClick={() => setIsOpen(false)}
-                  className="btn-pill-outline flex-1 justify-center"
-                >
-                  Ingresar
-                </Link>
-              </motion.div>
             </nav>
           </motion.div>
         )}
