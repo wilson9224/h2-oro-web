@@ -81,6 +81,12 @@ function toSlug(text: string) {
     .replace(/^-|-$/g, '');
 }
 
+function productImageUrl(product: Product) {
+  const primary = product.images.find((image) => image.isPrimary) ?? product.images[0];
+  if (!primary?.storagePath) return null;
+  return supabase.storage.from('products').getPublicUrl(primary.storagePath).data.publicUrl;
+}
+
 export default function CatalogPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [productsTotal, setProductsTotal] = useState(0);
@@ -294,7 +300,7 @@ export default function CatalogPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>Catálogo</h1>
           <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Gestión de productos y categorías</p>
@@ -302,7 +308,7 @@ export default function CatalogPage() {
         {tab === 'products' ? (
           <Link
             href="/admin/catalogo/nuevo"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-all duration-200 font-sans-custom"
+            className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all duration-200 font-sans-custom sm:w-auto"
             style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400', borderRadius: '0.75rem' }}
           >
             <Plus size={16} /> Nuevo Producto
@@ -310,7 +316,7 @@ export default function CatalogPage() {
         ) : (
           <button
             onClick={openNewCategory}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-all duration-200 font-sans-custom"
+            className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all duration-200 font-sans-custom sm:w-auto"
             style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400', borderRadius: '0.75rem' }}
           >
             <Plus size={16} /> Nueva Categoría
@@ -389,8 +395,58 @@ export default function CatalogPage() {
                 </select>
               </div>
 
+              <div className="space-y-3 md:hidden">
+                {loading && [...Array(4)].map((_, i) => (
+                  <div key={i} className="h-32 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+                ))}
+                {!loading && products.map((p) => {
+                  const imageUrl = productImageUrl(p);
+                  return (
+                    <div key={p.id} className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="flex gap-3 p-3">
+                        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                          {imageUrl ? (
+                            <img src={imageUrl} alt={p.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <Package size={18} style={{ color: 'rgba(242,240,237,0.22)' }} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.86)' }}>{p.name}</p>
+                          <p className="mt-0.5 truncate text-[11px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>/{p.slug}</p>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            <span className="rounded-lg px-2 py-0.5 text-[10px] font-sans-custom" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.45)' }}>{p.category.name}</span>
+                            <span className={`rounded-lg px-2 py-0.5 text-[10px] font-sans-custom ${p.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-cream-200/40'}`}>{p.isActive ? 'Activo' : 'Inactivo'}</span>
+                            {p.isFeatured && <span className="rounded-lg px-2 py-0.5 text-[10px] font-sans-custom bg-gold-500/15 text-gold-400">Destacado</span>}
+                          </div>
+                          <p className="mt-2 text-xs font-mono" style={{ color: 'rgba(242,240,237,0.56)' }}>
+                            {p.basePriceCop ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(Number(p.basePriceCop)) : 'Sin precio'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end gap-1 px-3 pb-3">
+                        <button onClick={() => toggleFeatured(p.id, p.isFeatured)} className="rounded-lg p-2" style={{ color: p.isFeatured ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.38)' }} title="Destacar">
+                          <Star size={15} className={p.isFeatured ? 'fill-gold-400 text-gold-400' : ''} />
+                        </button>
+                        <button onClick={() => toggleActive(p.id, p.isActive)} className="rounded-lg p-2" style={{ color: 'rgba(242,240,237,0.42)' }} title={p.isActive ? 'Desactivar' : 'Activar'}>
+                          {p.isActive ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                        <Link href={`/catalogo/${p.slug}`} className="rounded-lg p-2" style={{ color: 'rgba(242,240,237,0.42)' }} title="Ver en catálogo">
+                          <Edit3 size={15} />
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+                {!loading && products.length === 0 && (
+                  <div className="rounded-2xl px-5 py-12 text-center text-xs font-sans-custom" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(242,240,237,0.3)' }}>No se encontraron productos con esos filtros</div>
+                )}
+              </div>
+
               {/* Products Table */}
-              <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="hidden rounded-2xl overflow-hidden md:block" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -412,12 +468,18 @@ export default function CatalogPage() {
                           ))}
                         </tr>
                       ))}
-                      {!loading && products.map((p) => (
+                      {!loading && products.map((p) => {
+                        const imageUrl = productImageUrl(p);
+                        return (
                         <tr key={p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }} className="hover:bg-white/[0.02] transition-colors">
                           <td className="px-5 py-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                                <Package size={16} style={{ color: 'rgba(242,240,237,0.3)' }} />
+                              <div className="w-10 h-10 rounded overflow-hidden flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                                {imageUrl ? (
+                                  <img src={imageUrl} alt={p.name} className="h-full w-full object-cover" />
+                                ) : (
+                                  <Package size={16} style={{ color: 'rgba(242,240,237,0.3)' }} />
+                                )}
                               </div>
                               <div>
                                 <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{p.name}</p>
@@ -449,13 +511,14 @@ export default function CatalogPage() {
                               <button onClick={() => toggleActive(p.id, p.isActive)} className="p-1.5 rounded transition-colors" style={{ color: 'rgba(242,240,237,0.3)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.8)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'} title={p.isActive ? 'Desactivar' : 'Activar'}>
                                 {p.isActive ? <EyeOff size={14} /> : <Eye size={14} />}
                               </button>
-                              <Link href={`/admin/catalogo/${p.id}`} className="p-1.5 rounded transition-colors" style={{ color: 'rgba(242,240,237,0.3)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.8)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'}>
-                                <Edit3 size={14} />
+                              <Link href={`/catalogo/${p.slug}`} className="p-1.5 rounded transition-colors" style={{ color: 'rgba(242,240,237,0.3)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.8)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'} title="Ver en catálogo">
+                                <Eye size={14} />
                               </Link>
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                       {!loading && products.length === 0 && (
                         <tr><td colSpan={7} className="px-5 py-12 text-center text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>No se encontraron productos con esos filtros</td></tr>
                       )}
@@ -479,7 +542,36 @@ export default function CatalogPage() {
 
       {tab === 'categories' && (
         <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <table className="w-full text-sm">
+          <div className="space-y-3 p-3 md:hidden">
+            {categories.map((c) => (
+              <div key={c.id} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.055)' }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.84)' }}>{c.name}</p>
+                    <p className="mt-0.5 truncate text-xs font-mono" style={{ color: 'rgba(242,240,237,0.36)' }}>/{c.slug}</p>
+                    <p className="mt-2 text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>{c.productCount} producto{c.productCount !== 1 ? 's' : ''}</p>
+                  </div>
+                  <span className={`shrink-0 text-[11px] px-2 py-0.5 rounded font-sans-custom ${c.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-cream-200/40'}`}>
+                    {c.isActive ? 'Activa' : 'Inactiva'}
+                  </span>
+                </div>
+                <div className="mt-3 flex justify-end gap-1">
+                  <button onClick={() => openEditCategory(c)} className="rounded-lg p-2" style={{ color: 'rgba(212,175,55,0.82)' }} title="Editar">
+                    <Pencil size={14} />
+                  </button>
+                  {c.productCount === 0 && (
+                    <button onClick={() => handleDeleteCategory(c.id, c.name)} className="rounded-lg p-2" style={{ color: 'rgba(248,113,113,0.82)' }} title="Eliminar">
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            {categories.length === 0 && (
+              <div className="px-5 py-8 text-center text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>No hay categorías. Crea la primera.</div>
+            )}
+          </div>
+          <table className="hidden w-full text-sm md:table">
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                 <th className="text-left px-5 py-3 text-xs font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Nombre</th>

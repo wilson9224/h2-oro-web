@@ -1,17 +1,20 @@
 'use client';
 
 import { useRef } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
 
-const collections = [
+// Portadas editoriales del home. No dependen de productos, categorias ni imagenes subidas desde /admin/catalogo.
+// Mantenerlas fijas evita que la gestion del catalogo publico cambie la portada "Coleccion" accidentalmente.
+const HOME_COLLECTION_COVERS = [
   { title: 'Anillos', tagline: 'Tu historia, forjada en oro', num: '01', image: '/collections/home-anillos.png' },
   { title: 'Collares', tagline: 'Elegancia que enmarca', num: '02', image: '/collections/home-collares.png' },
   { title: 'Pulseras', tagline: 'El complemento que faltaba', num: '03', image: '/collections/home-pulseras.png' },
   { title: 'Aretes', tagline: 'Brillo que cautiva', num: '04', image: '/collections/home-aretes.png' },
   { title: 'Dijes', tagline: 'Detalles que cuentan', num: '05', image: '/collections/home-dijes.png' },
-];
+] as const;
 
 const ACCENT_COLORS = [
   'rgba(212,175,55,0.09)',
@@ -25,7 +28,7 @@ function CollectionCard({
   item,
   index,
 }: {
-  item: (typeof collections)[number];
+  item: (typeof HOME_COLLECTION_COVERS)[number];
   index: number;
 }) {
   const ref = useRef(null);
@@ -42,10 +45,13 @@ function CollectionCard({
             borderTop: '1px solid rgba(212,175,55,0.1)',
           }}
         >
-          <img
+          <Image
             src={item.image}
             alt={item.title}
-            className="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:opacity-90 transition-opacity duration-700 scale-100 group-hover:scale-[1.03] transition-transform"
+            fill
+            sizes="(min-width: 1024px) 33vw, 50vw"
+            priority={index < 2}
+            className="object-cover opacity-70 group-hover:opacity-90 transition-opacity duration-700 scale-100 group-hover:scale-[1.03] transition-transform"
           />
 
           <div
@@ -145,7 +151,7 @@ export function FeaturedCollection() {
             </div>
           </motion.div>
 
-          {collections.map((item, i) => (
+          {HOME_COLLECTION_COVERS.map((item, i) => (
             <CollectionCard key={item.title} item={item} index={i} />
           ))}
         </div>

@@ -24,6 +24,9 @@ import {
   Activity,
   Plus,
   Ban,
+  MessageCircle,
+  Users,
+  Package,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -39,6 +42,7 @@ interface OrderRow {
   total_amount_cop: number | null;
   created_at: string;
   estimated_delivery_date: string | null;
+  assigned_to_id?: string | null;
   client: { first_name: string; last_name: string } | { first_name: string; last_name: string }[];
   pieces: { id: string }[];
 }
@@ -49,6 +53,17 @@ interface QuotationRow { id: string; status: string; total_cop: number; created_
 interface WorkerPaymentRow { id: string; amount_cop: number; status: string; worker_id: string; created_at: string }
 interface InventoryItemRow { id: string; name: string; current_stock: number; min_stock: number | null; unit: string; type: string }
 interface ExpenseRow { id: string; category: string; description: string; amount_cop: number; expense_date: string }
+interface WhatsAppLogRow {
+  id: string;
+  order_id: string;
+  event_key: string;
+  status: string;
+  recipient_name: string | null;
+  error_message: string | null;
+  skipped_reason: string | null;
+  created_at: string;
+  sent_at: string | null;
+}
 
 interface DashboardData {
   orders: OrderRow[];
@@ -58,6 +73,7 @@ interface DashboardData {
   workerPayments: WorkerPaymentRow[];
   inventoryItems: InventoryItemRow[];
   expenses: ExpenseRow[];
+  whatsappLogs: WhatsAppLogRow[];
 }
 
 /* ─── Helpers ─── */
@@ -95,6 +111,15 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   cancelled:   { label: 'Cancelado',   color: 'rgba(248,113,113,0.9)', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.18)' },
 };
 
+const MESSAGE_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  queued: { label: 'En cola', color: 'rgba(251,191,36,0.9)', bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.18)' },
+  sent: { label: 'Enviado', color: 'rgba(96,165,250,0.9)', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.18)' },
+  failed: { label: 'Falló', color: 'rgba(248,113,113,0.9)', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.18)' },
+  skipped: { label: 'Omitido', color: 'rgba(148,163,184,0.9)', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.18)' },
+  delivered: { label: 'Entregado', color: 'rgba(52,211,153,0.9)', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.18)' },
+  read: { label: 'Leído', color: 'rgba(167,139,250,0.9)', bg: 'rgba(167,139,250,0.08)', border: 'rgba(167,139,250,0.18)' },
+};
+
 /* ═══════════════════════════════════════════════════════════════ */
 /*  MAIN COMPONENT                                                */
 /* ═══════════════════════════════════════════════════════════════ */
@@ -109,27 +134,82 @@ export default function AdminDashboardPage() {
   /* ─── Data Fetching ─── */
   useEffect(() => {
     const load = async () => {
+      if (!user) return;
+
       try {
-        const [ordersRes, paymentsRes, assignRes, quotRes, wpRes, invRes, expRes] = await Promise.all([
-          supabase.from('orders').select('id, order_number, type, status, total_amount_cop, created_at, estimated_delivery_date, client:users!client_id(first_name, last_name), pieces(id)').is('deleted_at', null).order('created_at', { ascending: false }),
-          supabase.from('payments').select('id, order_id, amount_cop, status, paid_at, created_at').eq('status', 'completed'),
-          supabase.from('work_assignments').select('id, status, stage_code, piece_id'),
-          supabase.from('quotations').select('id, status, total_cop, created_at').order('created_at', { ascending: false }),
-          supabase.from('worker_payments').select('id, amount_cop, status, worker_id, created_at'),
-          supabase.from('inventory_items').select('id, name, current_stock, min_stock, unit, type').eq('is_active', true),
-          supabase.from('expenses').select('id, category, description, amount_cop, expense_date').order('expense_date', { ascending: false }).limit(5),
-        ]);
+        const isManager = user.role === 'manager';
+
+        let ordersQuery = supabase
+          .from('orders')
+          .select('id, order_number, type, status, total_amount_cop, created_at, estimated_delivery_date, assigned_to_id, client:users!client_id(first_name, last_name), pieces(id)')
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false });
+
+        if (isManager) ordersQuery = ordersQuery.eq('assigned_to_id', user.id);
+
+        let quotationsQuery = supabase
+          .from('quotations')
+          .select('id, status, total_cop, created_at')
+          .order('created_at', { ascending: false });
+
+        if (isManager) quotationsQuery = quotationsQuery.eq('created_by_user_id', user.id);
+
+        const [ordersRes, quotRes] = await Promise.all([ordersQuery, quotationsQuery]);
 
         if (ordersRes.error) throw ordersRes.error;
+        if (quotRes.error) throw quotRes.error;
+
+        const scopedOrders = (ordersRes.data || []) as OrderRow[];
+        const orderIds = scopedOrders.map((order) => order.id);
+        const pieceIds = scopedOrders.flatMap((order) => (order.pieces || []).map((piece) => piece.id));
+
+        const paymentsQuery = supabase
+          .from('payments')
+          .select('id, order_id, amount_cop, status, paid_at, created_at')
+          .eq('status', 'completed');
+        const assignmentsQuery = supabase.from('work_assignments').select('id, status, stage_code, piece_id');
+        const whatsappQuery = supabase
+          .from('whatsapp_notification_logs')
+          .select('id, order_id, event_key, status, recipient_name, error_message, skipped_reason, created_at, sent_at')
+          .order('created_at', { ascending: false })
+          .limit(6);
+
+        const [paymentsRes, assignRes, whatsappRes, wpRes, invRes, expRes] = await Promise.all([
+          isManager
+            ? orderIds.length > 0
+              ? paymentsQuery.in('order_id', orderIds)
+              : Promise.resolve({ data: [], error: null })
+            : paymentsQuery,
+          isManager
+            ? pieceIds.length > 0
+              ? assignmentsQuery.in('piece_id', pieceIds)
+              : Promise.resolve({ data: [], error: null })
+            : assignmentsQuery,
+          isManager
+            ? orderIds.length > 0
+              ? whatsappQuery.in('order_id', orderIds)
+              : Promise.resolve({ data: [], error: null })
+            : whatsappQuery,
+          user.role === 'admin'
+            ? supabase.from('worker_payments').select('id, amount_cop, status, worker_id, created_at')
+            : Promise.resolve({ data: [], error: null }),
+          user.role === 'admin'
+            ? supabase.from('inventory_items').select('id, name, current_stock, min_stock, unit, type').eq('is_active', true)
+            : Promise.resolve({ data: [], error: null }),
+          user.role === 'admin'
+            ? supabase.from('expenses').select('id, category, description, amount_cop, expense_date').order('expense_date', { ascending: false }).limit(5)
+            : Promise.resolve({ data: [], error: null }),
+        ]);
 
         setData({
-          orders: (ordersRes.data || []) as OrderRow[],
+          orders: scopedOrders,
           payments: (paymentsRes.data || []) as PaymentRow[],
           assignments: (assignRes.data || []) as AssignmentRow[],
           quotations: (quotRes.data || []) as QuotationRow[],
           workerPayments: (wpRes.data || []) as WorkerPaymentRow[],
           inventoryItems: (invRes.data || []) as InventoryItemRow[],
           expenses: (expRes.data || []) as ExpenseRow[],
+          whatsappLogs: (!whatsappRes.error && whatsappRes.data ? whatsappRes.data : []) as WhatsAppLogRow[],
         });
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Error cargando datos');
@@ -138,7 +218,7 @@ export default function AdminDashboardPage() {
       }
     };
     load();
-  }, []);
+  }, [user]);
 
   /* ─── Computed Values ─── */
   const computed = useMemo(() => {
@@ -176,6 +256,8 @@ export default function AdminDashboardPage() {
 
     // Total alerts
     const totalAlerts = delayedOrders.length + draftQuotations.length + pendingWorkerPayments.length + lowStockItems.length;
+    const failedMessages = data.whatsappLogs.filter((log) => log.status === 'failed');
+    const skippedMessages = data.whatsappLogs.filter((log) => log.status === 'skipped');
 
     // Pipeline counts
     const pipeline = {
@@ -235,6 +317,7 @@ export default function AdminDashboardPage() {
       assignPending, assignActive, assignCompleted, assignPaused,
       draftQuotations, pendingWorkerPayments, pendingWorkerTotal,
       lowStockItems, totalAlerts, pipeline, priorityOrders,
+      failedMessages, skippedMessages,
       timeline: timeline.slice(0, 8),
     };
   }, [data]);
@@ -279,9 +362,47 @@ export default function AdminDashboardPage() {
   })();
 
   const nowForRender = new Date();
+  const isManager = user?.role === 'manager';
 
   /* ═══ KPIs ═══ */
-  const kpis = [
+  const kpis = isManager ? [
+    {
+      label: 'Mis pedidos activos',
+      value: computed.activeOrders.length.toString(),
+      sub: `${data.orders.length} asignados`,
+      icon: ShoppingBag,
+      accent: 'rgba(96,165,250,1)',
+      bg: 'rgba(96,165,250,0.07)',
+      border: 'rgba(96,165,250,0.14)',
+    },
+    {
+      label: 'Mis cotizaciones',
+      value: computed.draftQuotations.length.toString(),
+      sub: computed.draftQuotations.length > 0 ? 'borradores abiertos' : 'sin pendientes',
+      icon: FileText,
+      accent: 'rgba(167,139,250,1)',
+      bg: 'rgba(167,139,250,0.07)',
+      border: 'rgba(167,139,250,0.14)',
+    },
+    {
+      label: 'Cartera propia',
+      value: formatCOP(computed.cartera),
+      sub: computed.cartera > 0 ? 'por cobrar' : 'al día',
+      icon: Wallet,
+      accent: 'rgba(212,175,55,1)',
+      bg: 'rgba(212,175,55,0.07)',
+      border: 'rgba(212,175,55,0.14)',
+    },
+    {
+      label: 'Alertas propias',
+      value: computed.totalAlerts.toString(),
+      sub: computed.totalAlerts > 0 ? 'requieren acción' : 'todo en orden',
+      icon: AlertTriangle,
+      accent: computed.totalAlerts > 0 ? 'rgba(248,113,113,1)' : 'rgba(52,211,153,1)',
+      bg: computed.totalAlerts > 0 ? 'rgba(248,113,113,0.07)' : 'rgba(52,211,153,0.07)',
+      border: computed.totalAlerts > 0 ? 'rgba(248,113,113,0.14)' : 'rgba(52,211,153,0.14)',
+    },
+  ] : [
     {
       label: 'Pedidos activos',
       value: computed.activeOrders.length.toString(),
@@ -360,6 +481,19 @@ export default function AdminDashboardPage() {
     },
   ].filter(Boolean) as { title: string; sub: string; href: string; accent: string; bg: string; border: string; icon: typeof Clock }[];
 
+  const actionItems = attentionCards.length > 0
+    ? attentionCards
+    : [{
+      title: 'Operación al día',
+      sub: 'No hay alertas críticas en este momento',
+      href: '/admin/pedidos',
+      accent: 'rgba(52,211,153,0.9)',
+      bg: 'rgba(52,211,153,0.055)',
+      border: 'rgba(52,211,153,0.14)',
+      icon: CheckCircle2,
+    }];
+  const actionSignalCount = attentionCards.length;
+
   /* ═══ Pipeline ═══ */
   const pipelineSteps = [
     { key: 'pending', label: 'Pendientes', count: computed.pipeline.pending, icon: CircleDot, color: 'rgba(251,191,36,0.9)' },
@@ -373,6 +507,51 @@ export default function AdminDashboardPage() {
     'file-text': FileText,
     'wallet': Wallet,
   };
+
+  const quickActions = [
+    {
+      label: 'Nuevo pedido',
+      desc: 'Venta directa o taller',
+      icon: Plus,
+      onClick: () => setShowNewModal(true),
+    },
+    {
+      label: 'Nueva cotización',
+      desc: 'Personalizado o reparación',
+      icon: Gem,
+      href: '/admin/cotizacion/nueva',
+    },
+    {
+      label: 'Auditar mensajes',
+      desc: 'WhatsApp y plantillas',
+      icon: MessageCircle,
+      href: '/admin/mensajes',
+    },
+    ...(isManager
+      ? [
+        {
+          label: 'Registrar cliente',
+          desc: 'Crear ficha comercial',
+          icon: Users,
+          href: '/admin/usuarios',
+        },
+        {
+          label: 'Nuevo producto',
+          desc: 'Publicar en catálogo',
+          icon: Package,
+          href: '/admin/catalogo/nuevo',
+        },
+      ]
+      : []),
+    ...(user?.role === 'admin'
+      ? [{
+        label: 'Pagos pendientes',
+        desc: 'Trabajadores y cartera',
+        icon: CreditCard,
+        href: '/admin/contabilidad/pagos-trabajadores',
+      }]
+      : []),
+  ];
 
   return (
     <div className="space-y-7">
@@ -436,7 +615,7 @@ export default function AdminDashboardPage() {
             {greeting}, <span style={{ color: 'rgba(212,175,55,0.9)' }}>{user?.firstName}</span>
           </h1>
           <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.32)' }}>
-            Centro de operaciones · {new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {isManager ? 'Panel operativo de tus pedidos y clientes' : 'Centro de operaciones'} · {new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
         <button
@@ -456,55 +635,226 @@ export default function AdminDashboardPage() {
         </button>
       </div>
 
-      {/* ═══ KPIs ═══ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {kpis.map(kpi => (
-          <div
-            key={kpi.label}
-            className="rounded-2xl p-4 sm:p-5 transition-all duration-300"
-            style={{ background: kpi.bg, border: `1px solid ${kpi.border}` }}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                <kpi.icon size={16} style={{ color: kpi.accent }} />
-              </div>
+      {isManager && (
+        <section
+          className="grid grid-cols-1 gap-3 rounded-2xl p-3 sm:grid-cols-3"
+          style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          {[
+            {
+              label: 'Siguiente pedido',
+              value: computed.priorityOrders[0]?.order_number ?? 'Sin urgentes',
+              sub: computed.priorityOrders[0] ? clientName(computed.priorityOrders[0].client) : 'No hay pedidos activos asignados',
+              href: computed.priorityOrders[0] ? `/admin/pedidos/${computed.priorityOrders[0].id}` : '/admin/pedidos',
+              icon: ShoppingBag,
+            },
+            {
+              label: 'Cotizaciones abiertas',
+              value: String(computed.draftQuotations.length),
+              sub: computed.draftQuotations.length > 0 ? 'Retomar y convertir' : 'Listo para vender',
+              href: '/admin/cotizacion',
+              icon: FileText,
+            },
+            {
+              label: 'Alta rápida',
+              value: 'Cliente o producto',
+              sub: 'Registra desde el celular',
+              href: '/admin/usuarios',
+              icon: Users,
+            },
+          ].map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-white/[0.025]"
+              style={{ border: '1px solid rgba(255,255,255,0.055)' }}
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: 'rgba(212,175,55,0.08)', color: 'rgba(212,175,55,0.9)' }}>
+                <item.icon size={17} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[10px] uppercase tracking-[0.14em] font-sans-custom" style={{ color: 'rgba(242,240,237,0.32)' }}>{item.label}</span>
+                <span className="mt-0.5 block truncate text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.86)' }}>{item.value}</span>
+                <span className="block truncate text-[11px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.34)' }}>{item.sub}</span>
+              </span>
+            </Link>
+          ))}
+        </section>
+      )}
+
+      {/* ═══ Action Center ═══ */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
+        <section className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <div>
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] font-sans-custom" style={{ color: 'rgba(242,240,237,0.42)' }}>
+                Hoy requiere acción
+              </h2>
+              <p className="text-[11px] mt-0.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>
+                {isManager ? 'Solo pedidos, cotizaciones y mensajes de tu operación' : 'Prioridades detectadas por operación, dinero, mensajes e inventario'}
+              </p>
             </div>
-            <p className="font-display text-[1.65rem] font-bold leading-none tracking-tight" style={{ color: kpi.accent }}>
-              {kpi.value}
-            </p>
-            <p className="text-xs font-medium mt-2 font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>{kpi.label}</p>
-            <p className="text-[10px] mt-0.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>{kpi.sub}</p>
+            <span className="text-[10px] px-2 py-1 rounded-lg font-sans-custom" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(242,240,237,0.34)' }}>
+              {actionSignalCount} señal{actionSignalCount !== 1 ? 'es' : ''}
+            </span>
           </div>
-        ))}
+          <div className="space-y-1 p-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-1">
+              {actionItems.map(card => (
+                <Link
+                  key={card.title}
+                  href={card.href}
+                  className="group min-h-[116px] rounded-xl p-4 transition-all duration-200 hover:bg-white/[0.025]"
+                  style={{ background: card.bg, border: `1px solid ${card.border}` }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                      <card.icon size={15} style={{ color: card.accent }} />
+                    </div>
+                    <ArrowUpRight size={14} className="opacity-0 transition-opacity group-hover:opacity-100" style={{ color: card.accent }} />
+                  </div>
+                  <p className="mt-3 text-sm font-medium leading-snug font-sans-custom" style={{ color: card.accent }}>{card.title}</p>
+                  <p className="mt-1 text-[11px] leading-relaxed font-sans-custom" style={{ color: 'rgba(242,240,237,0.36)' }}>{card.sub}</p>
+                </Link>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-1">
+              {kpis.map(kpi => (
+                <div
+                  key={kpi.label}
+                  className="min-h-[106px] rounded-xl p-4 transition-all duration-300"
+                  style={{ background: kpi.bg, border: `1px solid ${kpi.border}` }}
+                >
+                  <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                    <kpi.icon size={15} style={{ color: kpi.accent }} />
+                  </div>
+                  <p className="font-display text-[1.45rem] font-bold leading-none tracking-tight" style={{ color: kpi.accent }}>
+                    {kpi.value}
+                  </p>
+                  <p className="mt-2 text-xs font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>{kpi.label}</p>
+                  <p className="mt-0.5 text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>{kpi.sub}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <aside className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] font-sans-custom" style={{ color: 'rgba(242,240,237,0.42)' }}>
+            Acciones rápidas
+          </h2>
+          <div className="mt-3 space-y-2">
+            {quickActions.map((action) => {
+              const ActionIcon = action.icon;
+              const content = (
+                <>
+                  <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.14)' }}>
+                    <ActionIcon size={15} style={{ color: 'rgba(212,175,55,0.88)' }} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.82)' }}>{action.label}</span>
+                    <span className="block text-[11px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>{action.desc}</span>
+                  </span>
+                  <ChevronRight size={14} style={{ color: 'rgba(242,240,237,0.2)' }} />
+                </>
+              );
+
+              if ('href' in action && action.href) {
+                return (
+                  <Link
+                    key={action.label}
+                    href={action.href}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-white/[0.025]"
+                    style={{ border: '1px solid rgba(255,255,255,0.055)' }}
+                  >
+                    {content}
+                  </Link>
+                );
+              }
+
+              return (
+                <button
+                  key={action.label}
+                  onClick={action.onClick}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/[0.025]"
+                  style={{ border: '1px solid rgba(255,255,255,0.055)' }}
+                >
+                  {content}
+                </button>
+              );
+            })}
+          </div>
+        </aside>
       </div>
 
-      {/* ═══ Attention Cards ═══ */}
-      {attentionCards.length > 0 && (
-        <div>
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-3 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
-            Requieren atención
+      {/* ═══ WhatsApp Audit ═══ */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
+            Mensajería WhatsApp
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-            {attentionCards.map(card => (
-              <Link
-                key={card.title}
-                href={card.href}
-                className="group flex items-start gap-3.5 rounded-2xl p-4 transition-all duration-200 hover:-translate-y-0.5"
-                style={{ background: card.bg, border: `1px solid ${card.border}` }}
-              >
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                  <card.icon size={15} style={{ color: card.accent }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium font-sans-custom leading-snug" style={{ color: card.accent }}>{card.title}</p>
-                  <p className="text-[11px] mt-0.5 font-sans-custom truncate" style={{ color: 'rgba(242,240,237,0.35)' }}>{card.sub}</p>
-                </div>
-                <ArrowUpRight size={14} className="shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: card.accent }} />
-              </Link>
-            ))}
+          <Link href="/admin/mensajes" className="text-[10px] uppercase tracking-[0.1em] flex items-center gap-1 transition-colors font-sans-custom" style={{ color: 'rgba(212,175,55,0.65)' }}>
+            Auditar <ArrowRight size={11} />
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-[0.45fr_1fr] gap-4">
+          <div className="rounded-2xl p-4" style={{ background: computed.failedMessages.length > 0 ? 'rgba(248,113,113,0.06)' : 'rgba(52,211,153,0.06)', border: `1px solid ${computed.failedMessages.length > 0 ? 'rgba(248,113,113,0.15)' : 'rgba(52,211,153,0.15)'}` }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                <MessageCircle size={17} style={{ color: computed.failedMessages.length > 0 ? 'rgba(248,113,113,0.9)' : 'rgba(52,211,153,0.9)' }} />
+              </div>
+              <div>
+                <p className="font-display text-2xl font-semibold leading-none" style={{ color: computed.failedMessages.length > 0 ? 'rgba(248,113,113,0.95)' : 'rgba(52,211,153,0.95)' }}>
+                  {computed.failedMessages.length}
+                </p>
+                <p className="text-[10px] mt-1 uppercase tracking-[0.14em] font-sans-custom" style={{ color: 'rgba(242,240,237,0.38)' }}>Fallos recientes</p>
+              </div>
+            </div>
+            <p className="mt-4 text-xs leading-relaxed font-sans-custom" style={{ color: 'rgba(242,240,237,0.38)' }}>
+              {computed.skippedMessages.length > 0
+                ? `${computed.skippedMessages.length} envío omitido por configuración, duplicado o teléfono.`
+                : 'Sin omisiones en los últimos registros.'}
+            </p>
+          </div>
+
+          <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            {data.whatsappLogs.length === 0 ? (
+              <div className="px-5 py-8 text-center">
+                <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.32)' }}>Sin mensajes registrados</p>
+              </div>
+            ) : (
+              data.whatsappLogs.map((log, idx) => {
+                const cfg = MESSAGE_STATUS_CONFIG[log.status] || MESSAGE_STATUS_CONFIG.queued;
+                const order = data.orders.find((item) => item.id === log.order_id);
+                const detail = log.error_message || log.skipped_reason || log.recipient_name || 'Cliente';
+                return (
+                  <Link
+                    key={log.id}
+                    href={`/admin/mensajes`}
+                    className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-white/[0.02]"
+                    style={{ borderBottom: idx < data.whatsappLogs.length - 1 ? '1px solid rgba(255,255,255,0.04)' : undefined }}
+                  >
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: cfg.color }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs" style={{ color: 'rgba(212,175,55,0.75)' }}>{order?.order_number ?? 'Pedido'}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-sans-custom" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
+                          {cfg.label}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 truncate text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.42)' }}>{detail}</p>
+                    </div>
+                    <span className="text-[10px] font-sans-custom shrink-0" style={{ color: 'rgba(242,240,237,0.25)' }}>
+                      {relativeDate(log.sent_at ?? log.created_at)}
+                    </span>
+                  </Link>
+                );
+              })
+            )}
           </div>
         </div>
-      )}
+      </div>
 
       {/* ═══ Pipeline ═══ */}
       <div>

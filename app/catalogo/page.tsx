@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { getProducts, getCategories } from '@/lib/api-client/catalog';
 import { Header } from '@/components/layout/header';
@@ -8,6 +9,8 @@ export const metadata: Metadata = {
   title: 'Catálogo | H2 Oro',
   description: 'Explora nuestra colección de joyería artesanal. Anillos, collares, pulseras, aretes y más.',
 };
+
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   searchParams: {
@@ -192,12 +195,13 @@ export default async function CatalogoPage({ searchParams }: PageProps) {
                       style={{ background: 'linear-gradient(145deg, #1A1A1A, #0D0D0D)' }}
                     >
                       {product.images.length > 0 ? (
-                        <div
-                          className="w-full h-full flex items-center justify-center text-xs font-sans-custom"
-                          style={{ color: 'rgba(242,240,237,0.2)' }}
-                        >
-                          {product.images[0].altText || product.name}
-                        </div>
+                        <Image
+                          src={product.images[0].publicUrl}
+                          alt={product.images[0].altText || product.name}
+                          fill
+                          sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                          className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <svg className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth={0.8} viewBox="0 0 24 24" style={{ color: 'rgba(242,240,237,0.1)' }}>

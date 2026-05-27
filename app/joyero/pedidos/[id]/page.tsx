@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -37,11 +37,20 @@ interface OrderDetail {
   }>;
 }
 
+function resolveAttachmentUrl(supabase: ReturnType<typeof createClient>, item: any): string | null {
+  if (item?.file_url) return item.file_url;
+  if (item?.bucket && item?.storage_path) {
+    const { data } = supabase.storage.from(item.bucket).getPublicUrl(item.storage_path);
+    return data.publicUrl;
+  }
+  return null;
+}
+
 export default function JoyeroOrderDetailPage() {
   const { user } = useAuth();
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,7 +103,7 @@ export default function JoyeroOrderDetailPage() {
         // Fetch file attachments (images)
         const { data: imageData } = await supabase
           .from('file_attachments')
-          .select('id, file_name, file_url')
+          .select('id, file_name, file_url, bucket, storage_path')
           .eq('entity_type', 'order')
           .eq('entity_id', orderData.id)
           .eq('file_type', 'image');
@@ -151,11 +160,17 @@ export default function JoyeroOrderDetailPage() {
             progressPct: assignment.progress_pct,
             priority: assignment.priority ?? 999,
           })),
-          images: (imageData || []).map((image: any) => ({
-            id: image.id,
-            url: image.file_url,
-            fileName: image.file_name,
-          })),
+          images: (imageData || [])
+            .map((image: any) => {
+              const url = resolveAttachmentUrl(supabase, image);
+              if (!url) return null;
+              return {
+                id: image.id,
+                url,
+                fileName: image.file_name,
+              };
+            })
+            .filter(Boolean) as OrderDetail['images'],
           materials: materials,
         };
         
@@ -369,16 +384,44 @@ export default function JoyeroOrderDetailPage() {
             <ImageIcon className="w-5 h-5 text-gold-500" />
             <h2 className="text-lg font-semibold text-gold-500">Imágenes de referencia</h2>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {orderDetail.images.map((image) => (
-              <div key={image.id} className="aspect-square bg-charcoal-800 rounded-lg overflow-hidden">
-                <img
-                  src={image.url}
-                  alt={image.fileName}
-                  className="w-full h-full object-cover"
-                />
+          <div className="space-y-2">
+            <div className="aspect-[4/3] bg-charcoal-800 rounded-2xl overflow-hidden">
+              <img
+                src={orderDetail.images[0].url}
+                alt={orderDetail.images[0].fileName}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            {orderDetail.images.length > 1 && (
+              <div className="grid grid-cols-4 gap-2">
+                {orderDetail.images.slice(1, 5).map((image) => (
+                  <div key={image.id} className="aspect-square bg-charcoal-800 rounded-xl overflow-hidden">
+                    <img
+                      src={image.url}
+                      alt={image.fileName}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+          </div>
+        </div>
+      )}
+
+      {orderDetail.images.length === 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center space-x-2">
+            <ImageIcon className="w-5 h-5 text-gold-500" />
+            <h2 className="text-lg font-semibold text-gold-500">Imágenes de referencia</h2>
+          </div>
+          <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.08)' }}>
+              <ImageIcon className="w-5 h-5" style={{ color: 'rgba(212,175,55,0.45)' }} />
+            </div>
+            <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.42)' }}>
+              Este pedido no tiene imágenes de referencia guardadas.
+            </p>
           </div>
         </div>
       )}

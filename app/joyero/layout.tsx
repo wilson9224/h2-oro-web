@@ -254,7 +254,7 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
           {/* Notification panel */}
           {showNotifications && (
             <div
-              className="absolute right-0 top-full mt-2 w-72 rounded-2xl overflow-hidden z-50"
+              className="fixed left-4 right-4 top-16 rounded-2xl overflow-hidden z-50 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-72"
               style={{
                 background: 'rgba(14,13,12,0.98)',
                 border: '1px solid rgba(255,255,255,0.08)',
@@ -351,13 +351,13 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 pb-24 overflow-y-auto">
+      <main className="flex-1 pb-28 overflow-y-auto">
         {children}
       </main>
 
       {/* Bottom Navigation — pill style */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-5 pt-2"
+        className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2"
         style={{
           background: 'linear-gradient(to top, rgba(8,8,8,1) 60%, rgba(8,8,8,0))',
         }}
@@ -382,7 +382,7 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
               <Link
                 key={item.href}
                 href={item.href}
-                className="relative flex flex-col items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl transition-all duration-300 min-w-[60px]"
+                className="relative flex flex-col items-center justify-center gap-1.5 px-4 py-3 rounded-xl transition-all duration-300 min-w-[64px] active:scale-[0.98]"
                 style={{
                   background: isActive ? 'rgba(212,175,55,0.1)' : 'transparent',
                   color: isActive ? '#D4AF37' : 'rgba(242,240,237,0.35)',

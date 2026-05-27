@@ -1,17 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useEffect, useRef, useState } from 'react';
 import {
   Search, Package, Calendar, Clock, CheckCircle2, Truck,
   ChevronDown, ChevronUp, Gem, Wrench, Layers,
-  Circle, AlertCircle, Play,
+  Circle, AlertCircle, Play, ClipboardCheck, Phone, ArrowRight,
 } from 'lucide-react';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,8 +83,8 @@ const formatDate = (d: string | null, withTime = false) => {
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <div
-      className={`rounded-2xl p-5 ${className}`}
-      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+      className={`rounded-[1.35rem] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.18)] ${className}`}
+      style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.075)' }}
     >
       {children}
     </div>
@@ -157,18 +151,21 @@ export default function TrackingForm() {
   const [showLabor, setShowLabor] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const prefilledOrder = searchParams.get('pedido') || searchParams.get('orden');
+    if (prefilledOrder) setOrderNumber(prefilledOrder.toUpperCase());
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Cancel any pending request
+
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
-    // Create new abort controller for this request
+
     abortControllerRef.current = new AbortController();
-    
-    // Reset state
+
     setError('');
     setResult(null);
     setShowTimeline(false);
@@ -177,235 +174,29 @@ export default function TrackingForm() {
     setLoading(true);
 
     try {
-      // 1. Fetch order base
-      const { data: order, error: orderErr } = await supabase
-        .from('orders')
-        .select(`
-          id, order_number, type, status, estimated_delivery_date,
-          created_at, client_phone, total_amount_cop, currency,
-          pieces ( id, name, sort_order,
-            currentState:workflow_states!current_state_id ( code, name, public_label, is_final ),
-            state_history (
-              id, notes, created_at,
-              state:workflow_states!state_id ( code, name, public_label, is_publicly_visible )
-            )
-          )
-        `)
-        .eq('order_number', orderNumber.trim().toUpperCase())
-        .like('client_phone', `%${phone}`)
-        .is('deleted_at', null)
-        .single();
-
-      if (orderErr || !order) {
-        throw new Error('Pedido no encontrado. Verifica el número de pedido y los últimos 4 dígitos de tu teléfono.');
-      }
-
-      const orderId = order.id;
-
-      // 2. Fetch work cycle (dates + labor assignments)
-      const { data: cycles } = await supabase
-        .from('order_work_cycles')
-        .select('id, cycle_number, material_delivery_date, work_delivery_date, created_at, labor_assignments')
-        .eq('order_id', orderId)
-        .order('cycle_number', { ascending: false })
-        .limit(1);
-
-      const activeCycle = cycles?.[0] ?? null;
-      const laborItems: Array<{ service_code: string; service_name: string; service_category: string; sort_order: number }> =
-        activeCycle?.labor_assignments ?? [];
-
-      // 3. Fetch work_assignments for this order's pieces (with stage name via workflow_states)
-      const pieceIds = (order.pieces as any[]).map((p: any) => p.id);
-      const { data: workAssignments } = pieceIds.length > 0
-        ? await supabase
-            .from('work_assignments')
-            .select('stage_code, status, started_at, completed_at, priority, workflow_states!stage_code(name)')
-            .in('piece_id', pieceIds)
-            .order('priority', { ascending: true })
-        : { data: [] };
-
-      // 4. Build labor stages
-      const waByCode: Record<string, any> = {};
-      for (const wa of (workAssignments ?? [])) waByCode[wa.stage_code] = wa;
-
-      let laborStages: LaborStage[];
-
-      if (laborItems.length > 0) {
-        // Primary: use cycle labor_assignments (includes service_name)
-        laborStages = laborItems
-          .sort((a: any, b: any) => a.sort_order - b.sort_order)
-          .map((item: any) => {
-            const wa = waByCode[item.service_code];
-            return {
-              serviceCode: item.service_code,
-              serviceName: item.service_name,
-              sortOrder: item.sort_order,
-              status: (wa?.status ?? 'pending') as LaborStage['status'],
-              startedAt: wa?.started_at ?? null,
-              completedAt: wa?.completed_at ?? null,
-            };
-          });
-      } else if ((workAssignments ?? []).length > 0) {
-        // Fallback: build from work_assignments when cycle has no labor_assignments yet
-        laborStages = (workAssignments ?? []).map((wa: any, idx: number) => {
-          const wsName = Array.isArray(wa.workflow_states)
-            ? wa.workflow_states[0]?.name
-            : wa.workflow_states?.name;
-          return {
-            serviceCode: wa.stage_code,
-            serviceName: wsName ?? wa.stage_code,
-            sortOrder: wa.priority ?? idx + 1,
-            status: (wa.status ?? 'pending') as LaborStage['status'],
-            startedAt: wa.started_at ?? null,
-            completedAt: wa.completed_at ?? null,
-          };
-        });
-      } else {
-        laborStages = [];
-      }
-
-      // 5. Build timeline from state_history
-      const timeline: TimelineEvent[] = [];
-      for (const piece of (order.pieces as any[])) {
-        for (const entry of (piece.state_history ?? [])) {
-          const state = Array.isArray(entry.state) ? entry.state[0] : entry.state;
-          if (!state) continue;
-          timeline.push({
-            id: entry.id,
-            stateName: state.public_label || state.name,
-            publicLabel: state.public_label,
-            notes: entry.notes,
-            timestamp: entry.created_at,
-          });
-        }
-      }
-      timeline.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-      // 6. Key dates
-      const firstStartedAt = laborStages.find(s => s.startedAt)?.startedAt ?? null;
-      const lastCompletedAt = laborStages.every(s => s.status === 'completed')
-        ? laborStages.map(s => s.completedAt).filter(Boolean).sort().reverse()[0] ?? null
-        : null;
-
-      // workStartDate: prefer firstStartedAt (actual work start), fallback to material_delivery_date
-      // but ensure it's never before order creation date
-      const materialDeliveryDate = activeCycle?.material_delivery_date ?? null;
-      const validMaterialDelivery = materialDeliveryDate && new Date(materialDeliveryDate) >= new Date(order.created_at)
-        ? materialDeliveryDate
-        : null;
-      const validFirstStarted = firstStartedAt && new Date(firstStartedAt) >= new Date(order.created_at)
-        ? firstStartedAt
-        : null;
-
-      const keyDates: KeyDates = {
-        createdAt: order.created_at,
-        workStartDate: validFirstStarted ?? validMaterialDelivery ?? null,
-        workDeliveryDate: activeCycle?.work_delivery_date ?? lastCompletedAt,
-        deliveryDate: order.status === 'delivered'
-          ? (timeline.find(t => t.stateName.toLowerCase().includes('entrega'))?.timestamp ?? null)
-          : null,
-        estimatedDeliveryDate: order.estimated_delivery_date,
-      };
-
-      // 7. Fetch quotation for financial summary (may be linked by order_id)
-      const { data: quotations, error: quotErr } = await supabase
-        .from('quotations')
-        .select('metal_price_cop, alloy_price_cop, stones_total_cop, labor_total_cop, total_cop, stones, labor_items, currency')
-        .eq('order_id', orderId)
-        .limit(1);
-      console.log('[tracking] quotations by order_id:', quotations, 'err:', quotErr);
-
-      // Fallback 1: match by client_phone + status=converted
-      let quotation = quotations?.[0] ?? null;
-      if (!quotation && order.client_phone) {
-        const { data: fallbackQ, error: fbErr } = await supabase
-          .from('quotations')
-          .select('metal_price_cop, alloy_price_cop, stones_total_cop, labor_total_cop, total_cop, stones, labor_items, currency')
-          .eq('client_phone', order.client_phone)
-          .eq('status', 'converted')
-          .order('updated_at', { ascending: false })
-          .limit(1);
-        console.log('[tracking] fallback quotations by phone:', fallbackQ, 'err:', fbErr);
-        quotation = fallbackQ?.[0] ?? null;
-      }
-      console.log('[tracking] final quotation:', quotation);
-      console.log('[tracking] order.total_amount_cop:', order.total_amount_cop);
-
-      // 8. Fetch cash payments
-      const { data: payments } = await supabase
-        .from('payments')
-        .select('amount_cop, status')
-        .eq('order_id', orderId);
-
-      const cashPaid = (payments ?? [])
-        .filter((p: any) => p.status === 'completed')
-        .reduce((s: number, p: any) => s + Number(p.amount_cop ?? 0), 0);
-
-      // 9. Fetch material payments
-      const { data: matPayments } = await supabase
-        .from('order_material_payments')
-        .select('amount_cop')
-        .eq('order_id', orderId);
-
-      const matPaid = (matPayments ?? []).reduce((s: number, p: any) => s + Number(p.amount_cop ?? 0), 0);
-
-      const totalCop = Number(quotation?.total_cop ?? order.total_amount_cop ?? 0);
-
-      const financial: FinancialSummary = quotation ? {
-        metalCop: Number(quotation.metal_price_cop ?? 0),
-        alloyCop: Number(quotation.alloy_price_cop ?? 0),
-        stonesCop: Number(quotation.stones_total_cop ?? 0),
-        laborCop: Number(quotation.labor_total_cop ?? 0),
-        totalCop,
-        stones: (quotation.stones ?? []).map((s: any) => ({
-          stoneType: s.stone_type,
-          cut: s.cut,
-          weightCt: s.weight_ct,
-          quantity: s.quantity,
-          totalCop: s.total_cop,
-          clientDelivers: s.client_delivers,
-        })),
-        laborItems: (quotation.labor_items ?? []).map((l: any) => ({
-          serviceName: l.service_name,
-          serviceCategory: l.service_category,
-          effectivePrice: l.effective_price,
-        })),
-        cashPaidCop: cashPaid,
-        materialPaidCop: matPaid,
-        currency: quotation.currency ?? order.currency ?? 'COP',
-      } : {
-        // Fallback: no quotation found, use order total only
-        metalCop: 0,
-        alloyCop: 0,
-        stonesCop: 0,
-        laborCop: 0,
-        totalCop,
-        stones: [],
-        laborItems: [],
-        cashPaidCop: cashPaid,
-        materialPaidCop: matPaid,
-        currency: order.currency ?? 'COP',
-      };
-
-      setResult({
-        orderNumber: order.order_number,
-        orderType: order.type,
-        status: order.status,
-        pieceName: (order.pieces as any[])[0]?.name ?? '',
-        keyDates,
-        laborStages,
-        timeline,
-        financial,
+      const response = await fetch('/api/tracking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderNumber: orderNumber.trim().toUpperCase(),
+          phone,
+        }),
+        signal: abortControllerRef.current.signal,
       });
+
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error ?? 'Error al buscar el pedido');
+      }
+
+      setResult(payload as TrackingResult);
     } catch (err) {
-      // Don't show error if request was aborted
       if (err instanceof Error && err.name === 'AbortError') {
         return;
       }
       setError(err instanceof Error ? err.message : 'Error al buscar el pedido');
     } finally {
       setLoading(false);
-      // Clear abort controller
       abortControllerRef.current = null;
     }
   };
@@ -415,27 +206,46 @@ export default function TrackingForm() {
   const progressPct = totalStages > 0 ? Math.round((completedStages / totalStages) * 100) : 0;
 
   return (
-    <div className="min-h-screen px-4 pt-24 pb-8 font-sans-custom" style={{ background: 'rgba(8,8,8,1)' }}>
-      {/* Ambient glow */}
+    <section className="min-h-screen section-padding pt-28 pb-12 font-sans-custom" style={{ background: 'rgba(8,8,8,1)' }}>
       <div
-        className="fixed top-0 left-1/2 -translate-x-1/2 w-[50vw] h-[35vh] pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse, rgba(212,175,55,0.05) 0%, transparent 70%)', filter: 'blur(60px)', zIndex: 0 }}
+        className="fixed top-0 left-1/2 -translate-x-1/2 w-[70vw] h-[42vh] pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse, rgba(212,175,55,0.08) 0%, rgba(212,175,55,0.025) 35%, transparent 72%)', filter: 'blur(70px)', zIndex: 0 }}
       />
 
-      <div className="max-w-2xl mx-auto space-y-4 relative z-10">
+      <div className="max-w-4xl mx-auto space-y-5 relative z-10">
+        <div className="space-y-5">
+          <div className="section-rule justify-center text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-400/70 sm:justify-start">
+            Mi pedido
+          </div>
 
-        {/* Page heading */}
-        <div className="text-center pb-2">
-          <h1 className="text-2xl font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.9)' }}>
-            Seguimiento
-          </h1>
-          <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>Consulta el estado de tu pedido</p>
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-end">
+            <div>
+              <h1 className="font-display text-4xl font-semibold leading-[1.05] text-cream-100 text-balance sm:text-5xl">
+                Sigue tu joya en taller
+              </h1>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-cream-200/40">
+                Consulta los avances, fechas importantes y saldo asociado a tu pedido con una vista clara desde el celular.
+              </p>
+            </div>
+            <div className="hidden rounded-[1.35rem] border border-cream-200/[0.07] bg-cream-200/[0.03] p-4 lg:block">
+              <div className="flex items-start gap-3">
+                <ClipboardCheck size={18} className="mt-0.5 text-gold-400/75" />
+                <div>
+                  <p className="text-sm font-medium text-cream-100/80">Estado privado</p>
+                  <p className="mt-1 text-xs leading-5 text-cream-200/32">
+                    Solo se consulta con el pedido y los últimos dígitos del teléfono.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Search card */}
-        <Card>
+        <Card className="relative overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-400/45 to-transparent" />
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+              <div>
               <label
                 className="block text-[10px] font-semibold uppercase tracking-[0.16em] mb-2 font-sans-custom"
                 style={{ color: 'rgba(242,240,237,0.4)' }}
@@ -455,8 +265,8 @@ export default function TrackingForm() {
                   color: 'rgba(242,240,237,0.9)',
                 }}
               />
-            </div>
-            <div>
+              </div>
+              <div>
               <label
                 className="block text-[10px] font-semibold uppercase tracking-[0.16em] mb-2 font-sans-custom"
                 style={{ color: 'rgba(242,240,237,0.4)' }}
@@ -478,6 +288,7 @@ export default function TrackingForm() {
                   color: 'rgba(242,240,237,0.9)',
                 }}
               />
+              </div>
             </div>
 
             {error && (
@@ -493,14 +304,30 @@ export default function TrackingForm() {
             <button
               type="submit"
               disabled={loading || !orderNumber || phone.length < 4}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-xs font-semibold uppercase tracking-[0.12em] transition-all duration-300 disabled:opacity-40 font-sans-custom"
-              style={{ background: 'rgba(212,175,55,0.9)', color: 'rgba(8,8,8,0.9)' }}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-xs font-semibold uppercase tracking-[0.12em] transition-all duration-300 disabled:opacity-40 font-sans-custom active:scale-[0.98]"
+              style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37, #B8960F)', color: 'rgba(8,8,8,0.9)', boxShadow: '0 10px 34px rgba(212,175,55,0.18)' }}
             >
-              <Search size={15} />
+              {loading ? <Search size={15} /> : <ArrowRight size={15} />}
               {loading ? 'Buscando...' : 'Consultar estado'}
             </button>
           </form>
         </Card>
+
+        {!result && !error && (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              { icon: Package, title: 'Recibido', text: 'Confirmación del pedido.' },
+              { icon: Wrench, title: 'En taller', text: 'Trabajo y etapas activas.' },
+              { icon: Phone, title: 'Entrega', text: 'Fecha y saldo visible.' },
+            ].map(({ icon: Icon, title, text }) => (
+              <div key={title} className="rounded-[1.1rem] border border-cream-200/[0.06] bg-cream-200/[0.025] p-4">
+                <Icon size={17} className="text-gold-400/70" />
+                <p className="mt-3 text-sm font-medium text-cream-100/75">{title}</p>
+                <p className="mt-1 text-xs leading-5 text-cream-200/30">{text}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Results */}
         {result && (
@@ -775,6 +602,6 @@ export default function TrackingForm() {
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X, Package, User, Calendar, Camera, AlertCircle, AlertTriangle, CheckCircle } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 interface ModalDeliverProps {
   isOpen: boolean;
@@ -36,6 +37,8 @@ export default function ModalDeliver({
   orderData,
   users 
 }: ModalDeliverProps) {
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'admin';
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState<DeliveryData>({
@@ -50,12 +53,35 @@ export default function ModalDeliver({
 
   const canDeliver = orderData.isQcApproved && pendingBalance <= 0;
 
+  const deliveryStaff = useMemo(() => {
+    if (!currentUser) return users;
+    if (users.some(user => user.id === currentUser.id)) return users;
+
+    return [
+      {
+        id: currentUser.id,
+        firstName: currentUser.firstName,
+        lastName: currentUser.lastName,
+      },
+      ...users,
+    ];
+  }, [currentUser, users]);
+
+  useEffect(() => {
+    if (!isOpen || !currentUser?.id) return;
+    setFormData(prev => ({ ...prev, deliveredByUserId: currentUser.id }));
+  }, [isOpen, currentUser?.id]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
+      const effectiveDeliveredByUserId = isAdmin
+        ? formData.deliveredByUserId
+        : currentUser?.id ?? formData.deliveredByUserId;
+
       // Validaciones
       if (!canDeliver) {
         if (!orderData.isQcApproved) {
@@ -70,11 +96,14 @@ export default function ModalDeliver({
         throw new Error('El nombre del receptor es requerido');
       }
       
-      if (!formData.deliveredByUserId) {
+      if (!effectiveDeliveredByUserId) {
         throw new Error('Debe seleccionar quién entrega el pedido');
       }
 
-      await onSubmit(formData);
+      await onSubmit({
+        ...formData,
+        deliveredByUserId: effectiveDeliveredByUserId,
+      });
       onClose();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al entregar pedido');
@@ -110,8 +139,6 @@ export default function ModalDeliver({
   };
 
   if (!isOpen) return null;
-
-  const deliveryStaff = users;
 
   return (
     <div
@@ -235,7 +262,7 @@ export default function ModalDeliver({
                     value={formData.deliveredByUserId}
                     onChange={(e) => updateField('deliveredByUserId', e.target.value)}
                     style={{ ...inputStyle, appearance: 'none' }}
-                    disabled={!canDeliver}
+                    disabled={!canDeliver || !isAdmin}
                   >
                     <option value="">Seleccionar...</option>
                     {deliveryStaff.map((user) => (

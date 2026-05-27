@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Download, Loader2, Calendar, FileSpreadsheet } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 
 const supabase = createClient();
 
@@ -41,9 +42,18 @@ function downloadCsv(filename: string, rows: CsvRow[]) {
 }
 
 export default function ReportsPage() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState<ReportId | null>(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+
+  if (user?.role !== 'admin') {
+    return (
+      <div className="rounded-2xl p-5 text-sm font-sans-custom" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(242,240,237,0.48)' }}>
+        Los reportes globales están reservados para Admin.
+      </div>
+    );
+  }
 
   const applyDateRange = (query: any, column = 'created_at') => {
     let next = query;

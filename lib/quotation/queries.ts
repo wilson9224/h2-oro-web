@@ -7,19 +7,25 @@ const supabase = createClient();
 
 export async function fetchQuotations(
   page = 0,
-  pageSize = 20
+  pageSize = 20,
+  scope?: { userId?: string; role?: string }
 ): Promise<{ data: QuotationRecord[]; count: number }> {
   const from = page * pageSize;
   const to = from + pageSize - 1;
 
-  const { data, error, count } = await supabase
+  let query = supabase
     .from('quotations')
     .select(
       `*, client:users!client_id(id, first_name, last_name, phone, email)`,
       { count: 'exact' }
     )
-    .order('created_at', { ascending: false })
-    .range(from, to);
+    .order('created_at', { ascending: false });
+
+  if (scope?.role === 'manager' && scope.userId) {
+    query = query.eq('created_by_user_id', scope.userId);
+  }
+
+  const { data, error, count } = await query.range(from, to);
 
   if (error) throw error;
   return { data: (data ?? []) as QuotationRecord[], count: count ?? 0 };
@@ -108,6 +114,120 @@ export async function saveQuotation(
     if (error) throw error;
     return form.id;
   }
+}
+
+// ─── Fetch quotation by order_id ──────────────────────────────────────────────
+
+export async function fetchQuotationByOrderId(orderId: string): Promise<QuotationRecord | null> {
+  const { data, error } = await supabase
+    .from('quotations')
+    .select(`*, client:users!client_id(id, first_name, last_name, phone, email)`)
+    .eq('order_id', orderId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching quotation by order_id:', error);
+    return null;
+  }
+  return data as QuotationRecord | null;
+}
+
+// ─── Map QuotationRecord → QuotationFormState ─────────────────────────────────
+
+export function quotationRecordToFormState(record: QuotationRecord): QuotationFormState {
+  return {
+    id: record.id,
+    quote_type: record.quote_type,
+
+    piece_type: record.piece_type || '',
+    description: record.description || '',
+
+    client_id: record.client_id,
+    client_phone: record.client_phone || '',
+    client_name_temp: record.client_name_temp || '',
+    searched_client: record.client
+      ? {
+          id: record.client.id,
+          first_name: record.client.first_name,
+          last_name: record.client.last_name,
+          phone: record.client.phone,
+          email: record.client.email,
+        }
+      : null,
+
+    metal_type: record.metal_type,
+    metal_purity: String(record.metal_purity || ''),
+    metal_purity_pct: record.metal_purity_pct || 0,
+    estimated_weight_gr: String(record.estimated_weight_gr || ''),
+    total_weight_gr: record.total_weight_gr || 0,
+    gold_color: record.gold_color || '',
+
+    metal_price_cop: record.metal_price_cop || 0,
+    alloy_price_cop: record.alloy_price_cop || 0,
+    alloy_breakdown: record.alloy_breakdown || null,
+
+    client_provides_metal: record.client_provides_metal || false,
+    client_metal_weight_gr: record.client_metal_weight_gr ? String(record.client_metal_weight_gr) : '',
+    client_metal_purity: record.client_metal_purity ? String(record.client_metal_purity) : '',
+    client_metal_purity_pct: record.client_metal_purity_pct || 0,
+    client_pure_metal_gr: record.client_pure_metal_gr || 0,
+    required_pure_metal_gr: record.required_pure_metal_gr || 0,
+    pending_metal_gr: record.pending_metal_gr || 0,
+    pending_metal_value_cop: record.pending_metal_value_cop || 0,
+    metal_excess_gr: record.metal_excess_gr || 0,
+
+    has_stones: record.has_stones || false,
+    stones: record.stones || [],
+    stones_total_cop: record.stones_total_cop || 0,
+
+    labor_items: record.labor_items || [],
+    labor_total_cop: record.labor_total_cop || 0,
+
+    total_cop: record.total_cop || 0,
+  };
+}
+
+// ─── Sync quotation changes to linked order ───────────────────────────────────
+
+export async function syncQuotationToOrder(
+  quotationId: string,
+  form: QuotationFormState
+): Promise<void> {
+  // Find the order linked to this quotation
+  const { data: quotation } = await supabase
+    .from('quotations')
+    .select('order_id')
+    .eq('id', quotationId)
+    .single();
+
+  if (!quotation?.order_id) return;
+
+  const orderId = quotation.order_id;
+
+  // Update order total and notes
+  await supabase
+    .from('orders')
+    .update({
+      total_amount_cop: form.total_cop > 0 ? form.total_cop : null,
+      notes: form.description || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', orderId);
+
+  // Update order_jewelry_data
+  await supabase
+    .from('order_jewelry_data')
+    .update({
+      metal_type: form.metal_type,
+      estimated_weight_gr: parseFloat(form.estimated_weight_gr) || 0,
+      client_provides_metal: form.client_provides_metal,
+      client_metal_purity: form.client_provides_metal ? parseFloat(form.client_metal_purity) || null : null,
+      client_metal_weight_gr: form.client_provides_metal ? parseFloat(form.client_metal_weight_gr) || null : null,
+      client_gold_color: form.client_provides_metal && form.metal_type === 'gold' && form.gold_color
+        ? form.gold_color
+        : null,
+    })
+    .eq('order_id', orderId);
 }
 
 // ─── Convert to order ─────────────────────────────────────────────────────────

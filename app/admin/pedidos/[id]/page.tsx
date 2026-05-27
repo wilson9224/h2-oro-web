@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight, ChevronLeft, ChevronRight, Plus, Trash2, User, Calendar, Phone, Mail, Clock, Package, Loader2, AlertTriangle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import dynamic from 'next/dynamic';
+import { useAuth } from '@/hooks/use-auth';
 
 interface Piece {
   id: string;
@@ -77,6 +78,7 @@ function formatCOP(amount: number) {
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const supabase = createClient();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -158,6 +160,9 @@ export default function OrderDetailPage() {
 
       if (orderErr) throw new Error(orderErr.message);
       if (!orderData) throw new Error('Pedido no encontrado');
+      if (user?.role === 'manager' && orderData.assigned_to_id !== user.id) {
+        throw new Error('No tienes acceso a este pedido.');
+      }
 
       // Fetch pieces sin relaciones complejas
       const { data: piecesData, error: piecesErr } = await supabase

@@ -13,6 +13,7 @@ import {
   Settings,
   DollarSign,
   Calculator,
+  MessageCircle,
   LogOut,
   Menu,
   X,
@@ -21,25 +22,64 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
-const adminNavItems = [
-  { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { label: 'Pedidos', href: '/admin/pedidos', icon: ShoppingBag },
-  { label: 'Usuarios', href: '/admin/usuarios', icon: Users },
-  { label: 'Catálogo', href: '/admin/catalogo', icon: Package },
-  { label: 'Reportes', href: '/admin/reportes', icon: BarChart3 },
-  { label: 'Cotización', href: '/admin/cotizacion', icon: Calculator, roles: ['admin', 'manager'] },
-  { label: 'Precios', href: '/admin/precios', icon: DollarSign, adminOnly: true },
-  { label: 'Finanzas', href: '/admin/contabilidad', icon: BookOpen, adminOnly: true },
-  { label: 'Configuración', href: '/admin/configuracion', icon: Settings },
+type NavItem = {
+  label: string;
+  href: string;
+  icon: typeof LayoutDashboard;
+  adminOnly?: boolean;
+  roles?: string[];
+};
+
+type NavSection = {
+  label: string;
+  items: NavItem[];
+};
+
+const adminNavSections: NavSection[] = [
+  {
+    label: 'Operación',
+    items: [
+      { label: 'Centro', href: '/admin', icon: LayoutDashboard },
+      { label: 'Pedidos', href: '/admin/pedidos', icon: ShoppingBag },
+      { label: 'Cotizaciones', href: '/admin/cotizacion', icon: Calculator, roles: ['admin', 'manager'] },
+      { label: 'Mensajes', href: '/admin/mensajes', icon: MessageCircle },
+    ],
+  },
+  {
+    label: 'Comercial',
+    items: [
+      { label: 'Usuarios', href: '/admin/usuarios', icon: Users },
+      { label: 'Catálogo', href: '/admin/catalogo', icon: Package },
+    ],
+  },
+  {
+    label: 'Administración',
+    items: [
+      { label: 'Finanzas', href: '/admin/contabilidad', icon: BookOpen, adminOnly: true },
+      { label: 'Precios', href: '/admin/precios', icon: DollarSign, adminOnly: true },
+      { label: 'Reportes', href: '/admin/reportes', icon: BarChart3 },
+      { label: 'Configuración', href: '/admin/configuracion', icon: Settings },
+    ],
+  },
 ];
 
-const managerNavItems = [
-  { label: 'Operación', href: '/admin', icon: LayoutDashboard },
-  { label: 'Pedidos', href: '/admin/pedidos', icon: ShoppingBag },
-  { label: 'Cotizaciones', href: '/admin/cotizacion', icon: Calculator },
-  { label: 'Clientes', href: '/admin/usuarios', icon: Users },
-  { label: 'Catálogo', href: '/admin/catalogo', icon: Package },
-  { label: 'Reportes', href: '/admin/reportes', icon: BarChart3 },
+const managerNavSections: NavSection[] = [
+  {
+    label: 'Operación',
+    items: [
+      { label: 'Centro', href: '/admin', icon: LayoutDashboard },
+      { label: 'Pedidos', href: '/admin/pedidos', icon: ShoppingBag },
+      { label: 'Cotizaciones', href: '/admin/cotizacion', icon: Calculator },
+      { label: 'Mensajes', href: '/admin/mensajes', icon: MessageCircle },
+    ],
+  },
+  {
+    label: 'Comercial',
+    items: [
+      { label: 'Clientes', href: '/admin/usuarios', icon: Users },
+      { label: 'Catálogo', href: '/admin/catalogo', icon: Package },
+    ],
+  },
 ];
 
 const ALLOWED_ROLES = ['admin', 'manager'];
@@ -78,14 +118,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const badge = roleBadge[user.role] || { label: user.role, color: 'rgba(255,255,255,0.04)' };
   const isManager = user.role === 'manager';
-  const navItems = isManager
-    ? managerNavItems
-    : adminNavItems.filter((item) => {
-      if ('adminOnly' in item && item.adminOnly && user.role !== 'admin') return false;
-      if ('roles' in item && item.roles && !item.roles.includes(user.role)) return false;
-      return true;
-    });
+  const navSections = (isManager ? managerNavSections : adminNavSections)
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        if ('adminOnly' in item && item.adminOnly && user.role !== 'admin') return false;
+        if ('roles' in item && item.roles && !item.roles.includes(user.role)) return false;
+        return true;
+      }),
+    }))
+    .filter((section) => section.items.length > 0);
   const workspaceLabel = isManager ? 'Operación' : 'Panel';
+  const managerBottomNav = managerNavSections
+    .flatMap((section) => section.items)
+    .filter((item) => ['/admin', '/admin/pedidos', '/admin/cotizacion', '/admin/usuarios', '/admin/catalogo'].includes(item.href));
 
   return (
     <div className="min-h-screen flex" style={{ background: 'rgba(8,8,8,1)' }}>
@@ -103,25 +149,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group font-sans-custom"
-                style={{
-                  background: isActive ? 'rgba(212,175,55,0.1)' : 'transparent',
-                  color: isActive ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.6)'
-                }}
-              >
-                <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} style={{ color: isActive ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.4)' }} />
-                {item.label}
-                {isActive && <ChevronRight size={14} className="ml-auto" style={{ color: 'rgba(212,175,55,0.5)' }} />}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+          {navSections.map((section) => (
+            <div key={section.label} className="space-y-1">
+              <p className="px-3 text-[10px] uppercase tracking-[0.16em] font-sans-custom" style={{ color: 'rgba(242,240,237,0.24)' }}>
+                {section.label}
+              </p>
+              {section.items.map((item) => {
+                const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group font-sans-custom"
+                    style={{
+                      background: isActive ? 'rgba(212,175,55,0.1)' : 'transparent',
+                      color: isActive ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.58)'
+                    }}
+                  >
+                    <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} style={{ color: isActive ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.36)' }} />
+                    {item.label}
+                    {isActive && <ChevronRight size={14} className="ml-auto" style={{ color: 'rgba(212,175,55,0.5)' }} />}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* User */}
@@ -177,29 +230,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <X size={20} />
                 </button>
               </div>
-              <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-                {navItems.map((item) => {
-                  const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setSidebarOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 font-sans-custom ${
-                        isActive 
-                          ? '' 
-                          : ''
-                      }`}
-                      style={{
-                        background: isActive ? 'rgba(212,175,55,0.1)' : 'transparent',
-                        color: isActive ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.6)'
-                      }}
-                    >
-                      <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} style={{ color: isActive ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.4)' }} />
-                      {item.label}
-                    </Link>
-                  );
-                })}
+              <nav className="flex-1 px-4 py-4 space-y-5 overflow-y-auto">
+                {navSections.map((section) => (
+                  <div key={section.label} className="space-y-1">
+                    <p className="px-4 text-[10px] uppercase tracking-[0.16em] font-sans-custom" style={{ color: 'rgba(242,240,237,0.24)' }}>
+                      {section.label}
+                    </p>
+                    {section.items.map((item) => {
+                      const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setSidebarOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 font-sans-custom"
+                          style={{
+                            background: isActive ? 'rgba(212,175,55,0.1)' : 'transparent',
+                            color: isActive ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.58)'
+                          }}
+                        >
+                          <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} style={{ color: isActive ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.36)' }} />
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ))}
               </nav>
               <div className="px-4 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 <div className="flex items-center gap-3 mb-4 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)' }}>
@@ -240,7 +296,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Page content - better spacing */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
+        <main className={`flex-1 p-4 md:p-6 lg:p-8 ${isManager ? 'pb-24 lg:pb-8' : ''}`}>{children}</main>
+
+        {isManager && (
+          <nav
+            className="lg:hidden fixed inset-x-0 bottom-0 z-30 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
+            style={{ background: 'rgba(8,8,8,0.92)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(242,240,237,0.08)' }}
+          >
+            <div className="grid grid-cols-5 gap-1">
+              {managerBottomNav.map((item) => {
+                const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="flex min-h-[54px] flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-sans-custom transition-colors"
+                    style={{
+                      background: isActive ? 'rgba(212,175,55,0.12)' : 'transparent',
+                      color: isActive ? 'rgba(212,175,55,0.92)' : 'rgba(242,240,237,0.42)',
+                    }}
+                  >
+                    <item.icon size={18} strokeWidth={isActive ? 2.4 : 2} />
+                    <span className="max-w-full truncate">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+        )}
       </div>
     </div>
   );

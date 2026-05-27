@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { X, Scale, User, Calendar, AlertCircle, GripVertical, ChevronUp, ChevronDown, Package, Gem, Wrench, Camera, ImagePlus, Trash2 } from 'lucide-react';
 import { formatWeight, getGoldColorLabel } from '@/lib/jewelry/calculations';
+import { useAuth } from '@/hooks/use-auth';
 import type { QuotationRecord, StoneRow, LaborItem } from '@/lib/quotation/types';
 
 interface LaborAssignment {
@@ -69,6 +70,8 @@ export default function ModalStartWork({
   quotation,
   users,
 }: ModalStartWorkProps) {
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'admin';
   const metalType = quotation?.metal_type ?? 'gold';
   const metalPurityPct = Number(quotation?.metal_purity_pct ?? 0);
   const metalPurity = Number(quotation?.metal_purity ?? 0);
@@ -112,6 +115,26 @@ export default function ModalStartWork({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const dragIdx = useRef<number | null>(null);
+
+  const responsibleUsers = useMemo(() => {
+    if (!currentUser) return users;
+    if (users.some(user => user.id === currentUser.id)) return users;
+
+    return [
+      {
+        id: currentUser.id,
+        firstName: currentUser.firstName,
+        lastName: currentUser.lastName,
+        role: currentUser.role,
+      },
+      ...users,
+    ];
+  }, [currentUser, users]);
+
+  useEffect(() => {
+    if (!isOpen || !currentUser?.id) return;
+    setDeliveredByUserId(currentUser.id);
+  }, [isOpen, currentUser?.id]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -177,6 +200,10 @@ export default function ModalStartWork({
     e.preventDefault();
     setError('');
 
+    const effectiveDeliveredByUserId = isAdmin
+      ? deliveredByUserId
+      : currentUser?.id ?? deliveredByUserId;
+
     if (!deliveredPurityK || kNum <= 0 || (metalType === 'gold' && kNum > 24)) {
       setError(metalType === 'gold' ? 'La ley del material debe estar entre 1K y 24K' : 'La pureza del material es requerida');
       return;
@@ -185,7 +212,7 @@ export default function ModalStartWork({
       setError('El peso del material entregado debe ser mayor a 0');
       return;
     }
-    if (!deliveredByUserId) {
+    if (!effectiveDeliveredByUserId) {
       setError('Debe seleccionar quién entrega el material');
       return;
     }
@@ -205,7 +232,7 @@ export default function ModalStartWork({
         deliveredMetalWeightGr: weightGrNum,
         deliveredPureMetalGr,
         surplusePureMetalGr: surplusPureMetalGr,
-        deliveredByUserId,
+        deliveredByUserId: effectiveDeliveredByUserId,
         receivedByUserId,
         materialDeliveryDate,
         laborAssignments,
@@ -411,9 +438,19 @@ export default function ModalStartWork({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label style={labelStyle}>Entregado por *</label>
-                  <select value={deliveredByUserId} onChange={e => setDeliveredByUserId(e.target.value)} style={{ ...inputStyle, appearance: 'none' }}>
+                  <select
+                    value={deliveredByUserId}
+                    onChange={e => setDeliveredByUserId(e.target.value)}
+                    disabled={!isAdmin}
+                    style={{
+                      ...inputStyle,
+                      appearance: 'none',
+                      opacity: !isAdmin ? 0.72 : 1,
+                      cursor: !isAdmin ? 'not-allowed' : 'pointer',
+                    }}
+                  >
                     <option value="">Seleccionar...</option>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
+                    {responsibleUsers.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
                   </select>
                 </div>
                 <div>

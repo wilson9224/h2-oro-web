@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuotationForm } from '@/hooks/use-quotation-form';
+import { fetchQuotationById, quotationRecordToFormState, syncQuotationToOrder } from '@/lib/quotation/queries';
 import QuoteTypeSelector from '@/components/quotation/quote-type-selector';
 import GeneralInfoSection from '@/components/quotation/general-info-section';
 import MetalSection from '@/components/quotation/metal-section';
@@ -14,15 +15,41 @@ import StonesSection from '@/components/quotation/stones-section';
 import LaborSection from '@/components/quotation/labor-section';
 import QuotationSummary from '@/components/quotation/quotation-summary';
 import ConvertToOrderModal from '@/components/quotation/convert-to-order-modal';
-import type { QuoteType } from '@/lib/quotation/types';
+import type { QuoteType, QuotationFormState } from '@/lib/quotation/types';
 
 const ALLOWED_ROLES = ['admin', 'manager'];
 
 export default function NuevaCotizacionPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('edit');
   const [showModal, setShowModal] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState(!!editId);
+  const [editInitial, setEditInitial] = useState<Partial<QuotationFormState> | undefined>(undefined);
+  const [isConverted, setIsConverted] = useState(false);
+
+  // Load existing quotation if ?edit=ID
+  useEffect(() => {
+    if (!editId || !user) return;
+    setLoadingEdit(true);
+    fetchQuotationById(editId)
+      .then((record) => {
+        if (user.role === 'manager' && record.created_by_user_id !== user.id) {
+          router.push('/admin/cotizacion');
+          return;
+        }
+        const formState = quotationRecordToFormState(record);
+        setEditInitial(formState);
+        setSavedId(record.id);
+        setIsConverted(record.status === 'converted');
+      })
+      .catch((err) => {
+        console.error('Error loading quotation for edit:', err);
+      })
+      .finally(() => setLoadingEdit(false));
+  }, [editId, router, user]);
 
   const {
     form,
@@ -45,7 +72,7 @@ export default function NuevaCotizacionPage() {
     removeStoneRow,
     setLaborItems,
     save,
-  } = useQuotationForm();
+  } = useQuotationForm(editInitial);
 
   useEffect(() => {
     if (!loading && user && !ALLOWED_ROLES.includes(user.role)) {
@@ -53,10 +80,13 @@ export default function NuevaCotizacionPage() {
     }
   }, [user, loading, router]);
 
-  if (loading) {
+  if (loading || loadingEdit) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin h-8 w-8 border-2 rounded-full" style={{ borderColor: 'rgba(212,175,55,0.9)', borderTopColor: 'transparent' }} />
+      <div className="flex items-center justify-center py-20 gap-3">
+        <Loader2 size={20} className="animate-spin" style={{ color: 'rgba(212,175,55,0.9)' }} />
+        <span className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
+          {loadingEdit ? 'Cargando cotización...' : 'Cargando...'}
+        </span>
       </div>
     );
   }
@@ -71,6 +101,10 @@ export default function NuevaCotizacionPage() {
     try {
       const id = await save(user.id);
       setSavedId(id);
+      // If this quotation is already converted to an order, sync changes
+      if (isConverted && id) {
+        await syncQuotationToOrder(id, form);
+      }
     } catch {
       // error handled by hook
     }
@@ -120,20 +154,31 @@ export default function NuevaCotizacionPage() {
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.95)' }}>Nueva Cotización</h1>
+            <h1 className="text-2xl font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.95)' }}>
+              {editId ? 'Editar Cotización' : 'Nueva Cotización'}
+            </h1>
             <p className="text-sm mt-0.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
               Tipo:{' '}
               <span className="font-medium" style={{ color: 'rgba(212,175,55,0.9)' }}>{quoteTypeLabel}</span>
-              <button
-                onClick={() => setQuoteType(null as unknown as QuoteType)}
-                className="ml-2 text-xs underline transition-colors font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.6)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'}
-              >
-                cambiar
-              </button>
+              {!editId && (
+                <button
+                  onClick={() => setQuoteType(null as unknown as QuoteType)}
+                  className="ml-2 text-xs underline transition-colors font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.6)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'}
+                >
+                  cambiar
+                </button>
+              )}
+              {isConverted && (
+                <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full font-sans-custom" style={{ background: 'rgba(16,185,129,0.1)', color: 'rgba(52,211,153,0.9)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                  Vinculada a pedido
+                </span>
+              )}
             </p>
           </div>
           {savedId && (
-            <span className="text-xs font-sans-custom" style={{ color: 'rgba(16,185,129,0.7)' }}>Borrador guardado</span>
+            <span className="text-xs font-sans-custom" style={{ color: 'rgba(16,185,129,0.7)' }}>
+              {isConverted ? 'Cambios guardados' : 'Borrador guardado'}
+            </span>
           )}
         </div>
       </div>
