@@ -1,15 +1,20 @@
 'use client';
 
 import { motion, useScroll, useTransform } from 'framer-motion';
+import { BadgeCheck, Gem, Hammer, Scale, Sparkles, Truck } from 'lucide-react';
 import { useRef } from 'react';
 
 interface MarqueeProps {
   items: string[];
   reverse?: boolean;
   className?: string;
+  iconMode?: boolean | 'jewelry' | 'services';
 }
 
-export function Marquee({ items, reverse = false, className = '' }: MarqueeProps) {
+const serviceIcons = [Gem, Hammer, Scale, Sparkles, BadgeCheck, Truck];
+const jewelryIcons = [Gem, Sparkles, Gem, Sparkles, BadgeCheck, Gem];
+
+export function Marquee({ items, reverse = false, className = '', iconMode = false }: MarqueeProps) {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -35,7 +40,14 @@ export function Marquee({ items, reverse = false, className = '' }: MarqueeProps
           <span key={rep} className="flex items-center shrink-0">
             {items.map((item, i) => (
               <span key={i} className="flex items-center">
-                <span className="text-[11px] md:text-[13px] font-sans uppercase tracking-[0.22em] text-cream-200/25 select-none px-5">
+                <span className="flex items-center gap-2.5 px-5 text-[11px] uppercase tracking-[0.22em] text-cream-200/25 select-none font-sans-custom md:text-[13px]">
+                  {iconMode ? (
+                    (() => {
+                      const icons = iconMode === 'jewelry' ? jewelryIcons : serviceIcons;
+                      const Icon = icons[i % icons.length];
+                      return <Icon size={14} strokeWidth={1.5} className="text-gold-400/45" />;
+                    })()
+                  ) : null}
                   {item}
                 </span>
                 <span
