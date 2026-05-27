@@ -6,9 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
-  { href: '/catalogo', label: 'Colección' },
-  { href: '/servicios', label: 'Servicios' },
-  { href: '/seguimiento', label: 'Mi Pedido' },
+  { href: '/seguimiento', label: 'Mi pedido' },
 ];
 
 export function Header() {
@@ -57,15 +55,11 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
-              <div className="w-px h-4 bg-cream-200/10 mx-2" />
               <Link
                 href="/auth/login"
-                className="link-hover text-xs uppercase tracking-[0.12em] font-sans"
+                className="btn-pill-outline text-[10px] px-5 py-2"
               >
                 Ingresar
-              </Link>
-              <Link href="/catalogo" className="btn-pill text-[10px] px-5 py-2">
-                Explorar
               </Link>
             </div>
 
@@ -137,13 +131,6 @@ export function Header() {
                   className="btn-pill-outline flex-1 justify-center"
                 >
                   Ingresar
-                </Link>
-                <Link
-                  href="/catalogo"
-                  onClick={() => setIsOpen(false)}
-                  className="btn-pill flex-1 justify-center"
-                >
-                  Explorar
                 </Link>
               </motion.div>
             </nav>
