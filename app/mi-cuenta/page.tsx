@@ -117,7 +117,7 @@ export default function MyOrdersPage() {
   }, [user]);
 
   return (
-    <div className="px-5 pt-6 pb-4 space-y-5">
+    <div className="min-w-0 space-y-5 px-4 pb-4 pt-6 sm:px-5">
       {/* Header */}
       <div>
         <p className="text-[10px] font-sans-custom uppercase tracking-[0.2em] mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>
@@ -184,16 +184,16 @@ export default function MyOrdersPage() {
           <Link
             key={order.id}
             href={`/mi-cuenta/pedidos/${order.id}`}
-            className="block rounded-2xl p-4 transition-all duration-200 group"
+            className="block min-w-0 rounded-2xl p-4 transition-all duration-200 group"
             style={{
               background: 'rgba(255,255,255,0.03)',
               border: '1px solid rgba(255,255,255,0.07)',
             }}
           >
             {/* Top row */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <span className="font-mono text-sm font-semibold" style={{ color: 'rgba(242,240,237,0.85)' }}>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+                <span className="max-w-full truncate font-mono text-sm font-semibold" style={{ color: 'rgba(242,240,237,0.85)' }}>
                   {order.orderNumber}
                 </span>
                 <span
@@ -206,7 +206,7 @@ export default function MyOrdersPage() {
                   {typeLabels[order.type] || order.type}
                 </span>
               </div>
-              <ArrowUpRight size={14} style={{ color: 'rgba(212,175,55,0.4)' }} />
+              <ArrowUpRight size={14} className="shrink-0" style={{ color: 'rgba(212,175,55,0.4)' }} />
             </div>
 
             {/* Pieces */}
@@ -215,11 +215,11 @@ export default function MyOrdersPage() {
                 {order.pieces.map((piece) => (
                   <div
                     key={piece.id}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
+                    className="flex min-w-0 max-w-full items-center gap-1.5 rounded-lg px-2.5 py-1"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
                   >
-                    <Package size={11} style={{ color: 'rgba(242,240,237,0.25)' }} />
-                    <span className="text-[11px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.55)' }}>{piece.name}</span>
+                    <Package size={11} className="shrink-0" style={{ color: 'rgba(242,240,237,0.25)' }} />
+                    <span className="min-w-0 truncate text-[11px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.55)' }}>{piece.name}</span>
                     {piece.currentState && (
                       <span
                         className="text-[9px] px-1.5 py-0.5 rounded font-sans-custom"
@@ -234,9 +234,9 @@ export default function MyOrdersPage() {
             )}
 
             {/* Bottom row */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5" style={{ color: 'rgba(242,240,237,0.25)' }}>
-                <Clock size={11} />
+            <div className="flex flex-col gap-2 min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5" style={{ color: 'rgba(242,240,237,0.25)' }}>
+                <Clock size={11} className="shrink-0" />
                 <span className="text-[10px] font-sans-custom">
                   {new Date(order.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </span>
@@ -247,7 +247,7 @@ export default function MyOrdersPage() {
                 )}
               </div>
               {order.totalAmountCop && (
-                <span className="font-mono text-sm font-bold" style={{ color: 'rgba(212,175,55,0.9)' }}>
+                <span className="max-w-full truncate font-mono text-sm font-bold min-[380px]:shrink-0" style={{ color: 'rgba(212,175,55,0.9)' }}>
                   {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(Number(order.totalAmountCop))}
                 </span>
               )}

@@ -52,7 +52,7 @@ export default async function CatalogoPage({ searchParams }: PageProps) {
   return (
     <>
     <Header />
-    <main className="min-h-screen" style={{ background: '#0A0A0A' }}>
+    <main className="min-h-screen overflow-x-hidden" style={{ background: '#0A0A0A' }}>
       {/* Ambient glow */}
       <div
         className="fixed top-0 left-1/2 -translate-x-1/2 w-[60vw] h-[35vh] pointer-events-none z-0"
@@ -61,7 +61,7 @@ export default async function CatalogoPage({ searchParams }: PageProps) {
 
       {/* Page header */}
       <section className="relative z-10 section-padding pt-28 pb-12" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-        <div className="max-w-[90rem] mx-auto">
+        <div className="mx-auto max-w-[90rem] min-w-0">
           <span className="text-[10px] uppercase tracking-[0.22em] block mb-4 font-sans-custom" style={{ color: 'rgba(212,175,55,0.6)' }}>
             Colección
           </span>
@@ -75,7 +75,7 @@ export default async function CatalogoPage({ searchParams }: PageProps) {
       </section>
 
       <div className="relative z-10 section-padding py-10">
-        <div className="max-w-[90rem] mx-auto flex flex-col lg:flex-row gap-8">
+        <div className="mx-auto flex max-w-[90rem] min-w-0 flex-col gap-8 lg:flex-row">
 
           {/* Sidebar — Filters */}
           <aside className="w-full lg:w-56 shrink-0">
@@ -161,7 +161,7 @@ export default async function CatalogoPage({ searchParams }: PageProps) {
           </aside>
 
           {/* Product grid */}
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             {/* Results count */}
             <div className="flex items-center justify-between mb-6">
               <p className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
@@ -186,7 +186,7 @@ export default async function CatalogoPage({ searchParams }: PageProps) {
                   <Link
                     key={product.id}
                     href={`/catalogo/${product.slug}`}
-                    className="group block overflow-hidden rounded-2xl transition-all duration-300"
+                    className="group block min-w-0 overflow-hidden rounded-2xl transition-all duration-300"
                     style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
                   >
                     {/* Image area */}
@@ -218,14 +218,14 @@ export default async function CatalogoPage({ searchParams }: PageProps) {
                       <p className="text-[9px] uppercase tracking-[0.18em] mb-1 font-sans-custom" style={{ color: 'rgba(212,175,55,0.6)' }}>
                         {product.category.name}
                       </p>
-                      <h2 className="font-display text-sm font-medium transition-colors duration-300" style={{ color: 'rgba(242,240,237,0.85)' }}>
+                      <h2 className="truncate font-display text-sm font-medium transition-colors duration-300" style={{ color: 'rgba(242,240,237,0.85)' }}>
                         {product.name}
                       </h2>
                       {product.material && (
                         <p className="text-xs mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>{product.material}</p>
                       )}
                       {product.basePriceCop && (
-                        <p className="mt-2.5 font-display text-base font-semibold" style={{ color: 'rgba(212,175,55,0.9)' }}>
+                        <p className="mt-2.5 truncate font-display text-base font-semibold" style={{ color: 'rgba(212,175,55,0.9)' }}>
                           ${Number(product.basePriceCop).toLocaleString('es-CO')}
                           <span className="text-[10px] font-normal ml-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>COP</span>
                         </p>
@@ -243,7 +243,7 @@ export default async function CatalogoPage({ searchParams }: PageProps) {
 
             {/* Pagination */}
             {products.totalPages > 1 && (
-              <nav className="flex justify-center mt-10 gap-2">
+              <nav className="mt-10 flex flex-wrap justify-center gap-2">
                 {currentPage > 1 && (
                   <Link
                     href={`/catalogo?${new URLSearchParams({ ...params, page: String(currentPage - 1) }).toString()}`}

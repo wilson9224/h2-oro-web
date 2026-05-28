@@ -199,19 +199,19 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
   const totalNotifications = notificationCount + paymentNotificationCount;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#080808' }}>
+    <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden" style={{ background: '#080808' }}>
       {/* Header — ultra minimal */}
       <header
-        className="px-5 py-3.5 flex items-center justify-between sticky top-0 z-30"
+        className="sticky top-0 z-30 flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5"
         style={{
           background: 'rgba(8,8,8,0.85)',
           backdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(255,255,255,0.05)',
         }}
       >
-        <div className="flex items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <div
-            className="w-6 h-6 rounded-md flex items-center justify-center"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
             style={{
               background: 'rgba(212,175,55,0.12)',
               border: '1px solid rgba(212,175,55,0.2)',
@@ -219,11 +219,11 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
           >
             <span className="text-[10px] font-bold leading-none font-sans-custom" style={{ color: 'rgba(212,175,55,0.9)' }}>H</span>
           </div>
-          <span className="font-display text-sm tracking-tight font-sans-custom">
+          <span className="font-display truncate text-sm tracking-tight font-sans-custom">
             <span style={{ color: 'rgba(242,240,237,0.8)' }}>H2 Oro</span>
           </span>
           <span
-            className="text-[9px] uppercase tracking-[0.18em] px-2 py-0.5 rounded-full font-sans-custom"
+            className="shrink-0 rounded-full px-2 py-0.5 text-[9px] uppercase tracking-[0.18em] font-sans-custom"
             style={{
               background: 'rgba(212,175,55,0.08)',
               border: '1px solid rgba(212,175,55,0.15)',
@@ -351,19 +351,19 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 pb-28 overflow-y-auto">
+      <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto pb-28">
         {children}
       </main>
 
       {/* Bottom Navigation — pill style */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2"
+        className="fixed bottom-0 left-0 right-0 z-40 px-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 sm:px-4"
         style={{
           background: 'linear-gradient(to top, rgba(8,8,8,1) 60%, rgba(8,8,8,0))',
         }}
       >
         <div
-          className="flex items-center justify-around rounded-2xl px-2 py-1.5"
+          className="grid grid-cols-4 gap-1 rounded-2xl px-1.5 py-1.5"
           style={{
             background: 'rgba(20,20,20,0.95)',
             border: '1px solid rgba(255,255,255,0.07)',
@@ -382,7 +382,7 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
               <Link
                 key={item.href}
                 href={item.href}
-                className="relative flex flex-col items-center justify-center gap-1.5 px-4 py-3 rounded-xl transition-all duration-300 min-w-[64px] active:scale-[0.98]"
+                className="relative flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 transition-all duration-300 active:scale-[0.98] sm:px-4"
                 style={{
                   background: isActive ? 'rgba(212,175,55,0.1)' : 'transparent',
                   color: isActive ? '#D4AF37' : 'rgba(242,240,237,0.35)',
@@ -415,11 +415,11 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
 
       {/* Payment Confirmation Modal */}
       {showConfirmModal && pendingConfirmations.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-4"
           style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
         >
           <div
-            className="w-full max-w-sm rounded-3xl overflow-hidden"
+            className="max-h-[calc(100dvh-1.5rem)] w-full max-w-sm overflow-hidden rounded-3xl"
             style={{
               background: 'rgba(14,13,12,0.98)',
               border: '1px solid rgba(212,175,55,0.15)',
@@ -428,21 +428,21 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
           >
             {/* Modal header */}
             <div
-              className="px-5 pt-5 pb-4 flex items-center justify-between"
+              className="flex items-center justify-between gap-3 px-4 pb-4 pt-5 sm:px-5"
               style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center"
                   style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)' }}
                 >
                   <Banknote className="w-4 h-4" style={{ color: 'rgba(212,175,55,0.9)' }} />
                 </div>
-                <div>
-                  <p className="font-display text-sm font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>
+                <div className="min-w-0">
+                  <p className="truncate font-display text-sm font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>
                     Pago{pendingConfirmations.length > 1 ? 's' : ''} recibido{pendingConfirmations.length > 1 ? 's' : ''}
                   </p>
-                  <p className="text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
+                  <p className="truncate text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
                     Confirma que recibiste el dinero
                   </p>
                 </div>
@@ -459,7 +459,7 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
             </div>
 
             {/* Payment list */}
-            <div className="px-5 py-4 space-y-3 max-h-72 overflow-y-auto">
+            <div className="max-h-72 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
               {pendingConfirmations.map((p) => (
                 <div
                   key={p.id}
@@ -487,8 +487,8 @@ export default function JoyeroLayout({ children }: { children: React.ReactNode }
                         {p.paidAt ? new Date(p.paidAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }) : ''}
                       </p>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="font-display font-bold text-base" style={{ color: 'rgba(212,175,55,0.95)' }}>
+                    <div className="max-w-[8.5rem] flex-shrink-0 text-right">
+                      <p className="truncate font-display text-base font-bold" style={{ color: 'rgba(212,175,55,0.95)' }}>
                         {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(p.amountCop)}
                       </p>
                       {p.confirmed ? (

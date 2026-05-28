@@ -208,15 +208,15 @@ export default function JoyeroOrderDetailPage() {
   }
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="min-w-0 space-y-6 p-4">
       {/* Header */}
-      <div className="flex items-center space-x-3">
+      <div className="flex min-w-0 items-center gap-3">
         <Link href="/joyero/pedidos" className="font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.6)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'}>
           <ArrowLeft className="w-6 h-6" />
         </Link>
-        <div>
-          <h1 className="text-xl font-bold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>{orderDetail.orderNumber}</h1>
-          <p className="font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{orderDetail.pieceName}</p>
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-bold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>{orderDetail.orderNumber}</h1>
+          <p className="truncate font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{orderDetail.pieceName}</p>
         </div>
       </div>
 
@@ -279,7 +279,7 @@ export default function JoyeroOrderDetailPage() {
                   opacity: isBlocked ? 0.55 : 1,
                 }}
               >
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center justify-between gap-3">
                   {/* Step number + name */}
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div
@@ -354,7 +354,7 @@ export default function JoyeroOrderDetailPage() {
                   ) : (
                     <Link
                       href={`/joyero/trabajo/${assignment.id}`}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 font-sans-custom shrink-0"
+                      className="flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all duration-200 font-sans-custom min-[370px]:px-3"
                       style={{
                         background: isActive
                           ? 'rgba(96,165,250,0.15)'
@@ -364,10 +364,10 @@ export default function JoyeroOrderDetailPage() {
                       }}
                     >
                       {assignment.status === 'paused'
-                        ? <><RotateCcw className="w-3 h-3" /><span>Reanudar</span></>
+                        ? <><RotateCcw className="h-3 w-3 shrink-0" /><span className="hidden min-[340px]:inline">Reanudar</span></>
                         : isActive
-                        ? <><ArrowRight className="w-3 h-3" /><span>Continuar</span></>
-                        : <><PlayCircle className="w-3 h-3" /><span>Iniciar</span></>}
+                        ? <><ArrowRight className="h-3 w-3 shrink-0" /><span className="hidden min-[340px]:inline">Continuar</span></>
+                        : <><PlayCircle className="h-3 w-3 shrink-0" /><span className="hidden min-[340px]:inline">Iniciar</span></>}
                     </Link>
                   )}
                 </div>
@@ -449,9 +449,9 @@ export default function JoyeroOrderDetailPage() {
           <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <ul className="space-y-2">
               {orderDetail.materials.map((material, index) => (
-                <li key={index} className="flex items-center justify-between font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>
-                  <span>{material.name}</span>
-                  <span style={{ color: 'rgba(242,240,237,0.4)' }}>{material.quantity}</span>
+                <li key={index} className="flex min-w-0 items-center justify-between gap-3 font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>
+                  <span className="min-w-0 truncate">{material.name}</span>
+                  <span className="shrink-0 text-right" style={{ color: 'rgba(242,240,237,0.4)' }}>{material.quantity}</span>
                 </li>
               ))}
             </ul>

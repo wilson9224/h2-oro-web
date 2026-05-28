@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/use-auth';
 
 function Field({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
   return (
-    <div>
+    <div className="min-w-0">
       <label
         className="block text-[10px] font-sans-custom uppercase tracking-[0.18em] mb-1.5"
         style={{ color: 'rgba(242,240,237,0.3)' }}
@@ -13,11 +13,11 @@ function Field({ icon: Icon, label, value }: { icon: React.ElementType; label: s
         {label}
       </label>
       <div
-        className="flex items-center gap-2.5 px-4 py-3 rounded-xl"
+        className="flex min-w-0 items-center gap-2.5 rounded-xl px-4 py-3"
         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
       >
-        <Icon size={13} style={{ color: 'rgba(212,175,55,0.4)' }} />
-        <span className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.75)' }}>{value}</span>
+        <Icon size={13} className="shrink-0" style={{ color: 'rgba(212,175,55,0.4)' }} />
+        <span className="min-w-0 truncate text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.75)' }}>{value}</span>
       </div>
     </div>
   );
@@ -28,7 +28,7 @@ export default function ProfilePage() {
   if (!user) return null;
 
   return (
-    <div className="px-5 pt-6 pb-4 space-y-5 max-w-sm">
+    <div className="max-w-sm min-w-0 space-y-5 px-4 pb-4 pt-6 sm:px-5">
       {/* Header */}
       <div>
         <p className="text-[10px] font-sans-custom uppercase tracking-[0.2em] mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>
@@ -41,7 +41,7 @@ export default function ProfilePage() {
 
       {/* Avatar card */}
       <div
-        className="rounded-2xl p-5 flex items-center gap-4"
+        className="flex min-w-0 items-center gap-4 rounded-2xl p-5"
         style={{ background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.12)' }}
       >
         <div
@@ -50,11 +50,11 @@ export default function ProfilePage() {
         >
           {user.firstName[0]}{user.lastName[0]}
         </div>
-        <div>
-          <p className="font-display text-base font-semibold" style={{ color: 'rgba(242,240,237,0.9)' }}>
+        <div className="min-w-0">
+          <p className="truncate font-display text-base font-semibold" style={{ color: 'rgba(242,240,237,0.9)' }}>
             {user.firstName} {user.lastName}
           </p>
-          <p className="text-xs font-sans-custom mt-0.5" style={{ color: 'rgba(242,240,237,0.35)' }}>
+          <p className="truncate text-xs font-sans-custom mt-0.5" style={{ color: 'rgba(242,240,237,0.35)' }}>
             {user.email}
           </p>
         </div>

@@ -83,7 +83,7 @@ const formatDate = (d: string | null, withTime = false) => {
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <div
-      className={`rounded-[1.35rem] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.18)] ${className}`}
+      className={`min-w-0 rounded-[1.35rem] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.18)] sm:p-5 ${className}`}
       style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.075)' }}
     >
       {children}
@@ -105,15 +105,15 @@ function SectionTitle({ icon: Icon, children }: { icon: React.ElementType; child
 
 function KeyDateRow({ label, date, highlight }: { label: string; date: string | null; highlight?: boolean }) {
   if (!date) return (
-    <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+    <div className="flex items-center justify-between gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
       <span className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>{label}</span>
-      <span className="text-xs italic font-sans-custom" style={{ color: 'rgba(242,240,237,0.2)' }}>No registrada</span>
+      <span className="shrink-0 text-right text-xs italic font-sans-custom" style={{ color: 'rgba(242,240,237,0.2)' }}>No registrada</span>
     </div>
   );
   return (
-    <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-      <span className="text-sm font-sans-custom" style={{ color: highlight ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.6)' }}>{label}</span>
-      <span className="text-sm font-medium font-sans-custom" style={{ color: highlight ? 'rgba(212,175,55,1)' : 'rgba(242,240,237,0.85)' }}>{date}</span>
+    <div className="flex items-center justify-between gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <span className="min-w-0 text-sm font-sans-custom" style={{ color: highlight ? 'rgba(212,175,55,0.9)' : 'rgba(242,240,237,0.6)' }}>{label}</span>
+      <span className="shrink-0 text-right text-sm font-medium font-sans-custom" style={{ color: highlight ? 'rgba(212,175,55,1)' : 'rgba(242,240,237,0.85)' }}>{date}</span>
     </div>
   );
 }
@@ -206,13 +206,13 @@ export default function TrackingForm() {
   const progressPct = totalStages > 0 ? Math.round((completedStages / totalStages) * 100) : 0;
 
   return (
-    <section className="min-h-screen section-padding pt-28 pb-12 font-sans-custom" style={{ background: 'rgba(8,8,8,1)' }}>
+    <section className="min-h-screen overflow-x-hidden section-padding pt-28 pb-12 font-sans-custom" style={{ background: 'rgba(8,8,8,1)' }}>
       <div
         className="fixed top-0 left-1/2 -translate-x-1/2 w-[70vw] h-[42vh] pointer-events-none"
         style={{ background: 'radial-gradient(ellipse, rgba(212,175,55,0.08) 0%, rgba(212,175,55,0.025) 35%, transparent 72%)', filter: 'blur(70px)', zIndex: 0 }}
       />
 
-      <div className="max-w-4xl mx-auto space-y-5 relative z-10">
+      <div className="relative z-10 mx-auto max-w-4xl min-w-0 space-y-5">
         <div className="space-y-5">
           <div className="section-rule justify-center text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-400/70 sm:justify-start">
             Mi pedido
@@ -335,16 +335,16 @@ export default function TrackingForm() {
 
             {/* Order header */}
             <Card>
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <p className="font-mono text-lg font-bold font-sans-custom" style={{ color: 'rgba(212,175,55,0.9)' }}>{result.orderNumber}</p>
-                  <p className="text-sm mt-0.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-mono text-lg font-bold font-sans-custom" style={{ color: 'rgba(212,175,55,0.9)' }}>{result.orderNumber}</p>
+                  <p className="mt-0.5 line-clamp-2 text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
                     {TYPE_LABELS[result.orderType] ?? result.orderType}
                     {result.pieceName ? ` · ${result.pieceName}` : ''}
                   </p>
                 </div>
                 <span
-                  className="text-[10px] px-3 py-1.5 rounded-full font-semibold font-sans-custom"
+                  className="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold font-sans-custom"
                   style={{
                     background: result.status === 'delivered' ? 'rgba(52,211,153,0.1)' :
                                 result.status === 'in_progress' ? 'rgba(212,175,55,0.1)' :
@@ -364,7 +364,7 @@ export default function TrackingForm() {
               {/* Global progress bar */}
               {totalStages > 0 && (
                 <div>
-                  <div className="flex justify-between text-xs mb-1.5 font-sans-custom">
+                  <div className="mb-1.5 flex justify-between gap-3 text-xs font-sans-custom">
                     <span style={{ color: 'rgba(242,240,237,0.35)' }}>Progreso de producción</span>
                     <span className="font-medium" style={{ color: 'rgba(212,175,55,0.8)' }}>{completedStages}/{totalStages} etapas</span>
                   </div>
@@ -396,7 +396,7 @@ export default function TrackingForm() {
                   {result.laborStages.map((stage, idx) => (
                     <div
                       key={stage.serviceCode}
-                      className="flex items-center gap-3 py-3"
+                      className="flex min-w-0 items-center gap-3 py-3"
                       style={idx < result.laborStages.length - 1 ? { borderBottom: '1px solid rgba(255,255,255,0.05)' } : {}}
                     >
                       {/* Step dot */}
@@ -416,7 +416,7 @@ export default function TrackingForm() {
 
                       <div className="flex-1 min-w-0">
                         <p
-                          className="text-sm font-medium font-sans-custom"
+                          className="truncate text-sm font-medium font-sans-custom"
                           style={{
                             color: stage.status === 'completed' ? 'rgba(242,240,237,0.25)' :
                                    stage.status === 'in_progress' ? 'rgba(212,175,55,0.9)' :
@@ -431,7 +431,7 @@ export default function TrackingForm() {
                         )}
                       </div>
 
-                      <StageStatusBadge status={stage.status} />
+                      <span className="shrink-0"><StageStatusBadge status={stage.status} /></span>
                     </div>
                   ))}
                 </div>
@@ -478,22 +478,22 @@ export default function TrackingForm() {
 
                 <div>
                   {result.financial.metalCop > 0 && (
-                    <div className="flex justify-between py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <span className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.45)' }}>Metal</span>
-                      <span className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{formatCOP(result.financial.metalCop)}</span>
+                    <div className="flex justify-between gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <span className="min-w-0 text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.45)' }}>Metal</span>
+                      <span className="shrink-0 text-right text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{formatCOP(result.financial.metalCop)}</span>
                     </div>
                   )}
                   {result.financial.alloyCop > 0 && (
-                    <div className="flex justify-between py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <span className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.45)' }}>Liga</span>
-                      <span className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{formatCOP(result.financial.alloyCop)}</span>
+                    <div className="flex justify-between gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <span className="min-w-0 text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.45)' }}>Liga</span>
+                      <span className="shrink-0 text-right text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{formatCOP(result.financial.alloyCop)}</span>
                     </div>
                   )}
 
                   {result.financial.stonesCop > 0 && (
                     <>
                       <button
-                        className="w-full flex items-center justify-between py-2.5"
+                        className="flex w-full items-center justify-between gap-3 py-2.5"
                         style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
                         onClick={() => setShowStones(v => !v)}
                       >
@@ -501,8 +501,8 @@ export default function TrackingForm() {
                           <Gem size={12} style={{ color: 'rgba(96,165,250,0.8)' }} />
                           Piedras
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{formatCOP(result.financial.stonesCop)}</span>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <span className="text-right text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{formatCOP(result.financial.stonesCop)}</span>
                           {showStones
                             ? <ChevronUp size={12} style={{ color: 'rgba(242,240,237,0.25)' }} />
                             : <ChevronDown size={12} style={{ color: 'rgba(242,240,237,0.25)' }} />}
@@ -511,12 +511,12 @@ export default function TrackingForm() {
                       {showStones && result.financial.stones.length > 0 && (
                         <div className="rounded-xl p-3 mb-1 space-y-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
                           {result.financial.stones.map((s, i) => (
-                            <div key={i} className="flex justify-between text-xs">
-                              <span style={{ color: 'rgba(242,240,237,0.4)' }}>
+                            <div key={i} className="flex justify-between gap-3 text-xs">
+                              <span className="min-w-0" style={{ color: 'rgba(242,240,237,0.4)' }}>
                                 {s.quantity > 1 ? `${s.quantity}× ` : ''}{s.stoneType} {s.cut} {s.weightCt}ct
                                 {s.clientDelivers && <span className="ml-1" style={{ color: 'rgba(212,175,55,0.7)' }}>(cliente entrega)</span>}
                               </span>
-                              <span className="font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>{formatCOP(s.totalCop)}</span>
+                              <span className="shrink-0 text-right font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>{formatCOP(s.totalCop)}</span>
                             </div>
                           ))}
                         </div>
@@ -527,7 +527,7 @@ export default function TrackingForm() {
                   {result.financial.laborCop > 0 && (
                     <>
                       <button
-                        className="w-full flex items-center justify-between py-2.5"
+                        className="flex w-full items-center justify-between gap-3 py-2.5"
                         style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
                         onClick={() => setShowLabor(v => !v)}
                       >
@@ -535,8 +535,8 @@ export default function TrackingForm() {
                           <Wrench size={12} style={{ color: 'rgba(167,139,250,0.8)' }} />
                           Mano de obra
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{formatCOP(result.financial.laborCop)}</span>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <span className="text-right text-sm font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>{formatCOP(result.financial.laborCop)}</span>
                           {showLabor
                             ? <ChevronUp size={12} style={{ color: 'rgba(242,240,237,0.25)' }} />
                             : <ChevronDown size={12} style={{ color: 'rgba(242,240,237,0.25)' }} />}
@@ -545,9 +545,9 @@ export default function TrackingForm() {
                       {showLabor && result.financial.laborItems.length > 0 && (
                         <div className="rounded-xl p-3 mb-1 space-y-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
                           {result.financial.laborItems.map((l, i) => (
-                            <div key={i} className="flex justify-between text-xs font-sans-custom">
-                              <span style={{ color: 'rgba(242,240,237,0.4)' }}>{l.serviceName}</span>
-                              <span className="font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>{formatCOP(l.effectivePrice)}</span>
+                            <div key={i} className="flex justify-between gap-3 text-xs font-sans-custom">
+                              <span className="min-w-0" style={{ color: 'rgba(242,240,237,0.4)' }}>{l.serviceName}</span>
+                              <span className="shrink-0 text-right font-medium font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>{formatCOP(l.effectivePrice)}</span>
                             </div>
                           ))}
                         </div>
@@ -556,9 +556,9 @@ export default function TrackingForm() {
                   )}
 
                   {/* Total */}
-                  <div className="flex justify-between pt-3.5 mt-1">
+                  <div className="mt-1 flex justify-between gap-3 pt-3.5">
                     <span className="text-base font-bold font-sans-custom" style={{ color: 'rgba(242,240,237,0.9)' }}>Total</span>
-                    <span className="text-base font-bold font-sans-custom" style={{ color: 'rgba(212,175,55,1)' }}>{formatCOP(result.financial.totalCop)}</span>
+                    <span className="shrink-0 text-right text-base font-bold font-sans-custom" style={{ color: 'rgba(212,175,55,1)' }}>{formatCOP(result.financial.totalCop)}</span>
                   </div>
                 </div>
 
@@ -566,26 +566,26 @@ export default function TrackingForm() {
                 {result.financial.totalCop > 0 && (
                   <div className="mt-4 pt-4 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
                     {result.financial.cashPaidCop > 0 && (
-                      <div className="flex justify-between text-sm font-sans-custom">
-                        <span style={{ color: 'rgba(242,240,237,0.4)' }}>Pagado en efectivo</span>
-                        <span className="font-medium font-sans-custom" style={{ color: 'rgba(52,211,153,0.9)' }}>− {formatCOP(result.financial.cashPaidCop)}</span>
+                      <div className="flex justify-between gap-3 text-sm font-sans-custom">
+                        <span className="min-w-0" style={{ color: 'rgba(242,240,237,0.4)' }}>Pagado en efectivo</span>
+                        <span className="shrink-0 text-right font-medium font-sans-custom" style={{ color: 'rgba(52,211,153,0.9)' }}>− {formatCOP(result.financial.cashPaidCop)}</span>
                       </div>
                     )}
                     {result.financial.materialPaidCop > 0 && (
-                      <div className="flex justify-between text-sm font-sans-custom">
-                        <span style={{ color: 'rgba(242,240,237,0.4)' }}>Pagado en material</span>
-                        <span className="font-medium font-sans-custom" style={{ color: 'rgba(52,211,153,0.9)' }}>− {formatCOP(result.financial.materialPaidCop)}</span>
+                      <div className="flex justify-between gap-3 text-sm font-sans-custom">
+                        <span className="min-w-0" style={{ color: 'rgba(242,240,237,0.4)' }}>Pagado en material</span>
+                        <span className="shrink-0 text-right font-medium font-sans-custom" style={{ color: 'rgba(52,211,153,0.9)' }}>− {formatCOP(result.financial.materialPaidCop)}</span>
                       </div>
                     )}
                     {(() => {
                       const balance = result.financial.totalCop - result.financial.cashPaidCop - result.financial.materialPaidCop;
                       return (
                         <div
-                          className="flex justify-between text-sm font-semibold pt-2 font-sans-custom"
+                          className="flex justify-between gap-3 pt-2 text-sm font-semibold font-sans-custom"
                           style={{ borderTop: '1px solid rgba(255,255,255,0.07)', color: balance <= 0 ? 'rgba(52,211,153,0.9)' : 'rgba(212,175,55,0.9)' }}
                         >
                           <span>Saldo pendiente</span>
-                          <span>{balance <= 0 ? '✓ Saldado' : formatCOP(balance)}</span>
+                          <span className="shrink-0 text-right">{balance <= 0 ? '✓ Saldado' : formatCOP(balance)}</span>
                         </div>
                       );
                     })()}
@@ -595,8 +595,8 @@ export default function TrackingForm() {
             )}
 
             {/* Footer note */}
-            <div className="flex items-center justify-center gap-2 text-xs pb-6" style={{ color: 'rgba(242,240,237,0.2)' }}>
-              <Truck size={12} />
+            <div className="flex items-center justify-center gap-2 pb-6 text-center text-xs" style={{ color: 'rgba(242,240,237,0.2)' }}>
+              <Truck size={12} className="shrink-0" />
               <span>Para más información comunícate con la joyería</span>
             </div>
           </div>

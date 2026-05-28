@@ -403,13 +403,13 @@ export default function OrdersKanbanPage() {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-full space-y-5">
+    <div className="min-w-0 max-w-full overflow-x-hidden space-y-5">
 
       {/* ── Delete confirmation modal ── */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
           <div
-            className="w-full max-w-sm rounded-2xl overflow-hidden"
+            className="w-full max-w-sm overflow-hidden rounded-2xl"
             style={{ background: 'rgba(20,18,14,0.98)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 40px 80px rgba(0,0,0,0.6)' }}
           >
             <div className="px-6 py-5">
@@ -447,7 +447,7 @@ export default function OrdersKanbanPage() {
       {showNewModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
           <div
-            className="w-full max-w-md rounded-2xl overflow-hidden"
+            className="w-full max-w-md overflow-hidden rounded-2xl"
             style={{ background: 'rgba(20,18,14,0.98)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 40px 80px rgba(0,0,0,0.6)' }}
           >
             <div
@@ -466,7 +466,7 @@ export default function OrdersKanbanPage() {
             <div className="p-4 space-y-2">
               <button
                 onClick={() => { setShowNewModal(false); router.push('/admin/pedidos/nuevo?tipo=catalogo'); }}
-                className="group w-full flex items-start gap-4 p-4 rounded-2xl text-left transition-all duration-200"
+                className="group flex w-full min-w-0 items-start gap-4 rounded-2xl p-4 text-left transition-all duration-200"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(212,175,55,0.25)'; (e.currentTarget as HTMLElement).style.background = 'rgba(212,175,55,0.05)'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}
@@ -474,8 +474,8 @@ export default function OrdersKanbanPage() {
                 <div className="mt-0.5 w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)' }}>
                   <ShoppingBag size={16} style={{ color: 'rgba(212,175,55,0.9)' }} />
                 </div>
-                <div>
-                  <p className="text-sm font-medium font-display" style={{ color: 'rgba(242,240,237,0.9)' }}>Venta presencial — Catálogo</p>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium font-display" style={{ color: 'rgba(242,240,237,0.9)' }}>Venta presencial — Catálogo</p>
                   <p className="text-xs mt-0.5 leading-relaxed font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
                     El cliente compra en persona una joya del catálogo.
                   </p>
@@ -484,7 +484,7 @@ export default function OrdersKanbanPage() {
 
               <button
                 onClick={() => { setShowNewModal(false); router.push('/admin/cotizacion/nueva'); }}
-                className="group w-full flex items-start gap-4 p-4 rounded-2xl text-left transition-all duration-200"
+                className="group flex w-full min-w-0 items-start gap-4 rounded-2xl p-4 text-left transition-all duration-200"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.25)'; (e.currentTarget as HTMLElement).style.background = 'rgba(139,92,246,0.05)'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)'; }}
@@ -492,8 +492,8 @@ export default function OrdersKanbanPage() {
                 <div className="mt-0.5 w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
                   <Gem size={16} style={{ color: 'rgba(167,139,250,0.9)' }} />
                 </div>
-                <div>
-                  <p className="text-sm font-medium font-display" style={{ color: 'rgba(242,240,237,0.9)' }}>Taller de joyería — Cotización</p>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium font-display" style={{ color: 'rgba(242,240,237,0.9)' }}>Taller de joyería — Cotización</p>
                   <p className="text-xs mt-0.5 leading-relaxed font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
                     Pedido personalizado, reparación o fabricación con cotización.
                   </p>
@@ -505,9 +505,9 @@ export default function OrdersKanbanPage() {
       )}
 
       {/* ── Header ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>{isManager ? 'Mis pedidos' : 'Pedidos'}</h1>
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="truncate text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>{isManager ? 'Mis pedidos' : 'Pedidos'}</h1>
           <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
             {loading ? 'Cargando...' : isManager ? `${totalCount} pedido${totalCount !== 1 ? 's' : ''} bajo tu responsabilidad` : `${totalCount} pedido${totalCount !== 1 ? 's' : ''} activos`}
           </p>
@@ -525,7 +525,7 @@ export default function OrdersKanbanPage() {
       {/* ── Filters ── */}
       <div className="space-y-3">
         {/* Search bar + filter toggle */}
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">
             <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'rgba(242,240,237,0.25)' }} />
             <input
@@ -543,7 +543,7 @@ export default function OrdersKanbanPage() {
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium font-sans-custom transition-all duration-200"
+            className="inline-flex min-w-0 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 font-sans-custom"
             style={{
               background: activeFilterCount > 0 ? 'rgba(212,175,55,0.1)' : 'rgba(255,255,255,0.04)',
               border: `1px solid ${activeFilterCount > 0 ? 'rgba(212,175,55,0.3)' : 'rgba(255,255,255,0.07)'}`,
@@ -567,7 +567,7 @@ export default function OrdersKanbanPage() {
         {/* Expandable filter panel */}
         {showFilters && (
           <div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 p-4 rounded-xl"
+            className="grid min-w-0 grid-cols-1 gap-3 rounded-xl p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-3 xl:grid-cols-5"
             style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
           >
             <div className="space-y-1.5">
@@ -626,12 +626,12 @@ export default function OrdersKanbanPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-[11px] font-sans-custom font-medium" style={{ color: 'rgba(242,240,237,0.4)' }}>Fecha</label>
-              <div className="flex gap-1.5">
+              <div className="grid grid-cols-1 gap-1.5 min-[380px]:grid-cols-2">
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="flex-1 min-w-0 px-2 py-2 rounded-lg text-xs focus:outline-none font-sans-custom"
+                  className="min-w-0 rounded-lg px-2 py-2 text-xs focus:outline-none font-sans-custom"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(242,240,237,0.7)', colorScheme: 'dark' }}
                   placeholder="Desde"
                 />
@@ -639,7 +639,7 @@ export default function OrdersKanbanPage() {
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="flex-1 min-w-0 px-2 py-2 rounded-lg text-xs focus:outline-none font-sans-custom"
+                  className="min-w-0 rounded-lg px-2 py-2 text-xs focus:outline-none font-sans-custom"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(242,240,237,0.7)', colorScheme: 'dark' }}
                   placeholder="Hasta"
                 />
@@ -696,8 +696,8 @@ export default function OrdersKanbanPage() {
       </div>
 
       {!loading && (
-        <div className="md:hidden -mx-4 overflow-x-auto px-4 pb-1">
-          <div className="flex min-w-max gap-2">
+        <div className="-mx-3 overflow-x-auto px-3 pb-1 md:hidden sm:-mx-4 sm:px-4">
+          <div className="flex gap-2 pr-1">
             {KANBAN_COLUMNS.map((col) => {
               const count = groupedOrders[col.key]?.length ?? 0;
               const active = mobileStatus === col.key;
@@ -705,7 +705,7 @@ export default function OrdersKanbanPage() {
                 <button
                   key={col.key}
                   onClick={() => setMobileStatus(col.key)}
-                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium font-sans-custom"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium font-sans-custom"
                   style={{
                     background: active ? col.headerBg : 'rgba(255,255,255,0.035)',
                     border: `1px solid ${active ? col.headerBorder : 'rgba(255,255,255,0.06)'}`,
@@ -770,7 +770,7 @@ export default function OrdersKanbanPage() {
                   {colOrders.map((order) => (
                     <div
                       key={order.id}
-                      className="group rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:translate-y-[-1px]"
+                      className="group min-w-0 cursor-pointer overflow-hidden rounded-2xl transition-all duration-200 hover:translate-y-[-1px]"
                       style={{
                         background: 'rgba(255,255,255,0.03)',
                         border: '1px solid rgba(255,255,255,0.06)',
@@ -832,29 +832,29 @@ export default function OrdersKanbanPage() {
                       {/* Card body */}
                       <div className="px-3 py-3 space-y-2">
                         {/* Order number + amount */}
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono text-[11px] font-medium" style={{ color: 'rgba(212,175,55,0.85)' }}>
+                        <div className="flex min-w-0 items-center justify-between gap-2">
+                          <span className="min-w-0 truncate font-mono text-[11px] font-medium" style={{ color: 'rgba(212,175,55,0.85)' }}>
                             {order.orderNumber}
                           </span>
                           {order.totalAmountCop && (
-                            <span className="text-[10px] font-mono" style={{ color: 'rgba(242,240,237,0.5)' }}>
+                            <span className="max-w-[48%] shrink-0 truncate text-right text-[10px] font-mono" style={{ color: 'rgba(242,240,237,0.5)' }}>
                               {formatCOP(Number(order.totalAmountCop))}
                             </span>
                           )}
                         </div>
 
                         {/* Client */}
-                        <div className="flex items-center gap-1.5">
-                          <User size={10} style={{ color: 'rgba(242,240,237,0.25)' }} />
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <User size={10} className="shrink-0" style={{ color: 'rgba(242,240,237,0.25)' }} />
                           <span className="text-xs font-sans-custom truncate" style={{ color: 'rgba(242,240,237,0.6)' }}>
                             {order.client.firstName} {order.client.lastName}
                           </span>
                         </div>
 
                         {/* Date */}
-                        <div className="flex items-center gap-1.5">
-                          <Calendar size={10} style={{ color: 'rgba(242,240,237,0.2)' }} />
-                          <span className="text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <Calendar size={10} className="shrink-0" style={{ color: 'rgba(242,240,237,0.2)' }} />
+                          <span className="min-w-0 truncate text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
                             {new Date(order.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
                             {order.estimatedDeliveryDate && (
                               <> · Entrega: {new Date(order.estimatedDeliveryDate).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}</>

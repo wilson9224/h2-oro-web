@@ -60,7 +60,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
         />
 
         <section className="relative z-10 section-padding pt-28 pb-8">
-          <div className="mx-auto max-w-[90rem]">
+          <div className="mx-auto max-w-[90rem] min-w-0">
             <Link
               href="/catalogo"
               className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-cream-200/40 hover:text-gold-400"
@@ -70,7 +70,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
             </Link>
 
             <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(420px,0.92fr)] lg:items-start">
-              <div className="space-y-4">
+              <div className="min-w-0 space-y-4">
                 <div className="group relative overflow-hidden rounded-[1.75rem] border border-cream-200/[0.08] bg-cream-200/[0.03]">
                   <div className="absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-gold-400/45 to-transparent" />
                   <div className="relative aspect-[4/5] min-h-[360px] overflow-hidden bg-[#111] sm:aspect-square lg:aspect-[5/6]">
@@ -115,8 +115,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 )}
               </div>
 
-              <aside className="lg:sticky lg:top-24">
-                <div className="rounded-[1.75rem] border border-cream-200/[0.08] bg-cream-200/[0.035] p-6 backdrop-blur-xl sm:p-8 lg:p-10">
+              <aside className="min-w-0 lg:sticky lg:top-24">
+                <div className="min-w-0 rounded-[1.75rem] border border-cream-200/[0.08] bg-cream-200/[0.035] p-5 backdrop-blur-xl sm:p-8 lg:p-10">
                   <div className="section-rule text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-400/70">
                     Pieza de colección
                   </div>
@@ -186,7 +186,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                         {product.variants.map((variant) => (
                           <div
                             key={variant.id}
-                            className="flex items-center justify-between gap-4 rounded-2xl border border-cream-200/[0.07] bg-[#0F0F0F]/70 px-4 py-3"
+                            className="flex min-w-0 items-center justify-between gap-4 rounded-2xl border border-cream-200/[0.07] bg-[#0F0F0F]/70 px-4 py-3"
                           >
                             <div className="min-w-0">
                               <p className="truncate text-sm font-medium text-cream-100/85">{variant.name}</p>
@@ -197,7 +197,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                               )}
                             </div>
                             {variant.priceCop && (
-                              <p className="shrink-0 text-sm font-semibold text-gold-400/90">
+                              <p className="max-w-[45%] shrink-0 truncate text-right text-sm font-semibold text-gold-400/90">
                                 {formatPrice(variant.priceCop)}
                               </p>
                             )}

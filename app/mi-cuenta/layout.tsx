@@ -40,19 +40,19 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   if (!user) return null;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#080808' }}>
+    <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden" style={{ background: '#080808' }}>
       {/* Header — ultra minimal */}
       <header
-        className="px-5 py-3.5 flex items-center justify-between sticky top-0 z-30"
+        className="sticky top-0 z-30 flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5"
         style={{
           background: 'rgba(8,8,8,0.85)',
           backdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(255,255,255,0.05)',
         }}
       >
-        <div className="flex items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <div
-            className="w-6 h-6 rounded-md flex items-center justify-center"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
             style={{
               background: 'rgba(212,175,55,0.12)',
               border: '1px solid rgba(212,175,55,0.2)',
@@ -60,11 +60,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           >
             <span className="text-[10px] font-bold leading-none font-sans-custom" style={{ color: 'rgba(212,175,55,0.9)' }}>H</span>
           </div>
-          <Link href="/" className="font-display text-sm tracking-tight font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>
+          <Link href="/" className="truncate font-display text-sm tracking-tight font-sans-custom" style={{ color: 'rgba(242,240,237,0.8)' }}>
             H2 Oro
           </Link>
           <span
-            className="text-[9px] uppercase tracking-[0.18em] px-2 py-0.5 rounded-full font-sans-custom"
+            className="shrink-0 rounded-full px-2 py-0.5 text-[9px] uppercase tracking-[0.18em] font-sans-custom"
             style={{
               background: 'rgba(212,175,55,0.08)',
               border: '1px solid rgba(212,175,55,0.15)',
@@ -86,19 +86,19 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 pb-24 overflow-y-auto">
+      <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto pb-24">
         {children}
       </main>
 
       {/* Bottom Navigation — mismo estilo que /joyero */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-5 pt-2"
+        className="fixed bottom-0 left-0 right-0 z-40 px-2 pb-5 pt-2 sm:px-4"
         style={{
           background: 'linear-gradient(to top, rgba(8,8,8,1) 60%, rgba(8,8,8,0))',
         }}
       >
         <div
-          className="flex items-center justify-around rounded-2xl px-2 py-1.5"
+          className="grid grid-cols-3 gap-1 rounded-2xl px-1.5 py-1.5"
           style={{
             background: 'rgba(20,20,20,0.95)',
             border: '1px solid rgba(255,255,255,0.07)',
@@ -113,7 +113,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               <Link
                 key={item.href}
                 href={item.href}
-                className="relative flex flex-col items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl transition-all duration-300 min-w-[60px]"
+                className="relative flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 transition-all duration-300 sm:px-5"
                 style={{
                   background: isActive ? 'rgba(212,175,55,0.1)' : 'transparent',
                   color: isActive ? '#D4AF37' : 'rgba(242,240,237,0.35)',

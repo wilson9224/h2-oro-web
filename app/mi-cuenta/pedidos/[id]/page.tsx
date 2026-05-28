@@ -114,26 +114,26 @@ export default function ClientOrderDetailPage() {
   const balance = totalAmount - totalPaid;
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="max-w-3xl min-w-0 space-y-6">
       <Link href="/mi-cuenta" className="inline-flex items-center gap-2 text-sm text-charcoal-400 hover:text-cream-200 transition-colors">
         <ArrowLeft size={16} /> Mis pedidos
       </Link>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-serif text-cream-100">{order.orderNumber}</h1>
-            <span className={`text-xs px-2 py-0.5 rounded ${st.color}`}>{st.label}</span>
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <h1 className="max-w-full truncate text-2xl font-serif text-cream-100">{order.orderNumber}</h1>
+            <span className={`shrink-0 text-xs px-2 py-0.5 rounded ${st.color}`}>{st.label}</span>
           </div>
           <p className="text-sm text-charcoal-400 mt-1">
             Creado el {new Date(order.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}
           </p>
         </div>
         {order.estimatedDeliveryDate && (
-          <div className="flex items-center gap-2 text-sm text-charcoal-300 bg-charcoal-800 rounded-md px-3 py-2 border border-white/5">
-            <Clock size={14} className="text-charcoal-500" />
-            Entrega estimada: {new Date(order.estimatedDeliveryDate).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
+          <div className="flex items-center gap-2 rounded-md border border-white/5 bg-charcoal-800 px-3 py-2 text-sm text-charcoal-300 sm:shrink-0">
+            <Clock size={14} className="shrink-0 text-charcoal-500" />
+            <span>Entrega estimada: {new Date(order.estimatedDeliveryDate).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}</span>
           </div>
         )}
       </div>
@@ -146,10 +146,10 @@ export default function ClientOrderDetailPage() {
           const currentIdx = workflowOrder.indexOf(currentCode);
 
           return (
-            <div key={piece.id} className="bg-charcoal-800 rounded-lg border border-white/5 p-5">
-              <div className="flex items-center gap-3 mb-4">
-                <Package size={16} className="text-gold-500" />
-                <h3 className="text-sm font-medium text-cream-200">{piece.name}</h3>
+            <div key={piece.id} className="min-w-0 rounded-lg border border-white/5 bg-charcoal-800 p-4 min-[380px]:p-5">
+              <div className="mb-4 flex min-w-0 flex-wrap items-center gap-3">
+                <Package size={16} className="shrink-0 text-gold-500" />
+                <h3 className="min-w-0 truncate text-sm font-medium text-cream-200">{piece.name}</h3>
                 {piece.currentState && (
                   <span className="text-xs text-gold-400">
                     {piece.currentState.publicLabel || piece.currentState.name}
@@ -161,7 +161,7 @@ export default function ClientOrderDetailPage() {
               )}
 
               {/* Visual timeline */}
-              <div className="ml-7">
+              <div className="ml-0 min-[380px]:ml-7">
                 <div className="flex items-center gap-0 overflow-x-auto pb-2">
                   {workflowOrder.map((code, idx) => {
                     const isPast = idx <= currentIdx;
@@ -210,18 +210,18 @@ export default function ClientOrderDetailPage() {
         </h2>
 
         {totalAmount > 0 && (
-          <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="mb-4 grid grid-cols-1 gap-3 min-[430px]:grid-cols-3 min-[430px]:gap-4">
             <div>
               <p className="text-xs text-charcoal-400">Total</p>
-              <p className="text-sm font-mono text-cream-200">{formatCOP(totalAmount)}</p>
+              <p className="truncate text-sm font-mono text-cream-200">{formatCOP(totalAmount)}</p>
             </div>
             <div>
               <p className="text-xs text-charcoal-400">Pagado</p>
-              <p className="text-sm font-mono text-emerald-400">{formatCOP(totalPaid)}</p>
+              <p className="truncate text-sm font-mono text-emerald-400">{formatCOP(totalPaid)}</p>
             </div>
             <div>
               <p className="text-xs text-charcoal-400">Saldo</p>
-              <p className={`text-sm font-mono ${balance > 0 ? 'text-yellow-400' : 'text-emerald-400'}`}>
+              <p className={`truncate text-sm font-mono ${balance > 0 ? 'text-yellow-400' : 'text-emerald-400'}`}>
                 {formatCOP(balance)}
               </p>
             </div>
@@ -231,14 +231,14 @@ export default function ClientOrderDetailPage() {
         {(order.payments || []).length > 0 ? (
           <div className="space-y-2">
             {(order.payments || []).map((p) => (
-              <div key={p.id} className="flex items-center justify-between text-xs py-2 border-t border-white/5 first:border-0">
-                <div className="flex items-center gap-3">
+              <div key={p.id} className="flex flex-col gap-2 border-t border-white/5 py-2 text-xs first:border-0 min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between">
+                <div className="flex min-w-0 flex-wrap items-center gap-3">
                   <span className="text-charcoal-300 capitalize">{p.method}</span>
                   <span className={`px-1.5 py-0.5 rounded text-[10px] ${p.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                     {p.status === 'completed' ? 'Completado' : p.status}
                   </span>
                 </div>
-                <div className="text-right">
+                <div className="min-[380px]:shrink-0 min-[380px]:text-right">
                   <span className="text-charcoal-200 font-mono">{formatCOP(Number(p.amountCop))}</span>
                   {p.paidAt && (
                     <p className="text-charcoal-500 text-[10px]">

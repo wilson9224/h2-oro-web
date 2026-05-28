@@ -133,13 +133,13 @@ export default function JoyeroPagosPage() {
   const pendingConfirm = payments.filter(p => p.status === 'paid' && !p.confirmedAt).length;
 
   return (
-    <div className="pb-8">
+    <div className="min-w-0 pb-8">
       {/* Header */}
       <div
-        className="px-5 pt-6 pb-4 flex items-center justify-between"
+        className="flex items-center justify-between gap-3 px-4 pb-4 pt-6 sm:px-5"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
       >
-        <div>
+        <div className="min-w-0">
           <h1 className="font-display text-xl font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>Mis Pagos</h1>
           <p className="text-xs mt-0.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Historial y estado</p>
         </div>
@@ -159,13 +159,13 @@ export default function JoyeroPagosPage() {
       </div>
 
       {/* Total acumulado del período */}
-      <div className="px-5 pt-4">
+      <div className="px-4 pt-4 sm:px-5">
         <div
           className="rounded-2xl p-4"
           style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.15)' }}
         >
           <p className="text-[9px] uppercase tracking-[0.16em] font-sans-custom mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>Total generado · {DATE_RANGE_LABELS[dateRange]}</p>
-          <p className="font-display text-2xl font-bold" style={{ color: 'rgba(212,175,55,0.95)' }}>{formatCOP(totalEarned)}</p>
+          <p className="truncate font-display text-2xl font-bold" style={{ color: 'rgba(212,175,55,0.95)' }}>{formatCOP(totalEarned)}</p>
           <p className="text-[10px] font-sans-custom mt-1" style={{ color: 'rgba(242,240,237,0.3)' }}>
             {payments.length} trabajo{payments.length !== 1 ? 's' : ''} completado{payments.length !== 1 ? 's' : ''}
           </p>
@@ -173,7 +173,7 @@ export default function JoyeroPagosPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="px-5 pt-3 grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 gap-2 px-4 pt-3 min-[430px]:grid-cols-3 sm:px-5">
         {[
           { label: 'Por cobrar', value: formatCOP(totalPending), color: 'rgba(251,191,36,1)' },
           { label: 'Pagado', value: formatCOP(totalPaid), color: 'rgba(52,211,153,1)' },
@@ -181,11 +181,11 @@ export default function JoyeroPagosPage() {
         ].map(({ label, value, color }) => (
           <div
             key={label}
-            className="rounded-2xl p-3 text-center"
+            className="min-w-0 rounded-2xl p-3 text-center"
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
           >
             <p className="text-[9px] uppercase tracking-[0.12em] mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>{label}</p>
-            <p className="font-display text-sm font-semibold leading-tight" style={{ color }}>{value}</p>
+            <p className="truncate font-display text-sm font-semibold leading-tight" style={{ color }}>{value}</p>
           </div>
         ))}
       </div>
@@ -249,7 +249,7 @@ export default function JoyeroPagosPage() {
           <p className="text-xs mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.2)' }}>Completa trabajos para ver tus pagos</p>
         </div>
       ) : (
-        <div className="px-5 mt-4 space-y-2">
+        <div className="mt-4 space-y-2 px-4 sm:px-5">
           {payments.map(payment => (
             <PaymentCard
               key={payment.id}
@@ -284,11 +284,11 @@ function PaymentCard({
 
   return (
     <div
-      className="rounded-2xl overflow-hidden"
+      className="min-w-0 overflow-hidden rounded-2xl"
       style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${borderColor}` }}
     >
       <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium font-display truncate" style={{ color: 'rgba(242,240,237,0.85)' }}>
               {getPaymentTitle(payment)}
@@ -300,15 +300,15 @@ function PaymentCard({
               <p className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>Pedido {payment.orderNumber}</p>
             )}
           </div>
-          <div className="text-right flex-shrink-0">
-            <p className="font-display text-base font-semibold" style={{ color: 'rgba(212,175,55,0.95)' }}>
+          <div className="max-w-[8.5rem] flex-shrink-0 text-right">
+            <p className="truncate font-display text-base font-semibold" style={{ color: 'rgba(212,175,55,0.95)' }}>
               {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(payment.amountCop)}
             </p>
             <StatusBadge payment={payment} />
           </div>
         </div>
 
-        <div className="flex items-center justify-between mt-3">
+        <div className="mt-3 flex flex-col gap-2 min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between">
           <p className="text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>
             {new Date(payment.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
           </p>

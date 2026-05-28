@@ -333,7 +333,7 @@ export default function JoyeroDashboard() {
   const ActionIcon = getActionIcon(focusAssignment?.status ?? '');
 
   return (
-    <div className="space-y-5 pb-4">
+    <div className="min-w-0 space-y-5 pb-4">
       <section
         className="relative px-5 pt-6 pb-5 overflow-hidden"
         style={{
@@ -354,15 +354,15 @@ export default function JoyeroDashboard() {
           {focusAssignment ? (
             <Link
               href={`/joyero/trabajo/${focusAssignment.assignmentId}`}
-              className="block rounded-3xl p-3 transition-transform active:scale-[0.99]"
+              className="block min-w-0 rounded-3xl p-3 transition-transform active:scale-[0.99]"
               style={{
                 background: 'rgba(12,12,12,0.72)',
                 border: '1px solid rgba(212,175,55,0.16)',
                 boxShadow: '0 18px 44px rgba(0,0,0,0.34)',
               }}
             >
-              <div className="flex gap-3">
-                <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0" style={{ background: 'rgba(255,255,255,0.05)' }}>
+              <div className="flex min-w-0 gap-3">
+                <div className="h-24 w-20 flex-shrink-0 overflow-hidden rounded-2xl min-[360px]:w-24" style={{ background: 'rgba(255,255,255,0.05)' }}>
                   {focusAssignment.referenceImageUrl ? (
                     <img
                       src={focusAssignment.referenceImageUrl}
@@ -377,8 +377,8 @@ export default function JoyeroDashboard() {
                 </div>
 
                 <div className="min-w-0 flex-1 py-0.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-semibold font-mono" style={{ color: 'rgba(212,175,55,0.9)' }}>
+                  <div className="flex min-w-0 items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-[11px] font-semibold font-mono" style={{ color: 'rgba(212,175,55,0.9)' }}>
                       {focusAssignment.orderNumber}
                     </span>
                     <span className="text-[10px] px-2 py-1 rounded-full font-sans-custom" style={{ background: 'rgba(96,165,250,0.12)', color: 'rgba(96,165,250,0.9)' }}>
@@ -475,7 +475,7 @@ export default function JoyeroDashboard() {
           </div>
         </div>
 
-        <div className="rounded-2xl p-1 grid grid-cols-4 gap-1" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="grid grid-cols-2 gap-1 rounded-2xl p-1 min-[420px]:grid-cols-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
           {[
             { value: '7d', label: '7 días' },
             { value: '30d', label: '30 días' },
@@ -516,15 +516,15 @@ export default function JoyeroDashboard() {
               </div>
               <DollarSign className="w-4 h-4" style={{ color: 'rgba(212,175,55,0.75)' }} />
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2 min-[430px]:grid-cols-3">
               {[
                 { label: 'Por cobrar', value: formatCOP(payments.pendingAmount), color: 'rgba(251,191,36,1)' },
                 { label: 'Pagado', value: formatCOP(payments.paidAmount), color: 'rgba(52,211,153,1)' },
                 { label: 'Bonos', value: formatCOP(payments.bonusAmount), color: 'rgba(212,175,55,1)' },
               ].map(({ label, value, color }) => (
-                <div key={label} className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.035)' }}>
+                <div key={label} className="min-w-0 rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.035)' }}>
                   <p className="text-[11px] mb-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.38)' }}>{label}</p>
-                  <p className="text-sm font-display font-semibold leading-tight" style={{ color }}>{value}</p>
+                  <p className="truncate text-sm font-display font-semibold leading-tight" style={{ color }}>{value}</p>
                 </div>
               ))}
             </div>
@@ -537,7 +537,7 @@ export default function JoyeroDashboard() {
             <div className="flex flex-wrap gap-2">
               {stateDistribution.map(state => (
                 <div key={state.stageCode} className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: 'rgba(212,175,55,0.06)' }}>
-                  <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.58)' }}>{state.stageName}</span>
+                  <span className="min-w-0 truncate text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.58)' }}>{state.stageName}</span>
                   <span className="text-xs font-semibold font-mono" style={{ color: 'rgba(212,175,55,0.85)' }}>{state.count}</span>
                 </div>
               ))}
@@ -554,13 +554,13 @@ export default function JoyeroDashboard() {
                 const pct = maxCompleted > 0 ? (data.completed / maxCompleted) * 100 : 0;
                 return (
                   <div key={data.date} className="flex items-center gap-3">
-                    <span className="text-xs w-16 flex-shrink-0 font-sans-custom" style={{ color: 'rgba(242,240,237,0.42)' }}>
+                    <span className="w-14 flex-shrink-0 text-xs font-sans-custom min-[360px]:w-16" style={{ color: 'rgba(242,240,237,0.42)' }}>
                       {new Date(data.date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
                     </span>
                     <div className="flex-1 rounded-full h-2" style={{ background: 'rgba(255,255,255,0.06)' }}>
                       <div className="h-2 rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #B8960F, #E8C547)' }} />
                     </div>
-                    <span className="text-xs w-5 text-right font-sans-custom" style={{ color: 'rgba(242,240,237,0.65)' }}>{data.completed}</span>
+                    <span className="w-5 shrink-0 text-right text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.65)' }}>{data.completed}</span>
                   </div>
                 );
               })}
@@ -574,9 +574,9 @@ export default function JoyeroDashboard() {
             <div className="space-y-3">
               {avgTimes.map(time => (
                 <div key={time.stageCode}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.58)' }}>{time.stageName}</span>
-                    <span className="text-sm font-semibold font-sans-custom" style={{ color: 'rgba(212,175,55,0.9)' }}>{formatHours(time.avgHours)}</span>
+                  <div className="mb-1.5 flex items-center justify-between gap-3">
+                    <span className="min-w-0 truncate text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.58)' }}>{time.stageName}</span>
+                    <span className="shrink-0 text-sm font-semibold font-sans-custom" style={{ color: 'rgba(212,175,55,0.9)' }}>{formatHours(time.avgHours)}</span>
                   </div>
                   <div className="w-full rounded-full h-2" style={{ background: 'rgba(255,255,255,0.06)' }}>
                     <div className="h-2 rounded-full" style={{ width: `${Math.min((time.avgHours / 8) * 100, 100)}%`, background: 'linear-gradient(90deg, #B8960F, #E8C547)' }} />
