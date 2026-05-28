@@ -74,7 +74,7 @@ export default function JoyeroPerfilPage() {
   }
 
   return (
-    <div className="pb-8">
+    <div className="min-w-0 pb-8">
       {/* Hero profile banner */}
       <div
         className="relative px-5 pt-8 pb-6 overflow-hidden"
@@ -87,7 +87,7 @@ export default function JoyeroPerfilPage() {
           className="absolute top-0 right-0 w-40 h-40 pointer-events-none"
           style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.1) 0%, transparent 70%)', filter: 'blur(24px)' }}
         />
-        <div className="relative flex items-center gap-4">
+        <div className="relative flex min-w-0 items-center gap-4">
           {/* Avatar */}
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center font-display text-xl font-bold flex-shrink-0"
@@ -99,8 +99,8 @@ export default function JoyeroPerfilPage() {
           >
             {initials}
           </div>
-          <div>
-            <h1 className="font-display text-xl font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>
+          <div className="min-w-0">
+            <h1 className="truncate font-display text-xl font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>
               {user.firstName} {user.lastName}
             </h1>
             <span
@@ -118,22 +118,22 @@ export default function JoyeroPerfilPage() {
         <p className="text-[9px] uppercase tracking-[0.2em] mb-3 font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }}>
           {monthName}
         </p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 min-[430px]:grid-cols-3">
           {loadingKpi ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-2xl p-3 animate-pulse" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', height: 64 }} />
+              <div key={i} className="min-w-0 animate-pulse rounded-2xl p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', height: 64 }} />
             ))
           ) : (
             <>
-              <div className="rounded-2xl p-3" style={{ background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.14)' }}>
+              <div className="min-w-0 rounded-2xl p-3" style={{ background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.14)' }}>
                 <p className="text-[9px] uppercase tracking-[0.1em] mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Cobrado</p>
-                <p className="font-display text-sm font-semibold leading-tight" style={{ color: 'rgba(52,211,153,1)' }}>{formatCOP(monthEarnings)}</p>
+                <p className="truncate font-display text-sm font-semibold leading-tight" style={{ color: 'rgba(52,211,153,1)' }}>{formatCOP(monthEarnings)}</p>
               </div>
-              <div className="rounded-2xl p-3" style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.14)' }}>
+              <div className="min-w-0 rounded-2xl p-3" style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.14)' }}>
                 <p className="text-[9px] uppercase tracking-[0.1em] mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Pendiente</p>
-                <p className="font-display text-sm font-semibold leading-tight" style={{ color: 'rgba(251,191,36,1)' }}>{formatCOP(pendingPayments)}</p>
+                <p className="truncate font-display text-sm font-semibold leading-tight" style={{ color: 'rgba(251,191,36,1)' }}>{formatCOP(pendingPayments)}</p>
               </div>
-              <div className="rounded-2xl p-3" style={{ background: 'rgba(212,175,55,0.07)', border: '1px solid rgba(212,175,55,0.14)' }}>
+              <div className="min-w-0 rounded-2xl p-3" style={{ background: 'rgba(212,175,55,0.07)', border: '1px solid rgba(212,175,55,0.14)' }}>
                 <p className="text-[9px] uppercase tracking-[0.1em] mb-1.5 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Completados</p>
                 <p className="font-display text-xl font-semibold" style={{ color: 'rgba(212,175,55,1)' }}>{monthCompleted}</p>
               </div>

@@ -28,7 +28,7 @@ export function WhatsAppButton() {
       animate={{ scale: 1, opacity: 1, y: 0 }}
       transition={{ delay: 2.8, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       whileTap={{ scale: 0.92 }}
-      className="fixed bottom-6 right-6 z-50 flex items-center"
+      className="fixed bottom-4 right-4 z-50 flex items-center sm:bottom-6 sm:right-6"
       aria-label="Contactar por WhatsApp"
     >
       {/* Tooltip label */}
@@ -39,7 +39,7 @@ export function WhatsAppButton() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 8, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="mr-3 px-4 py-2 rounded-full text-xs font-sans font-medium text-cream-100 whitespace-nowrap pointer-events-none"
+            className="mr-3 hidden whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium text-cream-100 pointer-events-none font-sans-custom sm:block"
             style={{
               background: 'rgba(10,10,10,0.92)',
               border: '1px solid rgba(255,255,255,0.08)',
@@ -64,7 +64,7 @@ export function WhatsAppButton() {
       <motion.div
         animate={{ scale: hovered ? 1.08 : 1 }}
         transition={{ duration: 0.25 }}
-        className="relative w-14 h-14 rounded-full flex items-center justify-center"
+        className="relative flex h-12 w-12 items-center justify-center rounded-full sm:h-14 sm:w-14"
         style={{
           background: 'linear-gradient(135deg, #E8C547, #D4AF37, #B8960F)',
           color: '#1A1400',

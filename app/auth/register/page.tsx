@@ -69,7 +69,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#0A0A0A' }}>
+    <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden" style={{ background: '#0A0A0A' }}>
       {/* Ambient glow */}
       <div
         className="fixed top-0 left-1/2 -translate-x-1/2 w-[50vw] h-[40vh] pointer-events-none"
@@ -127,7 +127,7 @@ export default function RegisterPage() {
             )}
 
             {/* Name row */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
               <div>
                 <label htmlFor="firstName" className="block text-[10px] tracking-[0.16em] uppercase mb-2 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
                   Nombre

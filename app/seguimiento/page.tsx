@@ -12,7 +12,7 @@ export default function SeguimientoPage() {
   return (
     <>
       <Header />
-      <main className="min-h-screen" style={{ background: 'rgba(8,8,8,1)' }}>
+      <main className="min-h-screen overflow-x-hidden" style={{ background: 'rgba(8,8,8,1)' }}>
         <TrackingForm />
       </main>
       <WhatsAppButton />

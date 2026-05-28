@@ -229,7 +229,7 @@ export default function JoyeroPedidosPage() {
   }
 
   return (
-    <div className="pb-8">
+    <div className="min-w-0 pb-8">
       {/* Header */}
       <div
         className="px-5 pt-6 pb-4"
@@ -245,7 +245,7 @@ export default function JoyeroPedidosPage() {
       </div>
 
       {/* Filter tabs */}
-      <div className="px-5 pt-4">
+      <div className="px-4 pt-4 sm:px-5">
         <div
           className="flex rounded-2xl p-1 gap-1"
           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
@@ -268,7 +268,7 @@ export default function JoyeroPedidosPage() {
       </div>
 
       {activeFilter === 'active' && (
-        <div className="mt-4 px-5 space-y-6">
+        <div className="mt-4 space-y-6 px-4 sm:px-5">
           {/* En progreso */}
           {inProgressGroups.length > 0 && (
             <section>
@@ -310,7 +310,7 @@ export default function JoyeroPedidosPage() {
       )}
 
       {activeFilter === 'completed' && (
-        <div className="mt-4 px-5 space-y-2">
+        <div className="mt-4 space-y-2 px-4 sm:px-5">
           {completedGroups.length === 0 ? (
             <div className="py-12 text-center">
               <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>Aún no hay pedidos completados</p>
@@ -339,14 +339,14 @@ function OrderRow({ group }: { group: OrderGroup; expanded: boolean; onToggle: (
 
   return (
     <div
-      className="rounded-2xl overflow-hidden"
+      className="min-w-0 overflow-hidden rounded-2xl"
       style={{ background: 'rgba(255,255,255,0.025)', border: `1px solid ${borderAccent}` }}
     >
       {/* Order header */}
-      <div className="px-4 pt-3.5 pb-3 flex items-center justify-between gap-3"
+      <div className="flex items-center justify-between gap-3 px-3 pb-3 pt-3.5 min-[360px]:px-4"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div
-          className="w-14 h-14 rounded-2xl overflow-hidden flex-shrink-0"
+          className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-2xl"
           style={{ background: 'rgba(255,255,255,0.045)', border: '1px solid rgba(255,255,255,0.06)' }}
         >
           {group.referenceImageUrl ? (
@@ -362,17 +362,17 @@ function OrderRow({ group }: { group: OrderGroup; expanded: boolean; onToggle: (
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-display text-sm font-semibold" style={{ color: 'rgba(212,175,55,0.9)' }}>
+          <div className="flex min-w-0 items-baseline gap-1.5">
+            <span className="shrink-0 font-display text-sm font-semibold" style={{ color: 'rgba(212,175,55,0.9)' }}>
               {group.orderNumber}
             </span>
-            <span className="text-xs truncate font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
+            <span className="min-w-0 truncate text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>
               {group.pieceName}
             </span>
           </div>
           {/* Progress bar */}
           <div className="mt-2 flex items-center gap-2">
-            <div className="flex-1 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="h-1 min-w-0 flex-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
               <div
                 className="h-1 rounded-full transition-all duration-500"
                 style={{
@@ -412,7 +412,7 @@ function OrderRow({ group }: { group: OrderGroup; expanded: boolean; onToggle: (
           return (
             <div
               key={stage.assignmentId}
-              className="rounded-xl px-3 py-2.5 flex items-center gap-3"
+              className="flex min-w-0 items-center gap-2.5 rounded-xl px-2.5 py-2.5 min-[360px]:gap-3 min-[360px]:px-3"
               style={{
                 background: isDone
                   ? 'rgba(34,197,94,0.04)'
@@ -457,7 +457,7 @@ function OrderRow({ group }: { group: OrderGroup; expanded: boolean; onToggle: (
               {/* Name + sub-status */}
               <div className="flex-1 min-w-0">
                 <p
-                  className="text-xs font-sans-custom truncate"
+                  className="truncate text-xs font-sans-custom"
                   style={{
                     color: isDone
                       ? 'rgba(34,197,94,0.6)'
@@ -504,7 +504,7 @@ function OrderRow({ group }: { group: OrderGroup; expanded: boolean; onToggle: (
               ) : (
                 <Link
                   href={`/joyero/trabajo/${stage.assignmentId}`}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold font-sans-custom shrink-0 transition-all duration-200 active:scale-[0.98]"
+                  className="flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold transition-all duration-200 active:scale-[0.98] font-sans-custom min-[380px]:px-3"
                   style={{
                     background: isActive ? 'rgba(96,165,250,0.12)' : 'linear-gradient(135deg, #E8C547, #D4AF37)',
                     color: isActive ? 'rgba(96,165,250,0.9)' : '#1A1400',
@@ -513,10 +513,10 @@ function OrderRow({ group }: { group: OrderGroup; expanded: boolean; onToggle: (
                   onClick={e => e.stopPropagation()}
                 >
                   {stage.status === 'paused'
-                    ? <><RotateCcw className="w-3 h-3" /><span>Reanudar</span></>
+                    ? <><RotateCcw className="h-3 w-3 shrink-0" /><span className="hidden min-[340px]:inline">Reanudar</span></>
                     : isActive
-                    ? <><ArrowRight className="w-3 h-3" /><span>Continuar</span></>
-                    : <><PlayCircle className="w-3 h-3" /><span>Iniciar</span></>}
+                    ? <><ArrowRight className="h-3 w-3 shrink-0" /><span className="hidden min-[340px]:inline">Continuar</span></>
+                    : <><PlayCircle className="h-3 w-3 shrink-0" /><span className="hidden min-[340px]:inline">Iniciar</span></>}
                 </Link>
               )}
             </div>

@@ -209,24 +209,24 @@ export default function JoyeroWorkPage() {
   const totalPausedMin = pauseLogs.reduce((s, l) => s + (l.durationMinutes ?? 0), 0);
 
   return (
-    <div className="p-4 space-y-5 pb-8">
+    <div className="min-w-0 space-y-5 p-4 pb-8">
       {/* Header */}
-      <div className="flex items-center space-x-3">
+      <div className="flex min-w-0 items-center gap-3">
         <Link href={`/joyero/pedidos/${assignment.orderId}`} className="font-sans-custom" style={{ color: 'rgba(242,240,237,0.3)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.6)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(242,240,237,0.3)'}>
           <ArrowLeft className="w-6 h-6" />
         </Link>
-        <div>
-          <h1 className="text-xl font-bold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>{assignment.orderNumber}</h1>
-          <p className="text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{assignment.stageName} · {assignment.pieceName}</p>
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-bold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>{assignment.orderNumber}</h1>
+          <p className="truncate text-sm font-sans-custom" style={{ color: 'rgba(242,240,237,0.5)' }}>{assignment.stageName} · {assignment.pieceName}</p>
         </div>
       </div>
 
       {/* Reference photos */}
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <ImageIcon className="w-5 h-5" style={{ color: 'rgba(212,175,55,0.9)' }} />
-            <h2 className="text-base font-semibold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>Foto de referencia</h2>
+            <h2 className="truncate text-base font-semibold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>Foto de referencia</h2>
           </div>
           {assignment.referenceImages.length > 1 && (
             <span className="text-xs font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
@@ -279,9 +279,9 @@ export default function JoyeroWorkPage() {
       {/* Work Status Card */}
       <div className="rounded-2xl p-4 space-y-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
         {/* Status badge */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <h2 className="text-base font-semibold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>Estado del trabajo</h2>
-          <span className={`text-xs px-2 py-1 rounded-full font-medium font-sans-custom ${
+          <span className={`shrink-0 text-xs px-2 py-1 rounded-full font-medium font-sans-custom ${
             assignment.status === 'completed' ? 'bg-green-500/20 text-green-400' :
             assignment.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
             assignment.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
@@ -372,7 +372,7 @@ export default function JoyeroWorkPage() {
         )}
 
         {assignment.status === 'in_progress' && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
             <button
               onClick={() => setShowPauseModal(true)}
               disabled={isWorking}
@@ -418,9 +418,9 @@ export default function JoyeroWorkPage() {
 
       {/* Evidence Section */}
       <div className="space-y-3">
-        <div className="flex items-center space-x-2">
+        <div className="flex min-w-0 items-center gap-2">
           <Camera className="w-5 h-5" style={{ color: 'rgba(212,175,55,0.9)' }} />
-          <h2 className="text-base font-semibold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>
+          <h2 className="min-w-0 text-base font-semibold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>
             Evidencia fotográfica {assignment.status !== 'completed' && <span className="text-xs ml-1 font-sans-custom" style={{ color: 'rgba(248,113,113,0.9)' }}>*obligatoria</span>}
           </h2>
         </div>
@@ -549,8 +549,8 @@ export default function JoyeroWorkPage() {
 
       {/* Pause Modal */}
       {showPauseModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center p-4 z-50">
-          <div className="rounded-t-2xl sm:rounded-2xl p-6 w-full max-w-sm" style={{ background: 'rgba(20,20,20,0.95)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 sm:items-center sm:p-4">
+          <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-sm overflow-y-auto rounded-t-2xl p-4 sm:rounded-2xl sm:p-6" style={{ background: 'rgba(20,20,20,0.95)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <h3 className="text-lg font-semibold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>Pausar trabajo</h3>
             <p className="text-sm mb-4 font-sans-custom" style={{ color: 'rgba(242,240,237,0.4)' }}>¿Por qué estás pausando el trabajo?</p>
             <textarea
@@ -562,7 +562,7 @@ export default function JoyeroWorkPage() {
               rows={3}
               autoFocus
             />
-            <div className="flex space-x-3 mt-4">
+            <div className="mt-4 flex flex-col-reverse gap-2 min-[380px]:flex-row min-[380px]:gap-3">
               <button
                 onClick={() => { setShowPauseModal(false); setPauseReason(''); }}
                 className="flex-1 py-2.5 rounded-lg transition-colors text-sm font-sans-custom"
@@ -585,8 +585,8 @@ export default function JoyeroWorkPage() {
 
       {/* Complete Confirmation Modal */}
       {showCompleteModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center p-4 z-50">
-          <div className="rounded-t-2xl sm:rounded-2xl p-6 w-full max-w-sm" style={{ background: 'rgba(20,20,20,0.95)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 sm:items-center sm:p-4">
+          <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-sm overflow-y-auto rounded-t-2xl p-4 sm:rounded-2xl sm:p-6" style={{ background: 'rgba(20,20,20,0.95)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div className="flex items-center space-x-3 mb-4">
               <CheckCircle2 className="w-6 h-6" style={{ color: 'rgba(34,197,94,0.9)' }} />
               <h3 className="text-lg font-semibold font-display" style={{ color: 'rgba(212,175,55,0.9)' }}>Finalizar trabajo</h3>
@@ -606,7 +606,7 @@ export default function JoyeroWorkPage() {
                 </div>
               )}
             </div>
-            <div className="flex space-x-3">
+            <div className="flex flex-col-reverse gap-2 min-[380px]:flex-row min-[380px]:gap-3">
               <button
                 onClick={() => setShowCompleteModal(false)}
                 className="flex-1 py-2.5 rounded-lg transition-colors text-sm font-sans-custom"

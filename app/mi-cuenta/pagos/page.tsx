@@ -81,7 +81,7 @@ export default function PaymentsPage() {
     .reduce((sum, p) => sum + Number(p.amountCop), 0);
 
   return (
-    <div className="px-5 pt-6 pb-4 space-y-5 max-w-2xl">
+    <div className="max-w-2xl min-w-0 space-y-5 px-4 pb-4 pt-6 sm:px-5">
       {/* Header */}
       <div>
         <p className="text-[10px] font-sans-custom uppercase tracking-[0.2em] mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>
@@ -102,7 +102,7 @@ export default function PaymentsPage() {
             <p className="text-[10px] font-sans-custom uppercase tracking-[0.15em] mb-2" style={{ color: 'rgba(52,211,153,0.5)' }}>
               Total pagado
             </p>
-            <p className="font-mono text-base font-bold" style={{ color: 'rgba(52,211,153,0.9)' }}>{formatCOP(totalPaid)}</p>
+            <p className="truncate font-mono text-base font-bold" style={{ color: 'rgba(52,211,153,0.9)' }}>{formatCOP(totalPaid)}</p>
           </div>
           <div
             className="rounded-2xl p-4"
@@ -121,7 +121,7 @@ export default function PaymentsPage() {
               <p className="text-[10px] font-sans-custom uppercase tracking-[0.15em] mb-2" style={{ color: 'rgba(234,179,8,0.5)' }}>
                 Saldo pendiente
               </p>
-              <p className="font-mono text-base font-bold" style={{ color: 'rgba(234,179,8,0.9)' }}>
+            <p className="truncate font-mono text-base font-bold" style={{ color: 'rgba(234,179,8,0.9)' }}>
                 {formatCOP(Number(order.totalAmountCop) - totalPaid)}
               </p>
             </div>
@@ -172,7 +172,7 @@ export default function PaymentsPage() {
             return (
               <div
                 key={p.id}
-                className="flex items-center gap-4 rounded-2xl px-4 py-3.5"
+                className="flex min-w-0 items-start gap-3 rounded-2xl px-4 py-3.5 min-[380px]:items-center min-[380px]:gap-4"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
               >
                 <div
@@ -186,19 +186,19 @@ export default function PaymentsPage() {
                     {p.method}
                     {p.order && <span style={{ color: 'rgba(212,175,55,0.6)' }}> · {p.order.orderNumber}</span>}
                   </p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-2">
                     <span className="text-[10px] font-sans-custom" style={{ color: 'rgba(242,240,237,0.25)' }}>
                       {new Date(p.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </span>
                     {p.wompiReference && (
-                      <span className="text-[10px] font-mono" style={{ color: 'rgba(242,240,237,0.2)' }}>
+                      <span className="max-w-[9rem] truncate text-[10px] font-mono" style={{ color: 'rgba(242,240,237,0.2)' }}>
                         Ref: {p.wompiReference}
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="font-mono text-sm font-bold" style={{ color: 'rgba(242,240,237,0.85)' }}>
+                <div className="max-w-[8.5rem] shrink-0 text-right">
+                  <p className="truncate font-mono text-sm font-bold" style={{ color: 'rgba(242,240,237,0.85)' }}>
                     {formatCOP(Number(p.amountCop))}
                   </p>
                   <p className="text-[10px] font-sans-custom" style={{ color: cfg.iconColor }}>
