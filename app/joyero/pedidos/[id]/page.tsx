@@ -37,11 +37,21 @@ interface OrderDetail {
   }>;
 }
 
-function resolveAttachmentUrl(supabase: ReturnType<typeof createClient>, item: any): string | null {
+const SIGNED_URL_TTL_SECONDS = 60 * 60;
+
+async function resolveAttachmentUrl(supabase: ReturnType<typeof createClient>, item: any): Promise<string | null> {
   if (item?.file_url) return item.file_url;
   if (item?.bucket && item?.storage_path) {
-    const { data } = supabase.storage.from(item.bucket).getPublicUrl(item.storage_path);
-    return data.publicUrl;
+    const { data, error } = await supabase.storage
+      .from(item.bucket)
+      .createSignedUrl(item.storage_path, SIGNED_URL_TTL_SECONDS);
+
+    if (!error && data?.signedUrl) return data.signedUrl;
+
+    if (item.bucket !== 'evidences') {
+      const { data: publicData } = supabase.storage.from(item.bucket).getPublicUrl(item.storage_path);
+      return publicData.publicUrl;
+    }
   }
   return null;
 }
@@ -160,16 +170,16 @@ export default function JoyeroOrderDetailPage() {
             progressPct: assignment.progress_pct,
             priority: assignment.priority ?? 999,
           })),
-          images: (imageData || [])
-            .map((image: any) => {
-              const url = resolveAttachmentUrl(supabase, image);
+          images: (await Promise.all((imageData || [])
+            .map(async (image: any) => {
+              const url = await resolveAttachmentUrl(supabase, image);
               if (!url) return null;
               return {
                 id: image.id,
                 url,
                 fileName: image.file_name,
               };
-            })
+            })))
             .filter(Boolean) as OrderDetail['images'],
           materials: materials,
         };

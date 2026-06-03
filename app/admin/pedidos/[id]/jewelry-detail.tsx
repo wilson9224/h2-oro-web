@@ -270,6 +270,8 @@ async function getAttachmentUrl(attachment: FileAttachmentRow) {
 
   if (!error && data?.signedUrl) return data.signedUrl;
 
+  if (attachment.bucket === 'evidences') return attachment.file_url || '';
+
   const { data: publicData } = supabase.storage
     .from(attachment.bucket)
     .getPublicUrl(attachment.storage_path);

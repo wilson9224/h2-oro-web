@@ -59,11 +59,21 @@ interface FocusAssignment {
   referenceImageUrl: string | null;
 }
 
-function resolveAttachmentUrl(supabase: ReturnType<typeof createClient>, item: any): string | null {
+const SIGNED_URL_TTL_SECONDS = 60 * 60;
+
+async function resolveAttachmentUrl(supabase: ReturnType<typeof createClient>, item: any): Promise<string | null> {
   if (item?.file_url) return item.file_url;
   if (item?.bucket && item?.storage_path) {
-    const { data } = supabase.storage.from(item.bucket).getPublicUrl(item.storage_path);
-    return data.publicUrl;
+    const { data, error } = await supabase.storage
+      .from(item.bucket)
+      .createSignedUrl(item.storage_path, SIGNED_URL_TTL_SECONDS);
+
+    if (!error && data?.signedUrl) return data.signedUrl;
+
+    if (item.bucket !== 'evidences') {
+      const { data: publicData } = supabase.storage.from(item.bucket).getPublicUrl(item.storage_path);
+      return publicData.publicUrl;
+    }
   }
   return null;
 }
@@ -282,7 +292,7 @@ export default function JoyeroDashboard() {
               .eq('file_type', 'image')
               .order('created_at', { ascending: true })
               .limit(1);
-            referenceImageUrl = resolveAttachmentUrl(supabase, imageRows?.[0]);
+            referenceImageUrl = await resolveAttachmentUrl(supabase, imageRows?.[0]);
           }
 
           setFocusAssignment({

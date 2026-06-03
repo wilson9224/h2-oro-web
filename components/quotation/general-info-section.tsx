@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { PIECE_TYPES } from '@/lib/quotation/types';
 import type { QuotationFormState } from '@/lib/quotation/types';
@@ -17,6 +18,7 @@ interface Props {
     searched_client: QuotationFormState['searched_client'];
     client_name_temp: string;
   }) => void;
+  referenceImageEditor?: ReactNode;
 }
 
 export default function GeneralInfoSection({
@@ -24,6 +26,7 @@ export default function GeneralInfoSection({
   setPieceType,
   setDescription,
   setClientData,
+  referenceImageEditor,
 }: Props) {
   const [isSearching, setIsSearching] = useState(false);
   const [showNewClientForm, setShowNewClientForm] = useState(false);
@@ -142,6 +145,8 @@ export default function GeneralInfoSection({
           ))}
         </div>
       </div>
+
+      {referenceImageEditor}
 
       {/* Descripción */}
       <div>
