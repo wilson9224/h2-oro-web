@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { sanitizePostgrestSearch } from '@/lib/supabase/postgrest';
 
 export interface Product {
   id: string;
@@ -127,14 +128,13 @@ const CATEGORY_SELECT = `
 
 function getCatalogClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || (!serviceRoleKey && !anonKey)) {
+  if (!supabaseUrl || !anonKey) {
     throw new Error('Supabase no está configurado para leer el catálogo.');
   }
 
-  return createClient(supabaseUrl, serviceRoleKey || anonKey!, {
+  return createClient(supabaseUrl, anonKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -143,7 +143,7 @@ function getCatalogClient() {
 }
 
 function cleanSearch(value?: string) {
-  return value?.replace(/[,%]/g, '').trim() || '';
+  return sanitizePostgrestSearch(value ?? '');
 }
 
 function toNumber(value?: string) {

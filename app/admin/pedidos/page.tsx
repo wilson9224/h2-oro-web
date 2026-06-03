@@ -125,10 +125,21 @@ export default function OrdersKanbanPage() {
   const fetchStaff = useCallback(async () => {
     const { data } = await supabase
       .from('users')
-      .select('id, first_name, last_name, role')
-      .in('role', ['admin', 'manager', 'jeweler', 'designer']);
+      .select(`
+        id,
+        first_name,
+        last_name,
+        roles!inner(name)
+      `)
+      .in('roles.name', ['admin', 'manager', 'jeweler', 'designer'])
+      .is('deleted_at', null);
     if (data) {
-      setStaffList(data.map((u: any) => ({ id: u.id, firstName: u.first_name, lastName: u.last_name, role: u.role })));
+      setStaffList(data.map((u: any) => ({
+        id: u.id,
+        firstName: u.first_name,
+        lastName: u.last_name,
+        role: Array.isArray(u.roles) ? u.roles[0]?.name : u.roles?.name,
+      })));
     }
   }, []);
 
@@ -147,8 +158,7 @@ export default function OrdersKanbanPage() {
 
       if (typeFilter) query = query.eq('type', typeFilter);
       if (statusFilter) query = query.eq('status', statusFilter);
-      if (isManager) query = query.eq('assigned_to_id', user.id);
-      else if (responsibleFilter) query = query.eq('assigned_to_id', responsibleFilter);
+      if (responsibleFilter) query = query.eq('assigned_to_id', responsibleFilter);
       if (dateFrom) query = query.gte('created_at', `${dateFrom}T00:00:00`);
       if (dateTo) query = query.lte('created_at', `${dateTo}T23:59:59`);
 
@@ -302,7 +312,7 @@ export default function OrdersKanbanPage() {
     } finally {
       setLoading(false);
     }
-  }, [dateFrom, dateTo, isManager, responsibleFilter, statusFilter, typeFilter, user]);
+  }, [dateFrom, dateTo, responsibleFilter, statusFilter, typeFilter, user]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
@@ -385,7 +395,7 @@ export default function OrdersKanbanPage() {
 
   const totalCount = orders.length;
   const filteredCount = Object.values(groupedOrders).reduce((sum, arr) => sum + arr.length, 0);
-  const activeFilterCount = [typeFilter, statusFilter, isManager ? '' : responsibleFilter, workerFilter, dateFrom, dateTo].filter(Boolean).length;
+  const activeFilterCount = [typeFilter, statusFilter, responsibleFilter, workerFilter, dateFrom, dateTo].filter(Boolean).length;
 
   const clearAllFilters = () => {
     setTypeFilter('');
@@ -507,9 +517,9 @@ export default function OrdersKanbanPage() {
       {/* ── Header ── */}
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>{isManager ? 'Mis pedidos' : 'Pedidos'}</h1>
+          <h1 className="truncate text-2xl font-display font-semibold" style={{ color: 'rgba(242,240,237,0.95)' }}>Pedidos</h1>
           <p className="text-sm mt-1 font-sans-custom" style={{ color: 'rgba(242,240,237,0.35)' }}>
-            {loading ? 'Cargando...' : isManager ? `${totalCount} pedido${totalCount !== 1 ? 's' : ''} bajo tu responsabilidad` : `${totalCount} pedido${totalCount !== 1 ? 's' : ''} activos`}
+            {loading ? 'Cargando...' : isManager ? `${totalCount} pedido${totalCount !== 1 ? 's' : ''} visibles · solo puedes modificar los asignados a ti` : `${totalCount} pedido${totalCount !== 1 ? 's' : ''} activos`}
           </p>
         </div>
         <button
@@ -598,7 +608,6 @@ export default function OrdersKanbanPage() {
                 {KANBAN_COLUMNS.map(col => <option key={col.key} value={col.key}>{col.label}</option>)}
               </select>
             </div>
-            {!isManager && (
             <div className="space-y-1.5">
               <label className="text-[11px] font-sans-custom font-medium" style={{ color: 'rgba(242,240,237,0.4)' }}>Responsable</label>
               <select
@@ -611,7 +620,6 @@ export default function OrdersKanbanPage() {
                 {responsibles.map(r => <option key={r.id} value={r.id}>{r.firstName} {r.lastName}</option>)}
               </select>
             </div>
-            )}
             <div className="space-y-1.5">
               <label className="text-[11px] font-sans-custom font-medium" style={{ color: 'rgba(242,240,237,0.4)' }}>Joyero</label>
               <select
@@ -666,7 +674,7 @@ export default function OrdersKanbanPage() {
                 <button onClick={() => setStatusFilter('')}><X size={10} /></button>
               </span>
             )}
-            {!isManager && responsibleFilter && (
+            {responsibleFilter && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-sans-custom" style={{ background: 'rgba(139,92,246,0.1)', color: 'rgba(167,139,250,0.9)', border: '1px solid rgba(139,92,246,0.2)' }}>
                 Resp: {responsibles.find(r => r.id === responsibleFilter)?.firstName || '...'}
                 <button onClick={() => setResponsibleFilter('')}><X size={10} /></button>

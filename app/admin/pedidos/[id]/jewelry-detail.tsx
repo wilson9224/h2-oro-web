@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Loader2, AlertTriangle, RefreshCw, Coins, ChevronUp, ChevronDown, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 import type { QuotationRecord } from '@/lib/quotation/types';
 import PhaseBar from '@/components/jewelry/phase-bar';
 import TabDatos from '@/components/jewelry/tab-data';
@@ -320,6 +321,7 @@ async function normalizeAttachments(rows: FileAttachmentRow[]): Promise<FileAtta
 
 export default function JewelryDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { user: currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('datos');
@@ -783,9 +785,31 @@ export default function JewelryDetailPage() {
     fetchData();
   }, [id]);
 
+  const canModifyOrder = Boolean(
+    order && (
+      currentUser?.role === 'admin' ||
+      (currentUser?.role === 'manager' && order.assignedToId === currentUser.id)
+    ),
+  );
+  const canManageAssignments = currentUser?.role === 'admin';
+
+  const assertCanModifyOrder = () => {
+    if (!canModifyOrder) {
+      throw new Error('No tienes permiso para modificar este pedido.');
+    }
+  };
+
+  const assertCanManageAssignments = () => {
+    if (!canManageAssignments) {
+      throw new Error('Solo un administrador puede modificar asignaciones de trabajo.');
+    }
+  };
+
   // Funciones para manejar acciones de modales
   const handleStartWork = async (data: any) => {
     if (!id) return;
+    assertCanModifyOrder();
+    assertCanManageAssignments();
     
     try {
       // ── STOCK CHECK ───────────────────────────────────────────────
@@ -884,30 +908,41 @@ export default function JewelryDetailPage() {
           pieceId = newPiece.id;
         }
 
-        // Borrar assignments anteriores de esta pieza
-        const { error: deleteErr } = await supabase
+        const { data: existingAssignments, error: existingErr } = await supabase
           .from('work_assignments')
-          .delete()
+          .select('id, stage_code, status')
           .eq('piece_id', pieceId);
-        if (deleteErr) throw new Error(deleteErr.message);
+        if (existingErr) throw new Error(existingErr.message);
 
-        // Insertar solo los que tienen worker asignado
-        const assignmentsToInsert = (data.laborAssignments as any[])
-          .filter((a: any) => a.worker_id)
-          .map((a: any) => ({
-            piece_id: pieceId,
-            worker_id: a.worker_id,
-            stage_code: a.service_code,
-            status: 'pending',
-            priority: a.sort_order,
-            progress_pct: 0,
-          }));
+        const existingByStage = new Map(
+          (existingAssignments || []).map((assignment: any) => [assignment.stage_code, assignment]),
+        );
 
-        if (assignmentsToInsert.length > 0) {
-          const { error: insertErr } = await supabase
-            .from('work_assignments')
-            .insert(assignmentsToInsert);
-          if (insertErr) throw new Error(insertErr.message);
+        for (const assignment of (data.laborAssignments as any[]).filter((a: any) => a.worker_id)) {
+          const existing = existingByStage.get(assignment.service_code) as any;
+          if (existing && ['pending', 'assigned'].includes(existing.status)) {
+            const { error: updateAssignmentErr } = await supabase
+              .from('work_assignments')
+              .update({
+                worker_id: assignment.worker_id,
+                priority: assignment.sort_order,
+                progress_pct: 0,
+              })
+              .eq('id', existing.id);
+            if (updateAssignmentErr) throw new Error(updateAssignmentErr.message);
+          } else if (!existing) {
+            const { error: insertErr } = await supabase
+              .from('work_assignments')
+              .insert({
+                piece_id: pieceId,
+                worker_id: assignment.worker_id,
+                stage_code: assignment.service_code,
+                status: 'pending',
+                priority: assignment.sort_order,
+                progress_pct: 0,
+              });
+            if (insertErr) throw new Error(insertErr.message);
+          }
         }
       }
 
@@ -967,6 +1002,12 @@ export default function JewelryDetailPage() {
         .eq('order_id', id);
       if (phaseErr) throw new Error(phaseErr.message);
 
+      const { error: orderStatusErr } = await supabase
+        .from('orders')
+        .update({ status: 'in_progress' })
+        .eq('id', id);
+      if (orderStatusErr) throw new Error(orderStatusErr.message);
+
       // Log de fase
       await supabase
         .from('order_phase_log')
@@ -988,6 +1029,7 @@ export default function JewelryDetailPage() {
 
   const handleFinishWork = async (data: any) => {
     if (!id) return;
+    assertCanModifyOrder();
     
     try {
       // Obtener el ciclo actual
@@ -1058,6 +1100,12 @@ export default function JewelryDetailPage() {
           .from('order_jewelry_data')
           .update({ current_phase: 'end_work' })
           .eq('order_id', id);
+
+        const { error: statusErr } = await supabase
+          .from('orders')
+          .update({ status: 'completed' })
+          .eq('id', id);
+        if (statusErr) throw new Error(statusErr.message);
       }
 
       // Log de fase
@@ -1081,6 +1129,7 @@ export default function JewelryDetailPage() {
 
   const handleRegisterClientMetal = async () => {
     if (!id || !users || users.length === 0) return;
+    assertCanModifyOrder();
     const weightGr = parseFloat(clientMetalForm.weight_gr);
     if (!weightGr || weightGr <= 0) return;
 
@@ -1190,25 +1239,28 @@ export default function JewelryDetailPage() {
 
   const handleDeliver = async (data: any) => {
     if (!id) return;
+    assertCanModifyOrder();
     
     try {
       // Update jewelry data
-      await supabase
+      const { error: jewelryUpdateErr } = await supabase
         .from('order_jewelry_data')
         .update({
-          currentPhase: 'delivery',
-          isDelivered: true,
-          deliveryDate: data.deliveryDate,
-          deliveredByUserId: data.deliveredByUserId,
-          receiverName: data.receiverName,
+          current_phase: 'delivery',
+          is_delivered: true,
+          delivery_date: data.deliveryDate,
+          delivered_by_user_id: data.deliveredByUserId,
+          receiver_name: data.receiverName,
         })
         .eq('order_id', id);
+      if (jewelryUpdateErr) throw new Error(jewelryUpdateErr.message);
 
       // Update order status
-      await supabase
+      const { error: orderUpdateErr } = await supabase
         .from('orders')
         .update({ status: 'delivered' })
         .eq('id', id);
+      if (orderUpdateErr) throw new Error(orderUpdateErr.message);
 
       // Log de fase
       await supabase
@@ -1231,6 +1283,7 @@ export default function JewelryDetailPage() {
 
   const handleMaterialPayment = async (data: any) => {
     if (!id) return;
+    assertCanModifyOrder();
 
     const { error } = await supabase
       .from('order_material_payments')
@@ -1257,29 +1310,17 @@ export default function JewelryDetailPage() {
 
   const handleCashPayment = async (data: any) => {
     if (!id) return;
+    assertCanModifyOrder();
     
     try {
-      console.log('=== INICIO HANDLE CASH PAYMENT ===');
-      console.log('Order ID:', id);
-      console.log('Datos recibidos:', JSON.stringify(data, null, 2));
-      console.log('registeredByUserId:', data.registeredByUserId);
-      console.log('amountCop:', data.amountCop);
-      console.log('method:', data.method);
-      console.log('status:', data.status);
-      console.log('paidAt:', data.paidAt);
-      
-      // Validaciones adicionales
       if (!data.registeredByUserId) {
-        console.error('Error: registeredByUserId está vacío');
         throw new Error('Debe seleccionar quién registra el pago');
       }
       
       if (!data.amountCop || data.amountCop <= 0) {
-        console.error('Error: amountCop inválido:', data.amountCop);
         throw new Error('El monto es requerido y debe ser mayor a 0');
       }
       
-      // Primero intentemos sin la columna de usuario para ver si funciona el resto
       const insertData = {
         order_id: id,
         method: data.method,
@@ -1287,48 +1328,20 @@ export default function JewelryDetailPage() {
         status: data.status,
         paid_at: data.status === 'completed' && data.paidAt && data.paidAt !== 'null' ? data.paidAt : null,
       };
-      
-      // Si esto funciona, luego agregaremos la columna de usuario
-      console.log('Intentando insertar sin columna de usuario primero...');
-      
-      console.log('Datos recibidos:', JSON.stringify(data, null, 2));
-      console.log('Valor de data.paidAt:', data.paidAt);
-      console.log('Tipo de data.paidAt:', typeof data.paidAt);
-      console.log('¿data.paidAt es "null"?:', data.paidAt === 'null');
-      console.log('¿data.paidAt es null?:', data.paidAt === null);
-      console.log('Datos a insertar:', JSON.stringify(insertData, null, 2));
-      
-      // Primero, intentemos ver las columnas reales de la tabla
-      console.log('Verificando columnas de la tabla payments...');
-      const { data: testRow, error: testError } = await supabase
-        .from('payments')
-        .select('*')
-        .limit(1);
-      
-      console.log('Columnas encontradas:', testRow ? Object.keys(testRow[0] || {}) : 'No data');
-      console.log('Error test:', testError);
-      
-      const { data: result, error } = await supabase
+
+      const { error } = await supabase
         .from('payments')
         .insert(insertData)
         .select();
 
-      console.log('Resultado inserción pago:', result);
-      console.log('Error inserción pago:', error);
-
       if (error) {
-        console.error('Error de Supabase:', error);
         throw error;
       }
-
-      console.log('=== PAGO GUARDADO EXITOSAMENTE ===');
 
       // Refrescar datos
       await fetchData();
     } catch (err: unknown) {
-      console.error('=== ERROR EN HANDLE CASH PAYMENT ===');
-      console.error('Error completo:', err);
-      console.error('Mensaje de error:', err instanceof Error ? err.message : 'Error desconocido');
+      console.error('Error registrando pago:', err);
       throw err;
     }
   };
@@ -1347,6 +1360,7 @@ export default function JewelryDetailPage() {
     changedById: string;
   }) => {
     if (!id) return;
+    assertCanManageAssignments();
 
     // 1. Fetch current assignment to get previous worker + status
     const { data: currentAssignment, error: fetchErr } = await supabase
@@ -1365,7 +1379,8 @@ export default function JewelryDetailPage() {
       .select('id, status, amount_cop')
       .eq('worker_id', previousWorkerId)
       .eq('order_id', id)
-      .eq('concept', currentAssignment.stage_code)
+      .eq('concept', 'assignment_payment')
+      .eq('service_code', currentAssignment.stage_code)
       .not('status', 'eq', 'voided')
       .order('created_at', { ascending: false })
       .limit(1)
@@ -1443,6 +1458,7 @@ export default function JewelryDetailPage() {
     sortOrder: number;
   }) => {
     if (!id) return;
+    assertCanManageAssignments();
 
     // Get or create the main piece for this order
     const { data: pieceRow, error: pieceSelectErr } = await supabase
@@ -1503,8 +1519,8 @@ export default function JewelryDetailPage() {
             activeCycle={workCycles.find(c => !c.workDeliveryDate) ?? workCycles[0] ?? null}
             users={users}
             assignmentLog={assignmentLog}
-            onReassign={handleReassignWorker}
-            onAssign={handleAssignWorker}
+            onReassign={canManageAssignments ? handleReassignWorker : undefined}
+            onAssign={canManageAssignments ? handleAssignWorker : undefined}
           />
         );
       case 'abonos':
@@ -1514,8 +1530,8 @@ export default function JewelryDetailPage() {
             payments={payments}
             materialPayments={materialPayments}
             isDelivered={jewelryData.isDelivered}
-            onAddCashPayment={() => setShowCashPaymentModal(true)}
-            onAddMaterialPayment={() => setShowMaterialPaymentModal(true)}
+            onAddCashPayment={canModifyOrder ? () => setShowCashPaymentModal(true) : undefined}
+            onAddMaterialPayment={canModifyOrder ? () => setShowMaterialPaymentModal(true) : undefined}
           />
         );
       case 'ciclos':
@@ -1633,11 +1649,18 @@ export default function JewelryDetailPage() {
           >
             Entregado
           </span>
+        ) : !canModifyOrder ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold font-sans-custom"
+            style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(242,240,237,0.35)', border: '1px solid rgba(255,255,255,0.08)' }}
+          >
+            Solo lectura
+          </span>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
             {(jewelryData?.currentPhase === 'creation' || !jewelryData?.currentPhase) && (
               <>
-                {isQuotationExpired && (
+                {isQuotationExpired && canModifyOrder && (
                   <button
                     onClick={() => setShowRequoteModal(true)}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold font-sans-custom transition-all"
@@ -1664,11 +1687,20 @@ export default function JewelryDetailPage() {
                   >
                     Iniciar Trabajo
                   </button>
-                ) : (
+                ) : canManageAssignments ? (
                   <button
                     onClick={() => setShowStartWorkModal(true)}
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-[0.08em] font-sans-custom transition-all"
                     style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400' }}
+                  >
+                    Iniciar Trabajo
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold font-sans-custom cursor-not-allowed"
+                    style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(242,240,237,0.25)', border: '1px solid rgba(255,255,255,0.06)' }}
+                    title="Solo un administrador puede iniciar trabajo y asignar joyeros."
                   >
                     Iniciar Trabajo
                   </button>
@@ -1797,7 +1829,7 @@ export default function JewelryDetailPage() {
               </div>
             </div>
             <div className="flex justify-end">
-              <button onClick={handleRegisterClientMetal} disabled={registeringMetal || !clientMetalForm.weight_gr} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold font-sans-custom transition-all disabled:opacity-50" style={{ background: 'rgba(212,175,55,0.9)', color: 'rgba(8,8,8,0.9)' }}>
+              <button onClick={handleRegisterClientMetal} disabled={!canModifyOrder || registeringMetal || !clientMetalForm.weight_gr} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold font-sans-custom transition-all disabled:opacity-50" style={{ background: 'rgba(212,175,55,0.9)', color: 'rgba(8,8,8,0.9)' }}>
                 {registeringMetal ? <RefreshCw size={13} className="animate-spin" /> : <Plus size={13} />} {registeringMetal ? 'Registrando...' : 'Registrar entrega'}
               </button>
             </div>
@@ -1909,7 +1941,7 @@ export default function JewelryDetailPage() {
 
       {/* Modales */}
       <ModalStartWork
-        isOpen={showStartWorkModal}
+        isOpen={canManageAssignments && showStartWorkModal}
         onClose={() => setShowStartWorkModal(false)}
         onSubmit={handleStartWork}
         orderId={order.id}
@@ -1918,7 +1950,7 @@ export default function JewelryDetailPage() {
       />
 
       <ModalFinishWork
-        isOpen={showFinishWorkModal}
+        isOpen={canModifyOrder && showFinishWorkModal}
         onClose={() => setShowFinishWorkModal(false)}
         onSubmit={handleFinishWork}
         orderId={order.id}
@@ -1933,7 +1965,7 @@ export default function JewelryDetailPage() {
       />
 
       <ModalDeliver
-        isOpen={showDeliverModal}
+        isOpen={canModifyOrder && showDeliverModal}
         onClose={() => setShowDeliverModal(false)}
         onSubmit={handleDeliver}
         orderId={order.id}
@@ -1950,7 +1982,7 @@ export default function JewelryDetailPage() {
       />
 
       <ModalMaterialPayment
-        isOpen={showMaterialPaymentModal}
+        isOpen={canModifyOrder && showMaterialPaymentModal}
         onClose={() => setShowMaterialPaymentModal(false)}
         onSubmit={handleMaterialPayment}
         orderId={order.id}
@@ -1964,7 +1996,7 @@ export default function JewelryDetailPage() {
       />
 
       <ModalCashPayment
-        isOpen={showCashPaymentModal}
+        isOpen={canModifyOrder && showCashPaymentModal}
         onClose={() => setShowCashPaymentModal(false)}
         onSubmit={handleCashPayment}
         orderId={order.id}
