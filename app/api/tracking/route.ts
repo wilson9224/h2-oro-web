@@ -6,6 +6,46 @@ export const dynamic = 'force-dynamic';
 type LaborStageStatus = 'pending' | 'assigned' | 'in_progress' | 'paused' | 'completed';
 
 const TRACKING_ERROR = 'Pedido no encontrado. Verifica el número de pedido y los últimos 4 dígitos de tu teléfono.';
+const TRACKING_RATE_LIMIT_WINDOW_MS = Number(process.env.TRACKING_RATE_LIMIT_WINDOW_MS ?? 5 * 60 * 1000);
+const TRACKING_IP_MAX_ATTEMPTS = Number(process.env.TRACKING_IP_MAX_ATTEMPTS ?? 20);
+const TRACKING_LOOKUP_MAX_ATTEMPTS = Number(process.env.TRACKING_LOOKUP_MAX_ATTEMPTS ?? 5);
+
+type RateLimitBucket = {
+  count: number;
+  resetAt: number;
+};
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __h2oroTrackingRateLimit: Map<string, RateLimitBucket> | undefined;
+}
+
+const trackingRateLimit = globalThis.__h2oroTrackingRateLimit ?? new Map<string, RateLimitBucket>();
+globalThis.__h2oroTrackingRateLimit = trackingRateLimit;
+
+function getClientIp(request: NextRequest) {
+  const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+  return forwardedFor || request.headers.get('x-real-ip') || 'unknown';
+}
+
+function consumeRateLimit(key: string, maxAttempts: number, now = Date.now()) {
+  if (trackingRateLimit.size > 10000) {
+    for (const [bucketKey, bucket] of Array.from(trackingRateLimit.entries())) {
+      if (bucket.resetAt <= now) trackingRateLimit.delete(bucketKey);
+    }
+  }
+
+  const current = trackingRateLimit.get(key);
+  if (!current || current.resetAt <= now) {
+    trackingRateLimit.set(key, { count: 1, resetAt: now + TRACKING_RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+
+  if (current.count >= maxAttempts) return false;
+
+  current.count += 1;
+  return true;
+}
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -53,6 +93,7 @@ function formatLaborStage(assignment: any, idx: number) {
 
 export async function POST(request: NextRequest) {
   let payload: { orderNumber?: string; phone?: string };
+  const clientIp = getClientIp(request);
 
   try {
     payload = await request.json();
@@ -65,6 +106,16 @@ export async function POST(request: NextRequest) {
 
   if (!orderNumber || requestedLast4.length !== 4) {
     return publicError(400);
+  }
+
+  const ipAllowed = consumeRateLimit(`tracking:ip:${clientIp}`, TRACKING_IP_MAX_ATTEMPTS);
+  const lookupAllowed = consumeRateLimit(
+    `tracking:lookup:${clientIp}:${orderNumber}:${requestedLast4}`,
+    TRACKING_LOOKUP_MAX_ATTEMPTS,
+  );
+
+  if (!ipAllowed || !lookupAllowed) {
+    return publicError(429);
   }
 
   try {

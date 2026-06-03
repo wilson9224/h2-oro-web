@@ -27,7 +27,7 @@ export async function fetchWorkerStats(workerId: string): Promise<WorkerStats> {
 
   return {
     total: data.length,
-    pending: data.filter(w => w.status === 'assigned' && !w.started_at).length,
+    pending: data.filter(w => (w.status === 'assigned' || w.status === 'pending') && !w.started_at).length,
     inProgress: data.filter(w => w.status === 'in_progress').length,
     completed: data.filter(w => w.status === 'completed').length,
   };
@@ -145,7 +145,7 @@ export async function fetchWorkerAssignments(
     .order('created_at', { ascending: true });
 
   if (filter === 'pending') {
-    query = query.eq('status', 'assigned').is('started_at', null);
+    query = query.in('status', ['assigned', 'pending']).is('started_at', null);
   } else if (filter === 'in_progress') {
     query = query.eq('status', 'in_progress');
   } else if (filter === 'completed') {
@@ -287,7 +287,7 @@ function resolveAttachmentUrl(item: any): string | null {
   return null;
 }
 
-export async function fetchAssignment(assignmentId: string): Promise<Assignment | null> {
+export async function fetchAssignment(assignmentId: string, workerId: string): Promise<Assignment | null> {
   const { data } = await supabase
     .from('work_assignments')
     .select(`
@@ -311,6 +311,7 @@ export async function fetchAssignment(assignmentId: string): Promise<Assignment 
       )
     `)
     .eq('id', assignmentId)
+    .eq('worker_id', workerId)
     .single();
 
   if (!data) return null;

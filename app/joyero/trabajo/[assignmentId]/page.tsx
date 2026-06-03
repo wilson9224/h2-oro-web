@@ -50,7 +50,7 @@ export default function JoyeroWorkPage() {
     if (!user || !params.assignmentId) return;
     try {
       const [asgn, evid, logs] = await Promise.all([
-        fetchAssignment(params.assignmentId),
+        fetchAssignment(params.assignmentId, user.id),
         fetchAssignmentEvidence(params.assignmentId),
         fetchAssignmentPauseLogs(params.assignmentId),
       ]);

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Pencil, X, Loader2, Check, Search, Plus, UserPlus, Phone, Mail } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { sanitizePostgrestSearch } from '@/lib/supabase/postgrest';
 
 const supabase = createClient();
 
@@ -95,7 +96,7 @@ export default function UsersPage() {
     setLoading(true);
     const from = (page - 1) * limit;
     const to = from + limit - 1;
-    const safeSearch = search.replace(/[,%]/g, '').trim();
+    const safeSearch = sanitizePostgrestSearch(search);
 
     let query = supabase
       .from('users')

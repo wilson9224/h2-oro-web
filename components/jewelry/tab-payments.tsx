@@ -193,22 +193,26 @@ export default function TabAbonos({
               </div>
             )}
 
-            {!isDelivered && (
+            {!isDelivered && (onAddCashPayment || onAddMaterialPayment) && (
               <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={onAddCashPayment}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-[0.08em] font-sans-custom transition-all"
-                  style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400' }}
-                >
-                  <Plus size={13} /> Abono en Dinero
-                </button>
-                <button
-                  onClick={onAddMaterialPayment}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold font-sans-custom transition-all"
-                  style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.7)', border: '1px solid rgba(255,255,255,0.08)' }}
-                >
-                  <Plus size={13} /> Abono en Material
-                </button>
+                {onAddCashPayment && (
+                  <button
+                    onClick={onAddCashPayment}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-[0.08em] font-sans-custom transition-all"
+                    style={{ background: 'linear-gradient(135deg, #E8C547, #D4AF37)', color: '#1A1400' }}
+                  >
+                    <Plus size={13} /> Abono en Dinero
+                  </button>
+                )}
+                {onAddMaterialPayment && (
+                  <button
+                    onClick={onAddMaterialPayment}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold font-sans-custom transition-all"
+                    style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(242,240,237,0.7)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  >
+                    <Plus size={13} /> Abono en Material
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -219,7 +223,7 @@ export default function TabAbonos({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>Historial de Abonos en Dinero</p>
-              {!isDelivered && (
+              {!isDelivered && onAddCashPayment && (
                 <button
                   onClick={onAddCashPayment}
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold font-sans-custom transition-all"
@@ -266,7 +270,7 @@ export default function TabAbonos({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold font-sans-custom" style={{ color: 'rgba(242,240,237,0.7)' }}>Historial de Abonos en Material</p>
-              {!isDelivered && (
+              {!isDelivered && onAddMaterialPayment && (
                 <button
                   onClick={onAddMaterialPayment}
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold font-sans-custom transition-all"
