@@ -276,13 +276,23 @@ export async function fetchOrderDetailForWorker(orderId: string, workerId: strin
 }
 
 // Work queries
-function resolveAttachmentUrl(item: any): string | null {
+const SIGNED_URL_TTL_SECONDS = 60 * 60;
+
+async function resolveAttachmentUrl(item: any): Promise<string | null> {
   if (item.file_url) return item.file_url;
   if (item.bucket && item.storage_path) {
-    const { data } = supabase.storage
+    const { data, error } = await supabase.storage
       .from(item.bucket)
-      .getPublicUrl(item.storage_path);
-    return data.publicUrl;
+      .createSignedUrl(item.storage_path, SIGNED_URL_TTL_SECONDS);
+
+    if (!error && data?.signedUrl) return data.signedUrl;
+
+    if (item.bucket !== 'evidences') {
+      const { data: publicData } = supabase.storage
+        .from(item.bucket)
+        .getPublicUrl(item.storage_path);
+      return publicData.publicUrl;
+    }
   }
   return null;
 }
@@ -325,16 +335,16 @@ export async function fetchAssignment(assignmentId: string, workerId: string): P
     .eq('file_type', 'image')
     .order('created_at', { ascending: true });
 
-  const referenceImages: Evidence[] = (referenceRows || [])
-    .map((item: any) => {
-      const url = resolveAttachmentUrl(item);
+  const referenceImages = (await Promise.all((referenceRows || [])
+    .map(async (item: any) => {
+      const url = await resolveAttachmentUrl(item);
       if (!url) return null;
       return {
         id: item.id,
         url,
         fileName: item.file_name,
       };
-    })
+    })))
     .filter(Boolean) as Evidence[];
 
   return {
@@ -431,16 +441,16 @@ export async function fetchAssignmentEvidence(assignmentId: string): Promise<Evi
 
   if (!data) return [];
 
-  return data.map((item: any) => {
-    const { data: urlData } = supabase.storage
-      .from(item.bucket)
-      .getPublicUrl(item.storage_path);
+  return (await Promise.all(data.map(async (item: any) => {
+    const url = await resolveAttachmentUrl(item);
+    if (!url) return null;
+
     return {
       id: item.id,
-      url: urlData.publicUrl,
+      url,
       fileName: item.file_name,
     };
-  });
+  }))).filter(Boolean) as Evidence[];
 }
 
 export async function uploadEvidence(
@@ -477,11 +487,11 @@ export async function uploadEvidence(
     throw insertError;
   }
 
-  const { data: { publicUrl } } = supabase.storage
+  const { data: signedData } = await supabase.storage
     .from('evidences')
-    .getPublicUrl(storagePath);
+    .createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS);
 
-  return publicUrl;
+  return signedData?.signedUrl ?? null;
 }
 
 // Pause / Resume work

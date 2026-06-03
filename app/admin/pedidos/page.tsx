@@ -22,6 +22,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { fetchQuotationByOrderId } from '@/lib/quotation/queries';
+import { QUOTATION_REFERENCE_DESCRIPTION } from '@/lib/quotation/attachments';
 
 const supabase = createClient();
 
@@ -83,6 +84,8 @@ async function getThumbnailUrl(attachment: ThumbnailAttachmentRow) {
     .createSignedUrl(attachment.storage_path, 60 * 60);
 
   if (!error && data?.signedUrl) return data.signedUrl;
+
+  if (attachment.bucket === 'evidences') return attachment.file_url || null;
 
   const { data: publicData } = supabase.storage
     .from(attachment.bucket)
@@ -261,6 +264,40 @@ export default function OrdersKanbanPage() {
         orderImageMap[orderId] = imageMap[cycleId] || null;
       }
 
+      // Prefer the image annotated during quotation, when the order was created from one.
+      const quotationImageMap: Record<string, string | null> = {};
+      if (orderIds.length > 0) {
+        const { data: quotations } = await supabase
+          .from('quotations')
+          .select('id, order_id')
+          .in('order_id', orderIds);
+
+        const quotationRows = (quotations || []) as { id: string; order_id: string | null }[];
+        const quotationIds = quotationRows.map((quotation) => quotation.id);
+        const quotationOrderMap = quotationRows.reduce<Record<string, string>>((acc, quotation) => {
+          if (quotation.order_id) acc[quotation.id] = quotation.order_id;
+          return acc;
+        }, {});
+
+        if (quotationIds.length > 0) {
+          const { data: quotationAttachments } = await supabase
+            .from('file_attachments')
+            .select('*')
+            .eq('entity_type', 'quotation')
+            .eq('description', QUOTATION_REFERENCE_DESCRIPTION)
+            .in('entity_id', quotationIds)
+            .order('created_at', { ascending: true });
+
+          if (quotationAttachments) {
+            for (const attachment of quotationAttachments as ThumbnailAttachmentRow[]) {
+              const orderId = quotationOrderMap[attachment.entity_id];
+              if (!orderId || quotationImageMap[orderId] || !isImageAttachment(attachment)) continue;
+              quotationImageMap[orderId] = await getThumbnailUrl(attachment);
+            }
+          }
+        }
+      }
+
       // Fallback to order-level attachments if a work-cycle reference image is not present.
       if (orderIds.length > 0) {
         const ordersWithoutImage = orderIds.filter((orderId: string) => !orderImageMap[orderId]);
@@ -302,7 +339,7 @@ export default function OrdersKanbanPage() {
             ? { id: assignedTo.id, firstName: assignedTo.first_name, lastName: assignedTo.last_name }
             : null,
           workers: orderWorkersMap[o.id] || [],
-          imageUrl: orderImageMap[o.id] || null,
+          imageUrl: quotationImageMap[o.id] || orderImageMap[o.id] || null,
         };
       });
 

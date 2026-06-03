@@ -15,6 +15,12 @@ import StonesSection from '@/components/quotation/stones-section';
 import LaborSection from '@/components/quotation/labor-section';
 import QuotationSummary from '@/components/quotation/quotation-summary';
 import ConvertToOrderModal from '@/components/quotation/convert-to-order-modal';
+import ReferenceImageEditor from '@/components/quotation/reference-image-editor';
+import {
+  deleteQuotationReferenceImages,
+  fetchQuotationReferenceImage,
+  replaceQuotationReferenceImage,
+} from '@/lib/quotation/attachments';
 import type { QuoteType, QuotationFormState } from '@/lib/quotation/types';
 
 const ALLOWED_ROLES = ['admin', 'manager'];
@@ -29,6 +35,11 @@ export default function NuevaCotizacionPage() {
   const [loadingEdit, setLoadingEdit] = useState(!!editId);
   const [editInitial, setEditInitial] = useState<Partial<QuotationFormState> | undefined>(undefined);
   const [isConverted, setIsConverted] = useState(false);
+  const [referenceImageFile, setReferenceImageFile] = useState<File | null>(null);
+  const [referenceImagePreviewUrl, setReferenceImagePreviewUrl] = useState<string | null>(null);
+  const [referenceImageRemoved, setReferenceImageRemoved] = useState(false);
+  const [referenceImageSaving, setReferenceImageSaving] = useState(false);
+  const [referenceImageError, setReferenceImageError] = useState<string | null>(null);
 
   // Load existing quotation if ?edit=ID
   useEffect(() => {
@@ -44,6 +55,12 @@ export default function NuevaCotizacionPage() {
         setEditInitial(formState);
         setSavedId(record.id);
         setIsConverted(record.status === 'converted');
+        return fetchQuotationReferenceImage(record.id);
+      })
+      .then((referenceImage) => {
+        setReferenceImagePreviewUrl(referenceImage?.url ?? null);
+        setReferenceImageFile(null);
+        setReferenceImageRemoved(false);
       })
       .catch((err) => {
         console.error('Error loading quotation for edit:', err);
@@ -97,10 +114,56 @@ export default function NuevaCotizacionPage() {
     setQuoteType(type);
   };
 
+  const handleReferenceImageSaved = (file: File, previewUrl: string) => {
+    setReferenceImageFile(file);
+    setReferenceImagePreviewUrl(previewUrl);
+    setReferenceImageRemoved(false);
+    setReferenceImageError(null);
+  };
+
+  const handleRemoveReferenceImage = () => {
+    setReferenceImageFile(null);
+    setReferenceImagePreviewUrl(null);
+    setReferenceImageRemoved(true);
+    setReferenceImageError(null);
+  };
+
+  const persistReferenceImage = async (quotationId: string) => {
+    if (!user || (!referenceImageFile && !referenceImageRemoved)) return;
+
+    setReferenceImageSaving(true);
+    setReferenceImageError(null);
+    try {
+      if (referenceImageFile) {
+        const savedImage = await replaceQuotationReferenceImage({
+          quotationId,
+          file: referenceImageFile,
+          userId: user.id,
+        });
+        setReferenceImagePreviewUrl(savedImage?.url ?? null);
+        setReferenceImageFile(null);
+        setReferenceImageRemoved(false);
+        return;
+      }
+
+      if (referenceImageRemoved) {
+        await deleteQuotationReferenceImages(quotationId);
+        setReferenceImageRemoved(false);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No pudimos guardar la imagen de referencia.';
+      setReferenceImageError(message);
+      throw error;
+    } finally {
+      setReferenceImageSaving(false);
+    }
+  };
+
   const handleSaveDraft = async () => {
     try {
       const id = await save(user.id);
       setSavedId(id);
+      await persistReferenceImage(id);
       // If this quotation is already converted to an order, sync changes
       if (isConverted && id) {
         await syncQuotationToOrder(id, form);
@@ -115,6 +178,7 @@ export default function NuevaCotizacionPage() {
     try {
       const id = await save(user.id);
       setSavedId(id);
+      await persistReferenceImage(id);
       setShowModal(true);
     } catch {
       // error handled by hook
@@ -201,6 +265,24 @@ export default function NuevaCotizacionPage() {
               setPieceType={setPieceType}
               setDescription={setDescription}
               setClientData={setClientData}
+              referenceImageEditor={
+                <div className="border-t border-white/5 pt-4">
+                  <ReferenceImageEditor
+                    previewUrl={referenceImagePreviewUrl}
+                    saving={saving || referenceImageSaving}
+                    onImageSaved={handleReferenceImageSaved}
+                    onRemove={handleRemoveReferenceImage}
+                  />
+                  {referenceImageSaving && (
+                    <p className="mt-2 text-xs text-charcoal-400">Guardando imagen de referencia...</p>
+                  )}
+                  {referenceImageError && (
+                    <p className="mt-2 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                      {referenceImageError}
+                    </p>
+                  )}
+                </div>
+              }
             />
           </SectionCard>
 
@@ -246,7 +328,7 @@ export default function NuevaCotizacionPage() {
           <div className="sticky top-8">
             <QuotationSummary
               form={form}
-              saving={saving}
+              saving={saving || referenceImageSaving}
               onSaveDraft={handleSaveDraft}
               onCreateOrder={handleOpenModal}
               variant="sidebar"
@@ -260,7 +342,7 @@ export default function NuevaCotizacionPage() {
       <div className="lg:hidden">
         <QuotationSummary
           form={form}
-          saving={saving}
+          saving={saving || referenceImageSaving}
           onSaveDraft={handleSaveDraft}
           onCreateOrder={handleOpenModal}
           variant="bottom"

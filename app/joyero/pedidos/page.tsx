@@ -40,11 +40,21 @@ interface OrderGroup {
   referenceImageUrl: string | null;
 }
 
-function resolveAttachmentUrl(supabase: ReturnType<typeof createClient>, item: any): string | null {
+const SIGNED_URL_TTL_SECONDS = 60 * 60;
+
+async function resolveAttachmentUrl(supabase: ReturnType<typeof createClient>, item: any): Promise<string | null> {
   if (item?.file_url) return item.file_url;
   if (item?.bucket && item?.storage_path) {
-    const { data } = supabase.storage.from(item.bucket).getPublicUrl(item.storage_path);
-    return data.publicUrl;
+    const { data, error } = await supabase.storage
+      .from(item.bucket)
+      .createSignedUrl(item.storage_path, SIGNED_URL_TTL_SECONDS);
+
+    if (!error && data?.signedUrl) return data.signedUrl;
+
+    if (item.bucket !== 'evidences') {
+      const { data: publicData } = supabase.storage.from(item.bucket).getPublicUrl(item.storage_path);
+      return publicData.publicUrl;
+    }
   }
   return null;
 }
@@ -190,11 +200,11 @@ export default function JoyeroPedidosPage() {
             .order('created_at', { ascending: true });
 
           const firstImageByOrder = new Map<string, string>();
-          (imageRows ?? []).forEach((image: any) => {
-            if (firstImageByOrder.has(image.entity_id)) return;
-            const url = resolveAttachmentUrl(supabase, image);
+          for (const image of imageRows ?? []) {
+            if (firstImageByOrder.has(image.entity_id)) continue;
+            const url = await resolveAttachmentUrl(supabase, image);
             if (url) firstImageByOrder.set(image.entity_id, url);
-          });
+          }
 
           groups.forEach(group => {
             group.referenceImageUrl = firstImageByOrder.get(group.orderId) ?? null;
