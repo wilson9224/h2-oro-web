@@ -1,22 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Space_Grotesk, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "./providers";
 import "./globals.css";
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
-  display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
-});
-
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-plus-jakarta",
-  display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
-});
 
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
@@ -44,9 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="scroll-smooth">
-      <body
-        className={`${spaceGrotesk.variable} ${plusJakarta.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistMono.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -392,19 +392,20 @@ export default function ReferenceImageEditor({
                 </button>
               </div>
 
-              <div className="min-w-0 rounded-lg border border-white/8 bg-black/35 p-2">
-                {loadingImage ? (
-                  <div className="flex min-h-80 items-center justify-center text-sm text-charcoal-400">Cargando imagen...</div>
-                ) : (
-                  <canvas
-                    ref={canvasRef}
-                    onPointerDown={handlePointerDown}
-                    onPointerMove={handlePointerMove}
-                    onPointerUp={finishStroke}
-                    onPointerCancel={finishStroke}
-                    className="mx-auto block max-h-[68dvh] max-w-full rounded-md touch-none"
-                  />
+              <div className="relative min-w-0 rounded-lg border border-white/8 bg-black/35 p-2">
+                {loadingImage && (
+                  <div className="absolute inset-2 z-10 flex min-h-80 items-center justify-center rounded-md bg-black/55 text-sm text-charcoal-300">
+                    Cargando imagen...
+                  </div>
                 )}
+                <canvas
+                  ref={canvasRef}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={finishStroke}
+                  onPointerCancel={finishStroke}
+                  className={`mx-auto block max-h-[68dvh] max-w-full rounded-md touch-none ${loadingImage ? 'opacity-0' : 'opacity-100'}`}
+                />
               </div>
             </div>
           </div>
